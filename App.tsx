@@ -1,6 +1,7 @@
+
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
-import { generateWorkflow } from './services/gemini';
+import { generateWorkflow, generateAgentInstructions } from './services/gemini';
 import ChatSidebar from './components/ChatSidebar';
 import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
@@ -10,7 +11,13 @@ import {
   Layout, 
   FileText, 
   Download,
-  Upload
+  Upload,
+  Zap,
+  Copy,
+  CheckCircle2,
+  RefreshCw,
+  // Add missing Sparkles icon
+  Sparkles
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -21,9 +28,12 @@ const App: React.FC = () => {
     edges: []
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingInstructions, setIsGeneratingInstructions] = useState(false);
+  const [agentInstructions, setAgentInstructions] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json' | 'instructions'>('editor');
+  const [copySuccess, setCopySuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,10 +48,25 @@ const App: React.FC = () => {
       });
       setConfirmation(result.confirmation);
       setSelectedNodeId(null);
+      // 清除舊的指令集
+      setAgentInstructions(null);
     } catch (err) {
       alert("生成工作流失敗，請檢查控制台。");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateInstructions = async () => {
+    if (workflow.nodes.length === 0) return;
+    setIsGeneratingInstructions(true);
+    try {
+      const result = await generateAgentInstructions(workflow);
+      setAgentInstructions(result);
+    } catch (err) {
+      alert("生成指令集失敗。");
+    } finally {
+      setIsGeneratingInstructions(false);
     }
   };
 
@@ -166,11 +191,10 @@ const App: React.FC = () => {
       try {
         const content = event.target?.result as string;
         const importedWorkflow = JSON.parse(content) as Workflow;
-        
-        // 基礎校驗：確保具有 nodes 和 edges
         if (importedWorkflow.nodes && importedWorkflow.edges) {
           setWorkflow(importedWorkflow);
           setSelectedNodeId(null);
+          setAgentInstructions(null);
         } else {
           alert('無效的工作流 JSON 檔案結構。');
         }
@@ -180,7 +204,6 @@ const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
-    // 重置 input 以便下次能選擇同一個檔案
     e.target.value = '';
   };
 
@@ -254,6 +277,14 @@ const App: React.FC = () => {
     setWorkflow(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleCopyInstructions = () => {
+    if (agentInstructions) {
+      navigator.clipboard.writeText(agentInstructions);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+
   return (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 selection:bg-blue-500/30">
       <ChatSidebar 
@@ -266,7 +297,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md overflow-x-auto no-scrollbar shrink-0">
-          <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-4 shrink-0">
             <div className="flex flex-col group relative">
               <input 
                 type="text"
@@ -278,17 +309,18 @@ const App: React.FC = () => {
               <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-[0.2em] opacity-80 font-black">Workflow Editor v2.7</span>
             </div>
             
-            <nav className="flex items-center bg-slate-800/80 rounded-[22px] p-1.5 shadow-inner border border-slate-700/50 shrink-0 ml-4">
+            <nav className="flex items-center bg-slate-800/80 rounded-[22px] p-1 shadow-inner border border-slate-700/50 shrink-0 ml-2">
               {[
-                { id: 'editor', label: '畫布編輯器', icon: <Layout size={16}/> },
-                { id: 'mermaid', label: 'Mermaid', icon: <Share2 size={16}/> },
-                { id: 'markdown', label: 'Markdown', icon: <FileText size={16}/> },
-                { id: 'json', label: 'Raw JSON', icon: <FileCode size={16}/> }
+                { id: 'editor', label: '畫布編輯器', icon: <Layout size={14}/> },
+                { id: 'instructions', label: 'Agent 指令集', icon: <Zap size={14}/> },
+                { id: 'mermaid', label: 'Mermaid', icon: <Share2 size={14}/> },
+                { id: 'markdown', label: 'Markdown', icon: <FileText size={14}/> },
+                { id: 'json', label: 'Raw JSON', icon: <FileCode size={14}/> }
               ].map(tab => (
                 <button 
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)} 
-                  className={`flex items-center gap-3 px-6 py-3 rounded-[18px] text-[14px] font-black transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-2xl scale-105 ring-1 ring-white/10' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-[18px] text-[12px] font-black transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg ring-1 ring-white/10' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -297,13 +329,13 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <button 
               onClick={handleImportClick}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl text-[13px] font-black transition-all shadow-xl border border-slate-700 flex items-center gap-3 active:scale-95"
+              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl text-[12px] font-black transition-all shadow-xl border border-slate-700 flex items-center gap-2 active:scale-95"
             >
-              <Upload size={16} />
-              Import Flow
+              <Upload size={14} />
+              Import
             </button>
             <input 
               type="file" 
@@ -314,10 +346,10 @@ const App: React.FC = () => {
             />
             <button 
               onClick={handleExport}
-              className="bg-white hover:bg-slate-200 text-slate-900 px-6 py-3 rounded-2xl text-[13px] font-black transition-all shadow-2xl shadow-white/5 uppercase tracking-[0.2em] active:scale-95 flex items-center gap-3"
+              className="bg-white hover:bg-slate-200 text-slate-900 px-4 py-2.5 rounded-xl text-[12px] font-black transition-all shadow-2xl uppercase tracking-[0.1em] active:scale-95 flex items-center gap-2"
             >
-              <Download size={16} />
-              Export Flow
+              <Download size={14} />
+              Export
             </button>
           </div>
         </header>
@@ -333,6 +365,86 @@ const App: React.FC = () => {
               onDeleteEdge={handleDeleteEdge}
               selectedNodeId={selectedNodeId}
             />
+          ) : activeTab === 'instructions' ? (
+            <div className="flex-1 bg-slate-950 p-12 overflow-auto flex flex-col items-center">
+              <div className="max-w-5xl w-full space-y-10">
+                <div className="flex justify-between items-end border-b border-slate-800 pb-8">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+                      <Zap className="text-yellow-400 fill-yellow-400" size={32} />
+                      Agent Skill SOP 生成器
+                    </h2>
+                    <p className="text-slate-400 text-lg max-w-2xl font-medium leading-relaxed">
+                      基於「階層式揭露」原則，由 <span className="text-blue-400 font-bold">Gemini 3 Pro</span> 深度分析您的工作流，轉化為能夠防止 AI 注意力渙散的執行手冊。
+                    </p>
+                  </div>
+                  <button 
+                    disabled={workflow.nodes.length === 0 || isGeneratingInstructions}
+                    onClick={handleGenerateInstructions}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white px-8 py-4 rounded-2xl text-[14px] font-black transition-all shadow-2xl flex items-center gap-3 active:scale-95 border border-blue-400/20"
+                  >
+                    {isGeneratingInstructions ? <RefreshCw size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    {agentInstructions ? "重新產生指令集" : "開始產生 Agent SOP"}
+                  </button>
+                </div>
+
+                {agentInstructions ? (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                    <div className="relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[40px] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                      <div className="relative bg-slate-900/90 border border-slate-700 p-10 rounded-[40px] shadow-3xl">
+                        <div className="flex justify-between items-center mb-8">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">GENERATED MASTER SYSTEM PROMPT</span>
+                          <button 
+                            onClick={handleCopyInstructions}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black transition-all ${copySuccess ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'}`}
+                          >
+                            {copySuccess ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                            {copySuccess ? 'Copied' : 'Copy Prompt'}
+                          </button>
+                        </div>
+                        <div className="prose prose-invert max-w-none">
+                          <pre className="p-8 bg-slate-950 rounded-2xl border border-slate-800 text-slate-300 font-sans text-lg leading-relaxed whitespace-pre-wrap selection:bg-blue-500/40">
+                            {agentInstructions}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                       {[
+                         { title: "階層式揭露", desc: "指令集將工作拆解為微型任務，避免單一 Prompt 過長導致的 Context 腐爛。" },
+                         { title: "防汙染機制", desc: "明確定義 Skill 原子邊界，確保每個階段的狀態不會干擾後續邏輯。" },
+                         { title: "反饋回圈優化", desc: "專門針對 Loop 節點優化執行路徑，確保 AI 能理解「返回上一步」的確切觸發點。" }
+                       ].map((feat, idx) => (
+                         <div key={idx} className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800/50">
+                            <h4 className="text-white font-black text-sm mb-2 tracking-tight">{feat.title}</h4>
+                            <p className="text-slate-500 text-xs leading-relaxed">{feat.desc}</p>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                ) : !isGeneratingInstructions ? (
+                  <div className="h-[400px] flex flex-col items-center justify-center text-slate-600 space-y-6 opacity-40">
+                    <Zap size={64} className="animate-pulse" />
+                    <p className="text-xl font-black uppercase tracking-widest text-center max-w-sm">
+                      Ready to encode your workflow into agent intelligence
+                    </p>
+                  </div>
+                ) : (
+                  <div className="h-[400px] flex flex-col items-center justify-center space-y-8">
+                    <div className="relative">
+                       <div className="w-24 h-24 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin" />
+                       <Sparkles className="absolute inset-0 m-auto text-blue-400 animate-pulse" size={32} />
+                    </div>
+                    <div className="text-center space-y-3">
+                      <p className="text-2xl font-black text-blue-400 animate-pulse">正在構建 Skill SOP...</p>
+                      <p className="text-slate-500 text-sm font-medium">Gemini 3 Pro 正在深度拆解工作流拓撲結構並處理狀態機邏輯</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : activeTab === 'json' ? (
             <div className="flex-1 bg-slate-950 p-12 overflow-auto">
               <div className="max-w-6xl mx-auto">

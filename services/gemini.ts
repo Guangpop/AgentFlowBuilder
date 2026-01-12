@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { WorkflowResponse, NodeType } from "../types";
+import { Workflow, WorkflowResponse, NodeType } from "../types";
 
 // 使用命名參數初始化，並直接使用 process.env.API_KEY
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -91,6 +91,45 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
     return data;
   } catch (error) {
     console.error("工作流生成錯誤:", error);
+    throw error;
+  }
+};
+
+/**
+ * 使用 Gemini 3 Pro 產生基於「階層式揭露」原則的 Agent Skill 指令集
+ */
+export const generateAgentInstructions = async (workflow: Workflow): Promise<string> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: `你是一個資深的 AI Agent 架構師與 Prompt 工程專家。
+你的任務是將一個視覺化的工作流 (Workflow) 轉換為一段精確、具備高度結構化的「Agent 執行指令 (Master Instructions)」。
+
+這個指令集必須遵循「階層式揭露 (Hierarchical Disclosure)」原則，以解決以下問題：
+1. 避免注意力渙散 (Attention Drift)
+2. 防止上下文汙染 (Context Pollution)
+3. 應對 Context Window 滑動造成的截斷問題
+
+當前的視覺化工作流數據如下 (JSON)：
+${JSON.stringify(workflow, null, 2)}
+
+請產生一段 Prompt，這段 Prompt 應該包含：
+1. **Role Definition**: 定義 Agent 的角色與核心使命。
+2. **Standard Operating Procedure (SOP)**: 將工作流拆解為明確的執行階段。
+3. **Skill Modules**: 根據節點類型 (Reasoning, Action, Condition) 定義 Agent 應具備的原子化技能。
+4. **State Management & Feedback Loops**: 明確說明如何處理「返回 (Loop Back)」邏輯（例如 2.1.3 返回 2 步），並指示 Agent 如何保存與過濾狀態。
+5. **Context Protocol**: 指示 Agent 如何清理不必要的歷史紀錄，只保留當前執行路徑所需的關鍵資訊。
+
+請使用專業、嚴謹且易於讓其他 AI Agent (如 Claude 或 GPT-4) 理解的語言（繁體中文）輸出這段生成的 Prompt。`,
+      config: {
+        temperature: 1,
+        thinkingConfig: { thinkingBudget: 32768 } // 使用 Pro 模型的思維鏈
+      },
+    });
+
+    return response.text || "無法生成指令集。";
+  } catch (error) {
+    console.error("生成 Agent 指令集失敗:", error);
     throw error;
   }
 };
