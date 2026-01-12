@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Workflow, WorkflowNode, NodeType } from '../types';
 import { NODE_COLORS, NODE_ICONS, NODE_DISPLAY_NAMES } from '../constants';
@@ -311,14 +310,6 @@ const WorkflowCanvas: React.FC<Props> = ({
               </button>
             ))}
           </div>
-          <div className="w-px h-14 bg-slate-700 mx-4 opacity-30 shrink-0" />
-          <button 
-            onClick={() => onAddNode(NodeType.AgentReasoning)}
-            className="flex items-center gap-4 px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-[24px] text-sm font-black uppercase tracking-[0.2em] transition-all shadow-2xl shadow-blue-900/50 active:scale-95 whitespace-nowrap shrink-0"
-          >
-            <Plus size={24} />
-            快速部署
-          </button>
         </div>
       )}
 

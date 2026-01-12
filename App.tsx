@@ -190,7 +190,6 @@ const App: React.FC = () => {
     content += "  classDef Reasoning fill:#4c1d95,stroke:#8b5cf6,color:#fff\n";
     content += "  classDef Condition fill:#7c2d12,stroke:#f97316,color:#fff\n";
     content += "  classDef Action fill:#064e3b,stroke:#10b981,color:#fff\n";
-    content += "  classDef Loop fill:#881337,stroke:#f43f5e,color:#fff\n";
 
     workflow.nodes.forEach(node => {
       const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
@@ -202,7 +201,6 @@ const App: React.FC = () => {
       else if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
       else if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
       else if (node.node_type === NodeType.AgentAction) content += `  class ${safeId} Action\n`;
-      else if (node.node_type === NodeType.LoopBack) content += `  class ${safeId} Loop\n`;
     });
 
     workflow.edges.forEach(edge => {

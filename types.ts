@@ -1,13 +1,10 @@
-
 export enum NodeType {
   UserInput = 'UserInput',
   AgentReasoning = 'AgentReasoning',
   Condition = 'Condition',
   AgentQuestion = 'AgentQuestion',
   UserResponse = 'UserResponse',
-  AgentAction = 'AgentAction',
-  LoopBack = 'LoopBack',
-  SubWorkflow = 'SubWorkflow'
+  AgentAction = 'AgentAction'
 }
 
 export interface NodePosition {

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { WorkflowResponse, NodeType } from "../types";
 
@@ -25,7 +24,7 @@ const WORKFLOW_SCHEMA = {
               node_id: { type: Type.STRING },
               node_type: { 
                 type: Type.STRING, 
-                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, LoopBack, SubWorkflow" 
+                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction" 
               },
               description: { type: Type.STRING },
               inputs: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -65,9 +64,8 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
       要求：
       1. 每個步驟都必須是一個獨立的節點。
       2. 使用 'Condition' 節點處理分支邏輯。
-      3. 使用 'LoopBack' 節點處理反饋或返回先前的步驟。
-      4. 確保 node_id 唯一且具備描述性。
-      5. 所有輸出（包括節點與確認訊息）請使用繁體中文。
+      3. 確保 node_id 唯一且具備描述性。
+      4. 所有輸出（包括節點與確認訊息）請使用繁體中文。
       
       使用者工作流描述：
       "${prompt}"`,
