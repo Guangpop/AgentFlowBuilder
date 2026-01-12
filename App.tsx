@@ -194,11 +194,13 @@ const App: React.FC = () => {
   const markdownContent = useMemo(() => {
     let md = `# 工作流: ${workflow.name}\n\n${workflow.description}\n\n## 節點清單\n\n`;
     workflow.nodes.forEach(node => {
-      md += `### 🏢 ${node.node_id} (${node.node_type})\n- **功能描述**: ${node.description}\n- **輸入端點**: ${node.inputs.join(', ') || '無'}\n- **輸出端點**: ${node.outputs.join(', ') || '無'}\n\n`;
+      // 已移除 🏢 圖示
+      md += `### ${node.node_id} (${node.node_type})\n- **功能描述**: ${node.description}\n- **輸入端點**: ${node.inputs.join(', ') || '無'}\n- **輸出端點**: ${node.outputs.join(', ') || '無'}\n\n`;
     });
     md += `## 流程拓撲結構\n\n`;
     workflow.edges.forEach(edge => {
-      md += `- ${edge.source} ➔ ${edge.target}${edge.label ? ` (${edge.label})` : ""}\n`;
+      // 已將 ➔ 替換為標準的 -> 符號
+      md += `- ${edge.source} -> ${edge.target}${edge.label ? ` (${edge.label})` : ""}\n`;
     });
     return md;
   }, [workflow]);
