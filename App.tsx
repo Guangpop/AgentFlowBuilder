@@ -139,7 +139,7 @@ const App: React.FC = () => {
 
   const mermaidContent = useMemo(() => {
     let content = "graph TD\n";
-    // 定義樣式類別
+    // 定義基礎樣式
     content += "  classDef UserInput fill:#1e3a8a,stroke:#3b82f6,color:#fff\n";
     content += "  classDef Reasoning fill:#4c1d95,stroke:#8b5cf6,color:#fff\n";
     content += "  classDef Condition fill:#7c2d12,stroke:#f97316,color:#fff\n";
@@ -147,17 +147,15 @@ const App: React.FC = () => {
     content += "  classDef Loop fill:#881337,stroke:#f43f5e,color:#fff\n";
 
     workflow.nodes.forEach(node => {
+      // 確保 ID 格式安全
       const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
-      const cleanName = node.node_id.replace(/"/g, "'");
-      const cleanType = node.node_type.replace(/"/g, "'");
-      const cleanDesc = node.description.replace(/"/g, "'").replace(/\n/g, " ").slice(0, 80);
-      const inputs = node.inputs.length > 0 ? `I: ${node.inputs.join(', ')}` : "";
-      const outputs = node.outputs.length > 0 ? `O: ${node.outputs.join(', ')}` : "";
+      const cleanName = node.node_id.replace(/[\[\]"()]/g, '');
+      const cleanType = node.node_type.replace(/[\[\]"()]/g, '');
       
-      // 使用正確的 Mermaid 節點標籤語法，不使用 HTML 標籤以避免渲染失敗
-      content += `  ${safeId}["${cleanName}<br/>(${cleanType})<br/>${cleanDesc}<br/>${inputs}<br/>${outputs}"]\n`;
+      // 簡化標籤以確保渲染成功
+      content += `  ${safeId}["${cleanName} (${cleanType})"]\n`;
       
-      // 套用樣式
+      // 根據類型分配類別
       if (node.node_type === NodeType.UserInput) content += `  class ${safeId} UserInput\n`;
       else if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
       else if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
@@ -168,19 +166,29 @@ const App: React.FC = () => {
     workflow.edges.forEach(edge => {
       const s = edge.source.replace(/[^a-zA-Z0-9]/g, '_');
       const t = edge.target.replace(/[^a-zA-Z0-9]/g, '_');
-      // 修正連線標籤語法為 -->|label|
+      
+      // 使用最穩定的 Mermaid 連線語法
       if (edge.label) {
-        content += `  ${s} -->|"${edge.label.replace(/"/g, "'")}"| ${t}\n`;
+        const cleanLabel = edge.label.replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s]/g, '');
+        content += `  ${s} -->|"${cleanLabel}"| ${t}\n`;
       } else {
         content += `  ${s} --> ${t}\n`;
       }
     });
-    return content;
+    return content.trim();
   }, [workflow]);
 
   const mermaidChartUrl = useMemo(() => {
-    const base64 = btoa(unescape(encodeURIComponent(mermaidContent)));
-    return `https://mermaid.ink/img/${base64}`;
+    try {
+      // 使用穩定的 UTF-8 Base64 編碼方式
+      const base64 = btoa(encodeURIComponent(mermaidContent).replace(/%([0-9A-F]{2})/g, (match, p1) => 
+        String.fromCharCode(parseInt(p1, 16))
+      ));
+      return `https://mermaid.ink/img/${base64}`;
+    } catch (e) {
+      console.error("Mermaid base64 conversion error:", e);
+      return "";
+    }
   }, [mermaidContent]);
 
   const markdownContent = useMemo(() => {
@@ -281,8 +289,12 @@ const App: React.FC = () => {
             <div className="flex-1 bg-slate-950 p-12 overflow-auto flex flex-col items-center">
               <div className="max-w-6xl w-full space-y-12">
                 <div className="p-16 rounded-[60px] bg-slate-900/50 border border-slate-800 flex flex-col items-center gap-10 shadow-[0_40px_100px_rgba(0,0,0,0.6)]">
-                  <div className="bg-white p-12 rounded-[40px] shadow-inner max-w-full overflow-hidden border-[16px] border-slate-800/30">
-                    <img src={mermaidChartUrl} alt="Workflow Diagram" className="max-w-full object-contain" />
+                  <div className="bg-white p-12 rounded-[40px] shadow-inner max-w-full overflow-hidden border-[16px] border-slate-800/30 min-h-[300px] flex items-center justify-center">
+                    {mermaidChartUrl ? (
+                      <img src={mermaidChartUrl} alt="Workflow Diagram" className="max-w-full object-contain" />
+                    ) : (
+                      <div className="text-slate-400 font-bold italic">無法生成圖表，請檢查 DSL 定義</div>
+                    )}
                   </div>
                 </div>
                 <div className="p-12 rounded-[40px] bg-slate-900 border border-slate-800 shadow-2xl">
