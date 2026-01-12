@@ -1,0 +1,5 @@
+{
+  "name": "AI Agent 工作流構建引擎",
+  "description": "一個節點式視覺化工作流構建器，利用 Gemini 將自然語言描述轉換為結構化、可執行的 AI Agent 工作流，支持條件邏輯與回圈。",
+  "requestFramePermissions": []
+}
