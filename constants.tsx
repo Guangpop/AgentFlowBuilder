@@ -12,6 +12,17 @@ import {
 } from 'lucide-react';
 import { NodeType } from './types';
 
+export const NODE_DISPLAY_NAMES: Record<NodeType, string> = {
+  [NodeType.UserInput]: '用戶輸入',
+  [NodeType.AgentReasoning]: 'AI 邏輯推理',
+  [NodeType.Condition]: '條件分支判斷',
+  [NodeType.AgentQuestion]: 'AI 澄清提問',
+  [NodeType.UserResponse]: '用戶補充回答',
+  [NodeType.AgentAction]: '執行任務動作',
+  [NodeType.LoopBack]: '流程返回/回圈',
+  [NodeType.SubWorkflow]: '子流程模組',
+};
+
 export const NODE_COLORS: Record<NodeType, { bg: string; border: string; icon: string }> = {
   [NodeType.UserInput]: { bg: 'bg-blue-900/40', border: 'border-blue-500', icon: 'text-blue-400' },
   [NodeType.AgentReasoning]: { bg: 'bg-purple-900/40', border: 'border-purple-500', icon: 'text-purple-400' },
@@ -24,12 +35,12 @@ export const NODE_COLORS: Record<NodeType, { bg: string; border: string; icon: s
 };
 
 export const NODE_ICONS: Record<NodeType, React.ReactNode> = {
-  [NodeType.UserInput]: <User size={18} />,
-  [NodeType.AgentReasoning]: <Brain size={18} />,
-  [NodeType.Condition]: <GitBranch size={18} />,
-  [NodeType.AgentQuestion]: <HelpCircle size={18} />,
-  [NodeType.UserResponse]: <MessageSquare size={18} />,
-  [NodeType.AgentAction]: <Play size={18} />,
-  [NodeType.LoopBack]: <RotateCcw size={18} />,
-  [NodeType.SubWorkflow]: <Layers size={18} />,
+  [NodeType.UserInput]: <User size={20} />,
+  [NodeType.AgentReasoning]: <Brain size={20} />,
+  [NodeType.Condition]: <GitBranch size={20} />,
+  [NodeType.AgentQuestion]: <HelpCircle size={20} />,
+  [NodeType.UserResponse]: <MessageSquare size={20} />,
+  [NodeType.AgentAction]: <Play size={20} />,
+  [NodeType.LoopBack]: <RotateCcw size={20} />,
+  [NodeType.SubWorkflow]: <Layers size={20} />,
 };
