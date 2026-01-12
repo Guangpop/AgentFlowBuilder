@@ -1,15 +1,18 @@
 
 import React, { useState } from 'react';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, Edit3 } from 'lucide-react';
 
 interface Props {
   onGenerate: (prompt: string) => Promise<void>;
   isLoading: boolean;
   confirmation: string | null;
+  workflowDescription: string;
+  onUpdateDescription: (val: string) => void;
 }
 
-const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) => {
+const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation, workflowDescription, onUpdateDescription }) => {
   const [prompt, setPrompt] = useState('');
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,17 +36,42 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
       </div>
 
       <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        {/* 工作流描述編輯區 */}
+        <div className="bg-slate-800/20 rounded-3xl p-6 border border-slate-700/30 group">
+          <div className="flex items-center justify-between mb-3">
+             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">工作流核心描述</label>
+             {!isEditingDesc && (
+               <button onClick={() => setIsEditingDesc(true)} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700 rounded-lg transition-all text-slate-400">
+                  <Edit3 size={14} />
+               </button>
+             )}
+          </div>
+          {isEditingDesc ? (
+             <textarea 
+               autoFocus
+               value={workflowDescription}
+               onChange={(e) => onUpdateDescription(e.target.value)}
+               onBlur={() => setIsEditingDesc(false)}
+               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none h-32"
+             />
+          ) : (
+             <p onClick={() => setIsEditingDesc(true)} className="text-sm text-slate-400 leading-relaxed font-medium cursor-pointer hover:text-slate-200 transition-colors italic">
+               "{workflowDescription}"
+             </p>
+          )}
+        </div>
+
         <div className="space-y-6">
-          <div className="bg-slate-800/40 rounded-3xl p-6 border border-slate-700/30 shadow-inner">
-            <p className="text-base text-slate-300 leading-relaxed font-medium">
-              請輸入您想建立的 AI Agent 工作流需求。我會自動為您規劃節點、條件分支與反饋回圈。
+          <div className="bg-blue-900/10 rounded-3xl p-6 border border-blue-500/20 shadow-inner">
+            <p className="text-base text-blue-100 leading-relaxed font-medium">
+              請輸入 AI Agent 工作流需求。
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
               {['客戶支持系統', '新聞自動摘要', '代碼審查助手', '智能銷售管家'].map(tag => (
                 <button 
                   key={tag}
                   onClick={() => setPrompt(`建立一個帶有反饋回圈的${tag}工作流`)}
-                  className="text-xs px-3 py-1.5 bg-slate-700/60 hover:bg-slate-600 text-slate-200 rounded-lg transition-all border border-slate-600/30"
+                  className="text-xs px-3 py-1.5 bg-slate-800/60 hover:bg-slate-600 text-slate-200 rounded-lg transition-all border border-slate-600/30"
                 >
                   {tag}
                 </button>
@@ -77,7 +105,7 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isLoading}
-            placeholder="例如：建立一個流程，先讀取使用者郵件、接著總結內容、請求人工確認，最後發送回覆..."
+            placeholder="例如：建立一個流程，先讀取郵件、總結、請求人工確認..."
             className="w-full bg-slate-800 border border-slate-700 rounded-2xl py-5 pl-6 pr-14 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all resize-none h-32 leading-relaxed shadow-inner"
           />
           <button

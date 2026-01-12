@@ -10,29 +10,30 @@ import {
   FileCode, 
   Layout, 
   FileText, 
-  Square, 
-  PenTool,
   Download
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [workflow, setWorkflow] = useState<Workflow>({
     name: '未命名工作流',
-    description: '手動編輯模式已開啟',
+    description: '點擊此處修改工作流描述...',
     nodes: [],
     edges: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'canvas' | 'excalidraw' | 'mermaid' | 'markdown' | 'json'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json'>('editor');
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
     setConfirmation(null);
     try {
       const result = await generateWorkflow(prompt);
-      setWorkflow(result.workflow);
+      setWorkflow({
+        ...result.workflow,
+        description: result.workflow.description || '由 AI 生成的工作流'
+      });
       setConfirmation(result.confirmation);
       setSelectedNodeId(null);
     } catch (err) {
@@ -69,7 +70,7 @@ const App: React.FC = () => {
     const newNode: WorkflowNode = {
       node_id: id,
       node_type: type,
-      description: '請在此點擊並修改此節點的具體職責描述...',
+      description: '請在此修改此節點的職責描述...',
       inputs: defaultInputs,
       outputs: defaultOutputs,
       position: { x: 400, y: 300 },
@@ -137,37 +138,33 @@ const App: React.FC = () => {
     }));
   };
 
-  const obsidianCanvasContent = useMemo(() => {
-    return {
-      nodes: workflow.nodes.map(node => ({
-        id: node.node_id,
-        type: 'text',
-        text: `### ${node.node_id}\n**類型**: ${node.node_type}\n\n${node.description}`,
-        x: node.position.x,
-        y: node.position.y,
-        width: 320,
-        height: 180
-      })),
-      edges: workflow.edges.map(edge => ({
-        id: edge.id,
-        fromNode: edge.source,
-        toNode: edge.target,
-        fromSide: 'right',
-        toSide: 'left'
-      }))
-    };
-  }, [workflow]);
-
   const mermaidContent = useMemo(() => {
     let content = "graph TD\n";
+    // 定義樣式類別
+    content += "  classDef UserInput fill:#1e3a8a,stroke:#3b82f6,color:#fff\n";
+    content += "  classDef Reasoning fill:#4c1d95,stroke:#8b5cf6,color:#fff\n";
+    content += "  classDef Condition fill:#7c2d12,stroke:#f97316,color:#fff\n";
+    content += "  classDef Action fill:#064e3b,stroke:#10b981,color:#fff\n";
+    content += "  classDef Loop fill:#881337,stroke:#f43f5e,color:#fff\n";
+
     workflow.nodes.forEach(node => {
       const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
-      content += `  ${safeId}["<b>${node.node_id}</b><br/>(${node.node_type})"]\n`;
+      const cleanDesc = node.description.replace(/"/g, "'").slice(0, 50) + (node.description.length > 50 ? "..." : "");
+      content += `  ${safeId}["<b>${node.node_id}</b><br/><i>(${node.node_type})</i><br/>${cleanDesc}"]\n`;
+      
+      // 套用樣式
+      if (node.node_type === NodeType.UserInput) content += `  class ${safeId} UserInput\n`;
+      if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
+      if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
+      if (node.node_type === NodeType.AgentAction) content += `  class ${safeId} Action\n`;
+      if (node.node_type === NodeType.LoopBack) content += `  class ${safeId} Loop\n`;
     });
+
     workflow.edges.forEach(edge => {
       const s = edge.source.replace(/[^a-zA-Z0-9]/g, '_');
       const t = edge.target.replace(/[^a-zA-Z0-9]/g, '_');
-      content += `  ${s} --> ${t}\n`;
+      const label = edge.label ? `|${edge.label}|` : "";
+      content += `  ${s} --${label}--> ${t}\n`;
     });
     return content;
   }, [workflow]);
@@ -184,12 +181,24 @@ const App: React.FC = () => {
     });
     md += `## 流程拓撲結構\n\n`;
     workflow.edges.forEach(edge => {
-      md += `- ${edge.source} ➔ ${edge.target}\n`;
+      md += `- ${edge.source} ➔ ${edge.target}${edge.label ? ` (${edge.label})` : ""}\n`;
     });
     return md;
   }, [workflow]);
 
+  const cleanJsonWorkflow = useMemo(() => {
+    const nodesWithoutPosition = workflow.nodes.map(({ position, ...rest }) => rest);
+    return {
+      ...workflow,
+      nodes: nodesWithoutPosition
+    };
+  }, [workflow]);
+
   const selectedNode = workflow.nodes.find(n => n.node_id === selectedNodeId) || null;
+
+  const updateWorkflowMeta = (key: 'name' | 'description', value: string) => {
+    setWorkflow(prev => ({ ...prev, [key]: value }));
+  };
 
   return (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 selection:bg-blue-500/30">
@@ -197,21 +206,27 @@ const App: React.FC = () => {
         onGenerate={handleGenerate} 
         isLoading={isLoading} 
         confirmation={confirmation} 
+        workflowDescription={workflow.description}
+        onUpdateDescription={(val) => updateWorkflowMeta('description', val)}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md overflow-x-auto no-scrollbar shrink-0">
           <div className="flex items-center gap-6 shrink-0">
-            <div className="flex flex-col">
-              <span className="text-xl font-black text-white leading-none mb-1 tracking-tight">{workflow.name}</span>
-              <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-[0.2em] opacity-80 font-black">Workflow Core v2.5</span>
+            <div className="flex flex-col group relative">
+              <input 
+                type="text"
+                value={workflow.name}
+                onChange={(e) => updateWorkflowMeta('name', e.target.value)}
+                className="bg-transparent border-none text-xl font-black text-white leading-none mb-1 tracking-tight focus:outline-none focus:ring-0 w-[240px]"
+                placeholder="輸入工作流名稱"
+              />
+              <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-[0.2em] opacity-80 font-black">Workflow Editor v2.7</span>
             </div>
             
             <nav className="flex items-center bg-slate-800/80 rounded-[22px] p-1.5 shadow-inner border border-slate-700/50 shrink-0 ml-4">
               {[
                 { id: 'editor', label: '畫布編輯器', icon: <Layout size={16}/> },
-                { id: 'canvas', label: 'Obsidian Canvas', icon: <Square size={16}/> },
-                { id: 'excalidraw', label: 'Excalidraw JSON', icon: <PenTool size={16}/> },
                 { id: 'mermaid', label: 'Mermaid', icon: <Share2 size={16}/> },
                 { id: 'markdown', label: 'Markdown', icon: <FileText size={16}/> },
                 { id: 'json', label: 'Raw JSON', icon: <FileCode size={16}/> }
@@ -245,64 +260,11 @@ const App: React.FC = () => {
               onDeleteEdge={handleDeleteEdge}
               selectedNodeId={selectedNodeId}
             />
-          ) : activeTab === 'canvas' ? (
-            <div className="flex-1 bg-slate-950 p-12 overflow-auto flex flex-col items-center gap-10">
-              <div className="max-w-5xl w-full">
-                <div className="mb-10 flex justify-between items-end border-b border-slate-800 pb-8">
-                   <div>
-                      <h3 className="text-3xl font-black text-white mb-3 tracking-tighter">Obsidian Canvas JSON</h3>
-                      <p className="text-base text-slate-500 font-medium">請將下方代碼儲存為 <code className="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">workflow.canvas</code> 以在 Obsidian 中載入。</p>
-                   </div>
-                   <button className="text-xs font-black text-blue-400 bg-blue-500/10 px-6 py-3 rounded-2xl border border-blue-500/20 hover:bg-blue-500/20 transition-all uppercase tracking-widest">Copy Canvas Data</button>
-                </div>
-                <pre className="p-12 rounded-[40px] bg-slate-900 border border-slate-800 text-emerald-300 font-mono text-[13px] overflow-x-auto shadow-[0_40px_100px_rgba(0,0,0,0.8)] leading-relaxed">
-                  {JSON.stringify(obsidianCanvasContent, null, 2)}
-                </pre>
-              </div>
-            </div>
-          ) : activeTab === 'excalidraw' ? (
-            <div className="flex-1 bg-slate-950 p-12 overflow-auto flex flex-col items-center gap-10">
-              <div className="max-w-6xl w-full">
-                 <div className="mb-12 p-16 rounded-[60px] bg-white text-slate-900 shadow-[0_50px_150px_rgba(0,0,0,0.5)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-12 opacity-5">
-                       <PenTool size={200} />
-                    </div>
-                    <h2 className="text-4xl font-black mb-12 italic tracking-tight" style={{ fontFamily: '"Comic Sans MS", cursive' }}>Excalidraw Sketch Preview</h2>
-                    <div className="grid grid-cols-2 gap-12">
-                       {workflow.nodes.map(node => (
-                          <div key={node.node_id} className="p-8 border-[4px] border-slate-900 rounded-[32px] bg-slate-50 relative shadow-[10px_10px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[14px_14px_0px_rgba(0,0,0,1)] transition-all">
-                             <div className="text-[11px] font-black uppercase mb-4 opacity-30 tracking-widest font-mono">NODE ID: {node.node_id}</div>
-                             <div className="text-2xl font-black mb-5 tracking-tight">{node.node_type}</div>
-                             <p className="text-[17px] font-medium opacity-90 leading-relaxed italic" style={{ fontFamily: '"Comic Sans MS", cursive' }}>"{node.description}"</p>
-                             <div className="mt-8 flex flex-wrap gap-3">
-                                {node.outputs.map((o, i) => (
-                                   <span key={i} className="text-[11px] font-black px-4 py-1.5 border-2 border-slate-900 rounded-full bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]">{o}</span>
-                                ))}
-                             </div>
-                          </div>
-                       ))}
-                    </div>
-                    {workflow.edges.length > 0 && (
-                       <div className="mt-16 pt-12 border-t-[3px] border-dashed border-slate-200">
-                          <h3 className="text-xs font-black opacity-30 uppercase tracking-[0.4em] mb-8 font-mono">TOPOLOGICAL CONNECTIONS</h3>
-                          <div className="grid grid-cols-3 gap-6 font-mono text-sm font-bold text-slate-500">
-                             {workflow.edges.map(e => (
-                                <div key={e.id} className="flex items-center gap-3">
-                                   <div className="w-2 h-2 rounded-full bg-slate-900 shrink-0" />
-                                   <span>{e.source} ➔ {e.target}</span>
-                                </div>
-                             ))}
-                          </div>
-                       </div>
-                    )}
-                 </div>
-              </div>
-            </div>
           ) : activeTab === 'json' ? (
             <div className="flex-1 bg-slate-950 p-12 overflow-auto">
               <div className="max-w-6xl mx-auto">
                 <pre className="p-12 rounded-[48px] bg-slate-900 border border-slate-800 text-blue-300 font-mono text-[14px] overflow-x-auto shadow-[0_50px_150px_rgba(0,0,0,0.8)] leading-relaxed">
-                  {JSON.stringify(workflow, null, 2)}
+                  {JSON.stringify(cleanJsonWorkflow, null, 2)}
                 </pre>
               </div>
             </div>
@@ -362,7 +324,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-6 opacity-40">
             <span>ENGINE: GEMINI-3-FLASH</span>
-            <span>FORMAT: OBSIDIAN.CANVAS</span>
+            <span>FORMAT: EXPORT COMPATIBLE</span>
           </div>
         </footer>
       </main>
