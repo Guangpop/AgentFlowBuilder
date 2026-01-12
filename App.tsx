@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { generateWorkflow } from './services/gemini';
@@ -149,22 +148,32 @@ const App: React.FC = () => {
 
     workflow.nodes.forEach(node => {
       const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
-      const cleanDesc = node.description.replace(/"/g, "'").slice(0, 50) + (node.description.length > 50 ? "..." : "");
-      content += `  ${safeId}["<b>${node.node_id}</b><br/><i>(${node.node_type})</i><br/>${cleanDesc}"]\n`;
+      const cleanName = node.node_id.replace(/"/g, "'");
+      const cleanType = node.node_type.replace(/"/g, "'");
+      const cleanDesc = node.description.replace(/"/g, "'").replace(/\n/g, " ").slice(0, 80);
+      const inputs = node.inputs.length > 0 ? `I: ${node.inputs.join(', ')}` : "";
+      const outputs = node.outputs.length > 0 ? `O: ${node.outputs.join(', ')}` : "";
+      
+      // 使用正確的 Mermaid 節點標籤語法，不使用 HTML 標籤以避免渲染失敗
+      content += `  ${safeId}["${cleanName}<br/>(${cleanType})<br/>${cleanDesc}<br/>${inputs}<br/>${outputs}"]\n`;
       
       // 套用樣式
       if (node.node_type === NodeType.UserInput) content += `  class ${safeId} UserInput\n`;
-      if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
-      if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
-      if (node.node_type === NodeType.AgentAction) content += `  class ${safeId} Action\n`;
-      if (node.node_type === NodeType.LoopBack) content += `  class ${safeId} Loop\n`;
+      else if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
+      else if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
+      else if (node.node_type === NodeType.AgentAction) content += `  class ${safeId} Action\n`;
+      else if (node.node_type === NodeType.LoopBack) content += `  class ${safeId} Loop\n`;
     });
 
     workflow.edges.forEach(edge => {
       const s = edge.source.replace(/[^a-zA-Z0-9]/g, '_');
       const t = edge.target.replace(/[^a-zA-Z0-9]/g, '_');
-      const label = edge.label ? `|${edge.label}|` : "";
-      content += `  ${s} --${label}--> ${t}\n`;
+      // 修正連線標籤語法為 -->|label|
+      if (edge.label) {
+        content += `  ${s} -->|"${edge.label.replace(/"/g, "'")}"| ${t}\n`;
+      } else {
+        content += `  ${s} --> ${t}\n`;
+      }
     });
     return content;
   }, [workflow]);
