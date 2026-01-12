@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { generateWorkflow } from './services/gemini';
 import ChatSidebar from './components/ChatSidebar';
@@ -9,7 +9,8 @@ import {
   FileCode, 
   Layout, 
   FileText, 
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -23,6 +24,8 @@ const App: React.FC = () => {
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json'>('editor');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
@@ -137,9 +140,52 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleExport = () => {
+    const jsonString = JSON.stringify(workflow, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${workflow.name || 'workflow'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const importedWorkflow = JSON.parse(content) as Workflow;
+        
+        // 基礎校驗：確保具有 nodes 和 edges
+        if (importedWorkflow.nodes && importedWorkflow.edges) {
+          setWorkflow(importedWorkflow);
+          setSelectedNodeId(null);
+        } else {
+          alert('無效的工作流 JSON 檔案結構。');
+        }
+      } catch (err) {
+        alert('導入失敗，請確保選擇的是正確的 JSON 檔案。');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+    // 重置 input 以便下次能選擇同一個檔案
+    e.target.value = '';
+  };
+
   const mermaidContent = useMemo(() => {
     let content = "graph TD\n";
-    // 定義基礎樣式
     content += "  classDef UserInput fill:#1e3a8a,stroke:#3b82f6,color:#fff\n";
     content += "  classDef Reasoning fill:#4c1d95,stroke:#8b5cf6,color:#fff\n";
     content += "  classDef Condition fill:#7c2d12,stroke:#f97316,color:#fff\n";
@@ -147,15 +193,11 @@ const App: React.FC = () => {
     content += "  classDef Loop fill:#881337,stroke:#f43f5e,color:#fff\n";
 
     workflow.nodes.forEach(node => {
-      // 確保 ID 格式安全
       const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
       const cleanName = node.node_id.replace(/[\[\]"()]/g, '');
       const cleanType = node.node_type.replace(/[\[\]"()]/g, '');
-      
-      // 簡化標籤以確保渲染成功
       content += `  ${safeId}["${cleanName} (${cleanType})"]\n`;
       
-      // 根據類型分配類別
       if (node.node_type === NodeType.UserInput) content += `  class ${safeId} UserInput\n`;
       else if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
       else if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
@@ -166,8 +208,6 @@ const App: React.FC = () => {
     workflow.edges.forEach(edge => {
       const s = edge.source.replace(/[^a-zA-Z0-9]/g, '_');
       const t = edge.target.replace(/[^a-zA-Z0-9]/g, '_');
-      
-      // 使用最穩定的 Mermaid 連線語法
       if (edge.label) {
         const cleanLabel = edge.label.replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s]/g, '');
         content += `  ${s} -->|"${cleanLabel}"| ${t}\n`;
@@ -180,7 +220,6 @@ const App: React.FC = () => {
 
   const mermaidChartUrl = useMemo(() => {
     try {
-      // 使用穩定的 UTF-8 Base64 編碼方式
       const base64 = btoa(encodeURIComponent(mermaidContent).replace(/%([0-9A-F]{2})/g, (match, p1) => 
         String.fromCharCode(parseInt(p1, 16))
       ));
@@ -194,12 +233,10 @@ const App: React.FC = () => {
   const markdownContent = useMemo(() => {
     let md = `# 工作流: ${workflow.name}\n\n${workflow.description}\n\n## 節點清單\n\n`;
     workflow.nodes.forEach(node => {
-      // 已移除 🏢 圖示
       md += `### ${node.node_id} (${node.node_type})\n- **功能描述**: ${node.description}\n- **輸入端點**: ${node.inputs.join(', ') || '無'}\n- **輸出端點**: ${node.outputs.join(', ') || '無'}\n\n`;
     });
     md += `## 流程拓撲結構\n\n`;
     workflow.edges.forEach(edge => {
-      // 已將 ➔ 替換為標準的 -> 符號
       md += `- ${edge.source} -> ${edge.target}${edge.label ? ` (${edge.label})` : ""}\n`;
     });
     return md;
@@ -262,10 +299,29 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <button className="bg-white hover:bg-slate-200 text-slate-900 px-8 py-3 rounded-2xl text-[13px] font-black transition-all shadow-2xl shadow-white/5 uppercase tracking-[0.2em] active:scale-95 shrink-0 flex items-center gap-3">
-            <Download size={16} />
-            Export Flow
-          </button>
+          <div className="flex items-center gap-4 shrink-0">
+            <button 
+              onClick={handleImportClick}
+              className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl text-[13px] font-black transition-all shadow-xl border border-slate-700 flex items-center gap-3 active:scale-95"
+            >
+              <Upload size={16} />
+              Import Flow
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImportFile} 
+              className="hidden" 
+              accept=".json"
+            />
+            <button 
+              onClick={handleExport}
+              className="bg-white hover:bg-slate-200 text-slate-900 px-6 py-3 rounded-2xl text-[13px] font-black transition-all shadow-2xl shadow-white/5 uppercase tracking-[0.2em] active:scale-95 flex items-center gap-3"
+            >
+              <Download size={16} />
+              Export Flow
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 relative overflow-hidden flex">
@@ -313,7 +369,12 @@ const App: React.FC = () => {
                 <div className="p-20 rounded-[80px] bg-slate-900 border border-slate-800 text-slate-200 shadow-[0_50px_150px_rgba(0,0,0,0.8)] space-y-12">
                    <div className="flex justify-between items-center border-b border-slate-800 pb-10">
                       <h2 className="text-5xl font-black text-white tracking-tighter">系統設計文檔</h2>
-                      <button className="text-[11px] font-black text-blue-400 hover:text-white transition-all uppercase tracking-[0.3em] border border-blue-500/20 px-8 py-4 rounded-3xl bg-blue-500/5 hover:bg-blue-600 shadow-xl">Copy Markdown</button>
+                      <button 
+                        onClick={() => navigator.clipboard.writeText(markdownContent)}
+                        className="text-[11px] font-black text-blue-400 hover:text-white transition-all uppercase tracking-[0.3em] border border-blue-500/20 px-8 py-4 rounded-3xl bg-blue-500/5 hover:bg-blue-600 shadow-xl"
+                      >
+                        Copy Markdown
+                      </button>
                    </div>
                    <div className="whitespace-pre-wrap font-sans text-2xl leading-[2] opacity-90 font-medium">
                     {markdownContent}
