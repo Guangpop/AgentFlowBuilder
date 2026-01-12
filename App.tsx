@@ -402,7 +402,8 @@ const App: React.FC = () => {
                        </p>
                        <div className="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-sm font-mono text-slate-400 select-all shadow-inner leading-relaxed">
                           <p>請你依照以下工作流程, 產生workflow指令, 以及相關的Agent skills</p>
-                          <p className="mt-4 text-slate-600 italic">{"[ 在下方區塊複製產生的指令集並貼至此處 ]"}</p>
+                          <p className="my-2 opacity-30">---</p>
+                          <p className="text-slate-600 italic">{"[ 在下方區塊複製產生的指令集並貼至此處 ]"}</p>
                        </div>
                     </div>
 
