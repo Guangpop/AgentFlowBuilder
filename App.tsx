@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { generateWorkflow, generateAgentInstructions } from './services/gemini';
@@ -10,14 +9,15 @@ import {
   FileCode, 
   Layout, 
   FileText, 
-  Download,
-  Upload,
-  Zap,
-  Copy,
-  CheckCircle2,
-  RefreshCw,
-  // Add missing Sparkles icon
-  Sparkles
+  Download, 
+  Upload, 
+  Zap, 
+  Copy, 
+  CheckCircle2, 
+  RefreshCw, 
+  Sparkles,
+  Info,
+  Terminal
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -32,7 +32,7 @@ const App: React.FC = () => {
   const [agentInstructions, setAgentInstructions] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json' | 'instructions'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
   const [copySuccess, setCopySuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +48,6 @@ const App: React.FC = () => {
       });
       setConfirmation(result.confirmation);
       setSelectedNodeId(null);
-      // 清除舊的指令集
       setAgentInstructions(null);
     } catch (err) {
       alert("生成工作流失敗，請檢查控制台。");
@@ -389,7 +388,24 @@ const App: React.FC = () => {
                 </div>
 
                 {agentInstructions ? (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                    {/* 使用提示區塊 */}
+                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-[32px] p-8 shadow-inner overflow-hidden relative">
+                       <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                          <Terminal size={120} className="text-blue-400" />
+                       </div>
+                       <h3 className="text-blue-400 font-black text-sm mb-4 flex items-center gap-2 uppercase tracking-widest">
+                          <Info size={18} /> 使用建議
+                       </h3>
+                       <p className="text-slate-300 text-base mb-6 leading-relaxed max-w-3xl">
+                          請將以下內容貼給 AI agent，讓他幫你產生 workflow 以及 Agent Skills：
+                       </p>
+                       <div className="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-sm font-mono text-slate-400 select-all shadow-inner leading-relaxed">
+                          <p>請你依照以下工作流程, 產生workflow指令, 以及相關的Agent skills</p>
+                          <p className="mt-4 text-slate-600 italic">{"[ 在下方區塊複製產生的指令集並貼至此處 ]"}</p>
+                       </div>
+                    </div>
+
                     <div className="relative group">
                       <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[40px] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
                       <div className="relative bg-slate-900/90 border border-slate-700 p-10 rounded-[40px] shadow-3xl">
