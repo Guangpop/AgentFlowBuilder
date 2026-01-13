@@ -4,7 +4,9 @@ export enum NodeType {
   Condition = 'Condition',
   AgentQuestion = 'AgentQuestion',
   UserResponse = 'UserResponse',
-  AgentAction = 'AgentAction'
+  AgentAction = 'AgentAction',
+  ScriptExecution = 'ScriptExecution',
+  MCPTool = 'MCPTool'
 }
 
 export interface NodePosition {

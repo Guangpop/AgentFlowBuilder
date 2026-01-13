@@ -24,12 +24,20 @@ const WORKFLOW_SCHEMA = {
               node_id: { type: Type.STRING },
               node_type: { 
                 type: Type.STRING, 
-                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction" 
+                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, ScriptExecution, MCPTool" 
               },
               description: { type: Type.STRING },
               inputs: { type: Type.ARRAY, items: { type: Type.STRING } },
               outputs: { type: Type.ARRAY, items: { type: Type.STRING } },
               next: { type: Type.ARRAY, items: { type: Type.STRING } },
+              config: {
+                 type: Type.OBJECT,
+                 properties: {
+                    scriptType: { type: Type.STRING },
+                    scriptContent: { type: Type.STRING },
+                    toolName: { type: Type.STRING }
+                 }
+              }
             },
             required: ["node_id", "node_type", "description", "inputs", "outputs", "next"]
           }
@@ -64,8 +72,10 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
       要求：
       1. 每個步驟都必須是一個獨立的節點。
       2. 使用 'Condition' 節點處理分支邏輯。
-      3. 確保 node_id 唯一且具備描述性。
-      4. 所有輸出（包括節點與確認訊息）請使用繁體中文。
+      3. 如果涉及執行代碼，請使用 'ScriptExecution' 節點，並在 config 中盡可能填寫 scriptType (如 python, shell) 和大致的 scriptContent。
+      4. 如果涉及使用特定工具，請使用 'MCPTool' 節點，並在 config 中填寫 toolName。
+      5. 確保 node_id 唯一且具備描述性。
+      6. 所有輸出（包括節點與確認訊息）請使用繁體中文。
       
       使用者工作流描述：
       "${prompt}"`,
@@ -116,7 +126,12 @@ ${JSON.stringify(workflow, null, 2)}
 請產生一段 Prompt，這段 Prompt 應該包含：
 1. **Role Definition**: 定義 Agent 的角色與核心使命。
 2. **Standard Operating Procedure (SOP)**: 將工作流拆解為明確的執行階段。
-3. **Skill Modules**: 根據節點類型 (Reasoning, Action, Condition) 定義 Agent 應具備的原子化技能。
+3. **Skill Modules**: 根據節點類型定義 Agent 應具備的原子化技能：
+    - Reasoning: 邏輯推理
+    - Action: 執行任務
+    - Condition: 判斷分支
+    - **ScriptExecution**: 提醒 Agent 注意識別腳本類型 (Python/Shell)，並指示 Agent 將內容寫入檔案後編譯或執行。
+    - **MCPTool**: 提醒 Agent 識別 MCP 工具名稱，並根據 Context 準備參數來調用該工具。
 4. **State Management & Feedback Loops**: 明確說明如何處理「返回 (Loop Back)」邏輯（例如 2.1.3 返回 2 步），並指示 Agent 如何保存與過濾狀態。
 5. **Context Protocol**: 指示 Agent 如何清理不必要的歷史紀錄，只保留當前執行路徑所需的關鍵資訊。
 

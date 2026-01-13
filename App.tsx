@@ -91,6 +91,12 @@ const App: React.FC = () => {
       defaultOutputs = [];
     } else if (type === NodeType.Condition) {
       defaultOutputs = ['真 (True)', '假 (False)'];
+    } else if (type === NodeType.ScriptExecution) {
+      defaultInputs = ['變數 Context'];
+      defaultOutputs = ['執行結果 (Stdout)'];
+    } else if (type === NodeType.MCPTool) {
+      defaultInputs = ['工具參數'];
+      defaultOutputs = ['工具回傳'];
     }
 
     const newNode: WorkflowNode = {
@@ -100,7 +106,8 @@ const App: React.FC = () => {
       inputs: defaultInputs,
       outputs: defaultOutputs,
       position: { x: 400, y: 300 },
-      next: []
+      next: [],
+      config: type === NodeType.ScriptExecution ? { scriptType: 'python', scriptContent: '' } : type === NodeType.MCPTool ? { toolName: '' } : undefined
     };
     
     setWorkflow(prev => ({

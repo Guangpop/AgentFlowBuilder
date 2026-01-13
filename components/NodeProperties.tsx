@@ -1,8 +1,7 @@
-
 import React from 'react';
-import { WorkflowNode } from '../types';
+import { WorkflowNode, NodeType } from '../types';
 import { NODE_COLORS, NODE_ICONS, NODE_DISPLAY_NAMES } from '../constants';
-import { X, Trash2, Settings, Plus, Minus, Info } from 'lucide-react';
+import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench } from 'lucide-react';
 
 interface Props {
   node: WorkflowNode | null;
@@ -29,6 +28,15 @@ const NodeProperties: React.FC<Props> = ({ node, onClose, onDelete, onUpdate }) 
   const removePort = (type: 'inputs' | 'outputs', index: number) => {
     const ports = node[type].filter((_, i) => i !== index);
     onUpdate({ [type]: ports });
+  };
+
+  const updateConfig = (key: string, value: any) => {
+    onUpdate({
+      config: {
+        ...node.config,
+        [key]: value
+      }
+    });
   };
 
   return (
@@ -83,6 +91,66 @@ const NodeProperties: React.FC<Props> = ({ node, onClose, onDelete, onUpdate }) 
             />
           </div>
         </div>
+
+        {/* Script Execution Config */}
+        {node.node_type === NodeType.ScriptExecution && (
+          <div className="space-y-6 pt-2 border-t border-slate-800/50">
+             <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                 <Terminal size={14} className="text-slate-400"/> 腳本執行設定
+             </label>
+             <div className="space-y-4">
+                <div className="space-y-2">
+                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-2">Script Type</label>
+                   <select
+                      value={node.config?.scriptType || 'python'}
+                      onChange={(e) => updateConfig('scriptType', e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                   >
+                      <option value="python">Python Script (.py)</option>
+                      <option value="shell">Shell / Bash Script (.sh)</option>
+                      <option value="javascript">Node.js Script (.js)</option>
+                   </select>
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-2">Source Code</label>
+                   <textarea
+                      value={node.config?.scriptContent || ''}
+                      onChange={(e) => updateConfig('scriptContent', e.target.value)}
+                      placeholder="# 請在此輸入腳本代碼..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm font-mono text-emerald-400 focus:outline-none focus:border-blue-500 h-48 resize-none leading-relaxed"
+                   />
+                </div>
+                <p className="text-[10px] text-orange-400/70 flex items-start gap-2 bg-orange-900/10 p-3 rounded-lg border border-orange-500/10">
+                    <Info size={12} className="shrink-0 mt-0.5" />
+                    提示：生成的 Agent 將被指示將此內容編譯或保存為可執行檔案。
+                </p>
+             </div>
+          </div>
+        )}
+
+        {/* MCP Tool Config */}
+        {node.node_type === NodeType.MCPTool && (
+          <div className="space-y-6 pt-2 border-t border-slate-800/50">
+             <label className="text-xs font-black text-pink-400/80 uppercase tracking-widest flex items-center gap-2">
+                 <Wrench size={14} className="text-pink-400"/> MCP 工具配置
+             </label>
+             <div className="space-y-4">
+                <div className="space-y-2">
+                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-2">Tool Name</label>
+                   <input
+                      value={node.config?.toolName || ''}
+                      onChange={(e) => updateConfig('toolName', e.target.value)}
+                      placeholder="例如: google_search, file_system..."
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-pink-200 font-mono focus:outline-none focus:border-pink-500 transition-all placeholder:text-slate-600"
+                   />
+                </div>
+                <p className="text-[10px] text-pink-400/60 flex items-start gap-2 bg-pink-900/10 p-3 rounded-lg border border-pink-500/10">
+                    <Info size={12} className="shrink-0 mt-0.5" />
+                    提示：Agent 將根據上下文自動推斷調用此工具所需的參數。
+                </p>
+             </div>
+          </div>
+        )}
 
         {/* Input Ports Section */}
         <div className="space-y-6">
