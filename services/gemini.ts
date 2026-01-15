@@ -21,7 +21,7 @@ const WORKFLOW_SCHEMA = {
           items: {
             type: Type.OBJECT,
             properties: {
-              node_id: { type: Type.STRING },
+              node_id: { type: Type.STRING, description: "唯一標識符，建議使用小寫字母、數字及底線，不得包含空格。" },
               node_type: { 
                 type: Type.STRING, 
                 description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, ScriptExecution, MCPTool" 
@@ -29,7 +29,7 @@ const WORKFLOW_SCHEMA = {
               description: { type: Type.STRING },
               inputs: { type: Type.ARRAY, items: { type: Type.STRING } },
               outputs: { type: Type.ARRAY, items: { type: Type.STRING } },
-              next: { type: Type.ARRAY, items: { type: Type.STRING } },
+              next: { type: Type.ARRAY, items: { type: Type.STRING }, description: "此節點指向的下一個節點 ID 列表。" },
               config: {
                  type: Type.OBJECT,
                  properties: {
@@ -62,22 +62,35 @@ const WORKFLOW_SCHEMA = {
   required: ["confirmation", "workflow"]
 };
 
+/**
+ * 輔助函數：將字串轉為安全的 ID 格式
+ */
+const slugifyId = (id: string) => id.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+
 export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `你是一個 AI Agent 工作流構建引擎。
-      請分析使用者的描述，並將其拆解為結構化的節點式工作流。
+      contents: `你是一個專業的 AI Agent 工作流架構師與 DSL 生成引擎。
+      請將使用者的描述轉化為結構化的工作流數據。
       
-      要求：
-      1. 每個步驟都必須是一個獨立的節點。
-      2. 使用 'Condition' 節點處理分支邏輯。
-      3. 如果涉及執行代碼，請使用 'ScriptExecution' 節點，並在 config 中盡可能填寫 scriptType (如 python, shell) 和大致的 scriptContent。
-      4. 如果涉及使用特定工具，請使用 'MCPTool' 節點，並在 config 中填寫 toolName。
-      5. 確保 node_id 唯一且具備描述性。
-      6. 所有輸出（包括節點與確認訊息）請使用繁體中文。
+      核心原則：
+      1. 拓撲結構完整性：所有節點必須透過 'next' 與 'edges' 正確串接。
+      2. 節點 ID 一致性：'nodes.node_id'、'nodes.next' 以及 'edges.source/target' 的 ID 必須完全匹配。
+      3. 邏輯分支：'Condition' 節點必須有兩個輸出路徑，'next[0]' 代表 True (真)，'next[1]' 代表 False (假)。
       
-      使用者工作流描述：
+      節點指南：
+      - 'ScriptExecution': 處理 Python/Shell 代碼。
+      - 'MCPTool': 調用外部工具 (如 google_search)。
+      - 'Condition': 邏輯判斷。
+      - 'AgentReasoning': AI 的思考步驟。
+      
+      約束：
+      - 請使用繁體中文。
+      - 節點 ID 嚴禁包含空格。
+      - 務必確保 edges 陣列包含所有連線數據。
+      
+      使用者需求：
       "${prompt}"`,
       config: {
         responseMimeType: "application/json",
@@ -87,15 +100,66 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
 
     const data = JSON.parse(response.text || '{}') as WorkflowResponse;
     
-    // 自動佈局
+    // 強力後處理 (Robust Post-processing)
     if (data.workflow && data.workflow.nodes) {
+      // 1. 清洗所有節點 ID 並建立對照表，防止 AI 產生的 ID 格式不一
+      const idMap = new Map<string, string>();
+      data.workflow.nodes.forEach(node => {
+        const cleanId = slugifyId(node.node_id);
+        idMap.set(node.node_id, cleanId);
+        node.node_id = cleanId;
+      });
+
+      // 2. 更新 next 引用
+      data.workflow.nodes.forEach(node => {
+        if (node.next) {
+          node.next = node.next
+            .map(n => idMap.get(n) || slugifyId(n))
+            .filter(n => data.workflow.nodes.some(existing => existing.node_id === n));
+        }
+      });
+
+      // 3. 自動佈局 (網格佈局優化)
       data.workflow.nodes = data.workflow.nodes.map((node, index) => ({
         ...node,
         position: {
-          x: 50 + (index % 3) * 300,
-          y: 50 + Math.floor(index / 3) * 200
+          x: 100 + (index % 3) * 450,
+          y: 100 + Math.floor(index / 3) * 350
         }
       }));
+
+      // 4. 重建 Edges 陣列以確保畫布連線
+      // 我們以 nodes.next 為真理來源 (Source of Truth)，確保視覺與邏輯同步
+      const finalEdges: any[] = [];
+      const nodeIds = new Set(data.workflow.nodes.map(n => n.node_id));
+
+      data.workflow.nodes.forEach(node => {
+        if (node.next && Array.isArray(node.next)) {
+          node.next.forEach((targetId, index) => {
+            if (nodeIds.has(targetId)) {
+              const isCondition = node.node_type === NodeType.Condition;
+              let label = '';
+              if (isCondition) {
+                // 依照 App.tsx 中 Condition 節點的預設輸出順序
+                label = index === 0 ? '真 (True)' : '假 (False)';
+              }
+              
+              finalEdges.push({
+                id: `edge-${node.node_id}-${targetId}-${index}`,
+                source: node.node_id,
+                target: targetId,
+                sourcePortIndex: index,
+                targetPortIndex: 0,
+                label: label,
+                isLoop: false
+              });
+            }
+          });
+        }
+      });
+      
+      // 更新最終的工作流連線
+      data.workflow.edges = finalEdges;
     }
 
     return data;
