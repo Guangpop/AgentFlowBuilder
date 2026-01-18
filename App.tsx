@@ -505,7 +505,7 @@ const AppContent: React.FC = () => {
                 ${profile?.balance?.toFixed(2) || '0.00'}
               </span>
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                <img src={profile.avatar_url} alt="" aria-hidden="true" className="w-6 h-6 rounded-full" />
               ) : (
                 <div className={`w-6 h-6 rounded-full ${theme.bgCard} flex items-center justify-center`}>
                   <span className="text-xs font-bold">{profile?.email?.[0]?.toUpperCase()}</span>
