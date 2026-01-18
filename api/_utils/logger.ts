@@ -1,4 +1,4 @@
-import { createSupabaseAdmin } from './supabase';
+import { createSupabaseAdmin } from './supabase.js';
 
 type EventType =
   | 'login'

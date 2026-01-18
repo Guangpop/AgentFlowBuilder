@@ -1,13 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
-import { createSupabaseAdmin, verifyToken } from './_utils/supabase';
-import { logEvent } from './_utils/logger';
+import { createSupabaseAdmin, verifyToken } from './_utils/supabase.js';
+import { logEvent } from './_utils/logger.js';
 
-const WORKFLOW_COST = 0.5;
+const WORKFLOW_COST = 15; // TWD
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Lazy initialization to avoid cold start errors
+let anthropic: Anthropic | null = null;
+
+const getAnthropicClient = () => {
+  if (!anthropic) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not set');
+    }
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropic;
+};
 
 // System prompts by language
 const SYSTEM_PROMPTS: Record<string, string> = {
@@ -207,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : `使用者需求：\n"${prompt}"`;
 
     // Call Claude API with tool use
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: systemPrompt,

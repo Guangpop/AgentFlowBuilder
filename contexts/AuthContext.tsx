@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase, User, Session } from '../lib/supabase';
 import { UserProfile } from '../lib/database.types';
 
@@ -38,12 +38,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return data as UserProfile;
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     // Get initial session

@@ -230,7 +230,7 @@ export const zhTW = {
   alertInvalidJson: '無效的工作流 JSON 檔案結構。',
   alertImportFailed: '導入失敗，請確保選擇的是正確的 JSON 檔案。',
   alertApiKeyMissing: '請設定 GEMINI_API_KEY 環境變數',
-  alertInsufficientBalance: (required: number, balance: number) => `餘額不足。需要 $${required.toFixed(2)}，目前餘額 $${balance.toFixed(2)}`,
+  alertInsufficientBalance: (required: number, balance: number) => `餘額不足。需要 NT$${Math.floor(required)}，目前餘額 NT$${Math.floor(balance)}`,
   alertNotAuthenticated: '請先登入以繼續',
 
   // Validation

@@ -232,7 +232,7 @@ Format Requirements:
   alertInvalidJson: 'Invalid workflow JSON file structure.',
   alertImportFailed: 'Import failed, please ensure you selected a valid JSON file.',
   alertApiKeyMissing: 'Please set the GEMINI_API_KEY environment variable',
-  alertInsufficientBalance: (required: number, balance: number) => `Insufficient balance. Required: $${required.toFixed(2)}, Current: $${balance.toFixed(2)}`,
+  alertInsufficientBalance: (required: number, balance: number) => `Insufficient balance. Required: NT$${Math.floor(required)}, Current: NT$${Math.floor(balance)}`,
   alertNotAuthenticated: 'Please log in to continue',
 
   // Validation

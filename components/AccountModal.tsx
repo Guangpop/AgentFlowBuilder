@@ -1,62 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { X, Wallet, CreditCard, LogOut, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Wallet, CreditCard, LogOut, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { Transaction } from '../lib/database.types';
-
-// Paddle types
-declare global {
-  interface Window {
-    Paddle?: {
-      Checkout: {
-        open: (options: PaddleCheckoutOptions) => void;
-      };
-    };
-  }
-}
-
-interface PaddleCheckoutOptions {
-  settings?: {
-    displayMode?: 'overlay' | 'inline';
-    theme?: 'light' | 'dark';
-    locale?: string;
-    variant?: 'one-page' | 'multi-page';
-    successUrl?: string;
-  };
-  items: Array<{
-    priceId: string;
-    quantity: number;
-  }>;
-  customData?: Record<string, string | number>;
-  customer?: {
-    email?: string;
-  };
-}
+import { setupCardForm, onCardUpdate, getPrime, TapPayCardUpdate } from '../lib/tappay';
 
 interface Props {
   onClose: () => void;
 }
 
-const TOPUP_OPTIONS = [3, 5, 10, 20, 50];
+const TOPUP_OPTIONS = [15, 100, 150, 300]; // TWD
 const MAX_TRANSACTIONS = 20;
-
-// Map amounts to environment variable names
-const PRICE_ID_MAP: Record<number, string> = {
-  3: import.meta.env.VITE_PADDLE_PRICE_3 || '',
-  5: import.meta.env.VITE_PADDLE_PRICE_5 || '',
-  10: import.meta.env.VITE_PADDLE_PRICE_10 || '',
-  20: import.meta.env.VITE_PADDLE_PRICE_20 || '',
-  50: import.meta.env.VITE_PADDLE_PRICE_50 || '',
-};
 
 const AccountModal: React.FC<Props> = ({ onClose }) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { theme, t, language } = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-  const [isLoadingTopup, setIsLoadingTopup] = useState<number | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [canGetPrime, setCanGetPrime] = useState(false);
+  const cardFormInitialized = useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -64,10 +31,39 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
     }
   }, [user]);
 
-  // Refresh profile when modal opens (in case of recent topup)
+  // Refresh profile when modal opens
   useEffect(() => {
     refreshProfile();
-  }, [refreshProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Initialize TapPay card form when amount is selected
+  useEffect(() => {
+    if (selectedAmount && !cardFormInitialized.current) {
+      // Small delay to ensure DOM elements are rendered
+      const timer = setTimeout(() => {
+        setupCardForm();
+        onCardUpdate((update: TapPayCardUpdate) => {
+          setCanGetPrime(update.canGetPrime);
+          if (update.hasError) {
+            setError(t.accountCardError || '請檢查信用卡資訊');
+          } else {
+            setError(null);
+          }
+        });
+        cardFormInitialized.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedAmount, t]);
+
+  // Reset card form state when amount is deselected
+  useEffect(() => {
+    if (!selectedAmount) {
+      cardFormInitialized.current = false;
+      setCanGetPrime(false);
+    }
+  }, [selectedAmount]);
 
   const fetchTransactions = async () => {
     setIsLoadingTransactions(true);
@@ -92,57 +88,80 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
     }
   };
 
-  const handleTopup = async (amount: number) => {
-    setIsLoadingTopup(amount);
+  const handleSelectAmount = (amount: number) => {
+    if (selectedAmount === amount) {
+      setSelectedAmount(null);
+    } else {
+      setSelectedAmount(amount);
+      cardFormInitialized.current = false;
+    }
     setError(null);
+    setSuccess(null);
+  };
+
+  const handlePayment = async () => {
+    if (!selectedAmount || !user?.id) return;
+
+    setIsProcessing(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      if (!user?.id) {
-        setError(t.accountLoginRequired || 'Please log in to continue');
+      // Get prime from TapPay
+      const result = await getPrime();
+
+      if (result.status !== 0) {
+        setError(result.msg || t.accountCardError || '信用卡資訊錯誤');
+        setIsProcessing(false);
         return;
       }
 
-      const priceId = PRICE_ID_MAP[amount];
-      if (!priceId) {
-        setError('Price not configured for this amount');
+      console.log('[TapPay Debug] Got prime:', result.card.prime.substring(0, 20) + '...');
+
+      // Call backend to process payment
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        setError(t.accountLoginRequired || '請先登入');
+        setIsProcessing(false);
         return;
       }
 
-      if (!window.Paddle) {
-        setError('Payment system not loaded. Please refresh the page.');
-        return;
-      }
-
-      // Open Paddle checkout overlay
-      window.Paddle.Checkout.open({
-        settings: {
-          displayMode: 'overlay',
-          theme: 'dark',
-          variant: 'one-page',
-          successUrl: `${window.location.origin}?payment=success&amount=${amount}`,
+      const response = await fetch('/api/payment/charge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
-        items: [
-          {
-            priceId: priceId,
-            quantity: 1,
-          },
-        ],
-        customData: {
-          user_id: user.id,
-          amount: amount.toString(),
-        },
-        customer: {
-          email: user.email || undefined,
-        },
+        body: JSON.stringify({
+          prime: result.card.prime,
+          amount: selectedAmount,
+        }),
       });
 
-      // Reset loading state since Paddle overlay is now open
-      setIsLoadingTopup(null);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || t.accountTopupError || '儲值失敗');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Success
+      setSuccess(t.accountTopupSuccess || `儲值成功！已加值 NT$${selectedAmount}`);
+      setSelectedAmount(null);
+      cardFormInitialized.current = false;
+
+      // Refresh profile and transactions
+      await refreshProfile();
+      await fetchTransactions();
 
     } catch (err) {
-      console.error('Topup error:', err);
-      setError(t.accountTopupError || 'Failed to process topup. Please try again.');
-      setIsLoadingTopup(null);
+      console.error('Payment error:', err);
+      setError(t.accountTopupError || '儲值失敗，請稍後再試');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -166,10 +185,9 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
 
   const formatAmount = (amount: number, type: 'topup' | 'charge') => {
     const sign = type === 'topup' ? '+' : '-';
-    return `${sign}$${Math.abs(amount).toFixed(2)}`;
+    return `${sign}NT$${Math.floor(Math.abs(amount))}`;
   };
 
-  // Calculate total spent from profile
   const totalSpent = profile?.total_spent || 0;
 
   return (
@@ -231,7 +249,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
                   {t.accountCurrentBalance || 'Current Balance'}
                 </p>
                 <p className={`text-3xl font-black ${theme.textPrimary}`}>
-                  ${(profile?.balance || 0).toFixed(2)}
+                  NT${Math.floor(profile?.balance || 0)}
                 </p>
               </div>
               <div className={`p-3 bg-emerald-500/20 rounded-full`}>
@@ -255,31 +273,103 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
               </div>
             )}
 
-            <div className="grid grid-cols-5 gap-2">
+            {success && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
+                <CheckCircle size={14} className="text-emerald-500" />
+                <p className="text-xs text-emerald-400">{success}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-4 gap-2">
               {TOPUP_OPTIONS.map((amount) => (
                 <button
                   key={amount}
-                  onClick={() => handleTopup(amount)}
-                  disabled={isLoadingTopup !== null}
+                  onClick={() => handleSelectAmount(amount)}
+                  disabled={isProcessing}
                   className={`relative py-3 ${theme.borderRadius} border transition-all text-center ${
-                    isLoadingTopup === amount
+                    selectedAmount === amount
                       ? 'border-blue-500 bg-blue-500/20'
-                      : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover} hover:border-blue-500/50`
+                      : `${theme.borderColor} ${theme.bgCard} hover:bg-slate-800 hover:border-blue-500/50`
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {isLoadingTopup === amount ? (
-                    <Loader2 size={16} className="animate-spin mx-auto text-blue-400" />
-                  ) : (
-                    <span className={`text-sm font-bold ${theme.textPrimary}`}>
-                      ${amount}
-                    </span>
-                  )}
+                  <span className={`text-sm font-bold ${theme.textPrimary}`}>
+                    NT${amount}
+                  </span>
                 </button>
               ))}
             </div>
-            <p className={`text-xs ${theme.textMuted} text-center`}>
-              {t.accountTopupHint || 'Select an amount to top up via Paddle'}
-            </p>
+
+            {/* Credit Card Form */}
+            {selectedAmount && (
+              <div className={`p-4 ${theme.bgTertiary} ${theme.borderRadiusLg} border ${theme.borderColorLight} space-y-3`}>
+                <p className={`text-xs ${theme.textMuted} mb-2`}>
+                  {t.accountEnterCard || '請輸入信用卡資訊'}
+                </p>
+
+                {/* Card Number */}
+                <div>
+                  <label className={`text-[10px] ${theme.textMuted} uppercase tracking-wider mb-1 block`}>
+                    {t.accountCardNumber || '卡號'}
+                  </label>
+                  <div
+                    id="card-number"
+                    className={`h-10 px-3 ${theme.bgCard} ${theme.borderRadius} border ${theme.borderColor} flex items-center`}
+                  />
+                </div>
+
+                {/* Expiry and CCV */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`text-[10px] ${theme.textMuted} uppercase tracking-wider mb-1 block`}>
+                      {t.accountCardExpiry || '到期日'}
+                    </label>
+                    <div
+                      id="card-expiration-date"
+                      className={`h-10 px-3 ${theme.bgCard} ${theme.borderRadius} border ${theme.borderColor} flex items-center`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[10px] ${theme.textMuted} uppercase tracking-wider mb-1 block`}>
+                      CCV
+                    </label>
+                    <div
+                      id="card-ccv"
+                      className={`h-10 px-3 ${theme.bgCard} ${theme.borderRadius} border ${theme.borderColor} flex items-center`}
+                    />
+                  </div>
+                </div>
+
+                {/* Pay Button */}
+                <button
+                  onClick={handlePayment}
+                  disabled={!canGetPrime || isProcessing}
+                  className={`w-full py-2.5 ${theme.borderRadius} font-medium transition-all ${
+                    canGetPrime && !isProcessing
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      {t.accountProcessing || '處理中...'}
+                    </span>
+                  ) : (
+                    `${t.accountPayNow || '立即付款'} NT$${selectedAmount}`
+                  )}
+                </button>
+
+                <p className={`text-[10px] ${theme.textMuted} text-center`}>
+                  {t.accountSecurePayment || '安全加密付款 by TapPay'}
+                </p>
+              </div>
+            )}
+
+            {!selectedAmount && (
+              <p className={`text-xs ${theme.textMuted} text-center`}>
+                {t.accountTopupHint || '選擇金額開始儲值'}
+              </p>
+            )}
           </div>
 
           {/* Divider */}
@@ -295,7 +385,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
                 </span>
               </div>
               <p className={`text-lg font-bold ${theme.textPrimary}`}>
-                ${totalSpent.toFixed(2)}
+                NT${Math.floor(totalSpent)}
               </p>
             </div>
             <div className={`p-3 ${theme.bgTertiary} ${theme.borderRadius} border ${theme.borderColorLight}`}>
@@ -337,7 +427,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
                   {transactions.map((tx) => (
                     <div
                       key={tx.id}
-                      className={`px-3 py-2.5 flex items-center justify-between ${theme.bgCardHover} transition-colors`}
+                      className={`px-3 py-2.5 flex items-center justify-between hover:bg-slate-800/50 transition-colors`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`p-1.5 rounded-full ${

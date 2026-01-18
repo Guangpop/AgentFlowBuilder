@@ -89,7 +89,7 @@ const AppContent: React.FC = () => {
       setApiStatus('active'); // API call succeeded
     } catch (err) {
       setApiStatus('inactive'); // API call failed
-      alert(t.alertGenerateFailed);
+      alert(err instanceof Error ? err.message : t.alertGenerateFailed);
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +105,7 @@ const AppContent: React.FC = () => {
       setApiStatus('active'); // API call succeeded
     } catch (err) {
       setApiStatus('inactive'); // API call failed
-      alert(t.alertInstructionsFailed);
+      alert(err instanceof Error ? err.message : t.alertInstructionsFailed);
     } finally {
       setIsGeneratingInstructions(false);
     }
@@ -505,7 +505,7 @@ const AppContent: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-1.5 ${theme.bgTertiary} ${theme.borderRadius} border ${theme.borderColor} hover:border-blue-500/50 transition-all`}
             >
               <span className={`text-xs font-bold text-emerald-400`}>
-                ${profile?.balance?.toFixed(2) || '0.00'}
+                NT${Math.floor(profile?.balance || 0)}
               </span>
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" aria-hidden="true" className="w-6 h-6 rounded-full" />

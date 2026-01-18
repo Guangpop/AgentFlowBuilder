@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createSupabaseAdmin, verifyToken } from '../_utils/supabase';
+import { createSupabaseAdmin, verifyToken } from '../_utils/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

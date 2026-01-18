@@ -2,10 +2,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { initializePaddle } from './lib/paddle';
+import { initializeTapPay } from './lib/tappay';
 
-// Initialize Paddle for payment processing
-initializePaddle();
+// Initialize TapPay for payment processing
+initializeTapPay();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

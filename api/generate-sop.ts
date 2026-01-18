@@ -1,15 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
-import { createSupabaseAdmin, verifyToken } from './_utils/supabase';
-import { logEvent } from './_utils/logger';
-import { promptsZhTW } from '../prompts/zh-TW';
-import { promptsEn } from '../prompts/en';
+import { createSupabaseAdmin, verifyToken } from './_utils/supabase.js';
+import { logEvent } from './_utils/logger.js';
+import { promptsZhTW } from '../prompts/zh-TW.js';
+import { promptsEn } from '../prompts/en.js';
 
-const COST_PER_NODE = 0.5;
+const COST_PER_NODE = 15; // TWD per node
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Lazy initialization to avoid cold start errors
+let anthropic: Anthropic | null = null;
+
+const getAnthropicClient = () => {
+  if (!anthropic) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not set');
+    }
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropic;
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -80,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const prompt = prompts.agentInstructionsPrompt(workflowJson);
 
     // Call Claude API with larger max_tokens for SOP generation
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16384,
       messages: [
