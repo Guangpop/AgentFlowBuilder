@@ -95,26 +95,37 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 gap-2">
-            {(Object.keys(AI_PROVIDERS) as AIProviderType[]).map((provider) => (
-              <button
-                key={provider}
-                onClick={() => handleProviderChange(provider)}
-                className={`relative p-3 ${theme.borderRadius} border transition-all text-left ${
-                  aiProvider === provider
-                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20'
-                    : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover}`
-                }`}
-              >
-                <span className={`text-xs font-bold ${theme.textPrimary}`}>
-                  {AI_PROVIDERS[provider].name}
-                </span>
-                {aiProvider === provider && (
-                  <div className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
-                    <Check size={10} className="text-white" />
-                  </div>
-                )}
-              </button>
-            ))}
+            {(Object.keys(AI_PROVIDERS) as AIProviderType[]).map((provider) => {
+              const isDisabled = provider === 'gemini';
+              return (
+                <button
+                  key={provider}
+                  onClick={() => !isDisabled && handleProviderChange(provider)}
+                  disabled={isDisabled}
+                  className={`relative p-3 ${theme.borderRadius} border transition-all text-left ${
+                    isDisabled
+                      ? 'opacity-50 cursor-not-allowed bg-slate-800/50'
+                      : aiProvider === provider
+                        ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20'
+                        : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover}`
+                  }`}
+                >
+                  <span className={`text-xs font-bold ${theme.textPrimary}`}>
+                    {AI_PROVIDERS[provider].name}
+                  </span>
+                  {isDisabled && (
+                    <span className="ml-2 text-[10px] text-amber-400 font-medium">
+                      {t.comingSoon}
+                    </span>
+                  )}
+                  {!isDisabled && aiProvider === provider && (
+                    <div className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
+                      <Check size={10} className="text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

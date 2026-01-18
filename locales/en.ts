@@ -48,6 +48,7 @@ export const en: LocaleStrings = {
   enabled: 'Enabled',
   resetToDefault: 'Reset to Default',
   resetConfirm: 'Are you sure you want to reset all settings to default?',
+  comingSoon: 'Coming Soon',
 
   // Node Properties
   propertiesPanel: 'Properties',

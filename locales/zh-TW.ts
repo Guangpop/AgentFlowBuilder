@@ -46,6 +46,7 @@ export const zhTW = {
   enabled: '開啟',
   resetToDefault: '重置為預設值',
   resetConfirm: '確定要重置所有設定為預設值嗎？',
+  comingSoon: '即將推出',
 
   // Node Properties
   propertiesPanel: '屬性面板',
