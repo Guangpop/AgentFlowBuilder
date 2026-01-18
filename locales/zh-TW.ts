@@ -26,6 +26,9 @@ export const zhTW = {
   promptPlaceholder: '描述您的工作流需求...',
   generatingMessage: '正在規劃節點邏輯...',
   poweredBy: 'Powered by Gemini 3 Flash',
+  pricingTitle: '使用計費說明',
+  pricingWorkflow: '• 生成工作流：NT$15/次',
+  pricingSop: '• 生成 SOP 指令集：NT$15/節點',
 
   // Quick tags
   tagCustomerSupport: '客戶支持',

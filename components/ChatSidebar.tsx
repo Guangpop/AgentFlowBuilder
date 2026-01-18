@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, Info } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+
+// Check if running in production (no local API key = production mode)
+const isProductionMode = !import.meta.env.VITE_LOCAL_API_KEY;
 
 interface Props {
   onGenerate: (prompt: string) => Promise<void>;
@@ -42,6 +45,18 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         <div className="space-y-3">
+          {isProductionMode && (
+            <div className={`${themeId === 'minimal' ? 'bg-amber-50 border-amber-200' : 'bg-amber-900/10 border-amber-500/20'} ${theme.borderRadius} p-2.5 border`}>
+              <div className="flex items-start gap-2">
+                <Info size={14} className={`${themeId === 'minimal' ? 'text-amber-600' : 'text-amber-400'} shrink-0 mt-0.5`} />
+                <div className={`text-[11px] ${themeId === 'minimal' ? 'text-amber-800' : 'text-amber-200'} leading-relaxed`}>
+                  <p className="font-medium">{t.pricingTitle}</p>
+                  <p className="mt-1 opacity-80">{t.pricingWorkflow}</p>
+                  <p className="opacity-80">{t.pricingSop}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className={`${themeId === 'minimal' ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/10 border-blue-500/20'} ${theme.borderRadius} p-3 border`}>
             <p className={`text-sm ${themeId === 'minimal' ? 'text-blue-900' : 'text-blue-100'} leading-relaxed`}>
               {t.promptInstruction}

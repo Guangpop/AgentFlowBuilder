@@ -28,6 +28,9 @@ export const en: LocaleStrings = {
   promptPlaceholder: 'Describe your workflow requirements...',
   generatingMessage: 'Planning node logic...',
   poweredBy: 'Powered by Gemini 3 Flash',
+  pricingTitle: 'Pricing Info',
+  pricingWorkflow: '• Workflow Generation: NT$15/time',
+  pricingSop: '• SOP Instructions: NT$15/node',
 
   // Quick tags
   tagCustomerSupport: 'Customer Support',
