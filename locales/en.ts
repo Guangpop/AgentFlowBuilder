@@ -104,12 +104,96 @@ export const en: LocaleStrings = {
   generatingSubtext: 'Deeply analyzing workflow topology and processing state machine logic',
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: 'Usage Suggestion',
-  usageDescription: 'Paste the following content to your AI agent to generate workflow and Agent Skills:',
-  usageTemplate: 'Please generate workflow instructions and related Agent skills based on the following workflow',
-  usagePlaceholder: '[ Copy the generated instructions below and paste here ]',
   generatedPrompt: 'GENERATED MASTER SYSTEM PROMPT',
   copyPrompt: 'Copy Prompt',
   copied: 'Copied',
+
+  // IDE & Output Type Selectors
+  ideLabel: 'IDE',
+  outputTypeLabel: 'Type',
+  ideClaudeCode: 'Claude Code',
+  ideAntigravity: 'Antigravity',
+  ideCursor: 'Cursor',
+  outputTypeSkills: 'Skills',
+  outputTypeCommands: 'Commands',
+  outputTypeWorkflows: 'Workflows',
+  fileLocationLabel: 'File Location',
+  copyFullPrompt: 'Copy Full Prompt (incl. SOP below)',
+  copiedFull: 'Full Prompt Copied',
+
+  // Prefix Templates
+  prefixClaudeSkills: `Based on the following workflow, generate a Claude Code Skill.
+
+Format Requirements:
+- Create folder structure: .claude/skills/<skill-name>/SKILL.md
+- Use YAML frontmatter with name and description fields
+- Use kebab-case naming (lowercase letters, numbers, hyphens)
+- Description should clearly explain the skill's purpose and when it should be triggered
+- Write detailed instructions in Markdown format
+
+---
+
+`,
+  prefixClaudeCommands: `Based on the following workflow, generate a Claude Code Slash Command.
+
+Format Requirements:
+- Create file: .claude/commands/<command-name>.md
+- Optionally use YAML frontmatter with description, argument-hint, allowed-tools fields
+- Filename becomes the command name (without .md extension)
+- Use $ARGUMENTS to receive user input parameters
+- Write command steps in Markdown format
+
+---
+
+`,
+  prefixAntigravitySkills: `Based on the following workflow, generate an Antigravity Skill.
+
+Format Requirements:
+- Create folder structure: .agent/skills/<skill-name>/SKILL.md
+- Use YAML frontmatter with name and description fields
+- Use kebab-case naming (lowercase letters, numbers, hyphens)
+- Description should clearly explain the skill's purpose and when it should be triggered
+- Write detailed instructions in Markdown format
+
+---
+
+`,
+  prefixAntigravityWorkflows: `Based on the following workflow, generate an Antigravity Workflow.
+
+Format Requirements:
+- Create file: .agent/workflows/<workflow-name>.md
+- Use Markdown bullet-point format for steps
+- Start each step with * or -
+- Steps should be clear and actionable
+- Can use // turbo-all comment to let agent auto-execute all steps
+
+---
+
+`,
+  prefixCursorSkills: `Based on the following workflow, generate a Cursor Skill.
+
+Format Requirements:
+- Create folder structure: .cursor/skills/<skill-name>/SKILL.md
+- Use YAML frontmatter with name and description fields
+- Use kebab-case naming (lowercase letters, numbers, hyphens)
+- Description should clearly explain the skill's purpose and when it should be triggered
+- Write detailed instructions in Markdown format
+
+---
+
+`,
+  prefixCursorCommands: `Based on the following workflow, generate a Cursor Slash Command.
+
+Format Requirements:
+- Create file: .cursor/commands/<command-name>.md
+- Optionally use YAML frontmatter with description, argument-hint fields
+- Filename becomes the command name (without .md extension)
+- Use $ARGUMENTS to receive user input parameters
+- Write command steps in Markdown format
+
+---
+
+`,
 
   // Feature cards
   featureHierarchical: 'Hierarchical Disclosure',

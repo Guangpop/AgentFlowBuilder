@@ -102,12 +102,96 @@ export const zhTW = {
   generatingSubtext: '正在深度拆解工作流拓撲結構並處理狀態機邏輯',
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: '使用建議',
-  usageDescription: '請將以下內容貼給 AI agent，讓他幫你產生 workflow 以及 Agent Skills：',
-  usageTemplate: '請你依照以下工作流程, 產生workflow指令, 以及相關的Agent skills',
-  usagePlaceholder: '[ 在下方區塊複製產生的指令集並貼至此處 ]',
   generatedPrompt: 'GENERATED MASTER SYSTEM PROMPT',
   copyPrompt: 'Copy Prompt',
   copied: 'Copied',
+
+  // IDE & Output Type Selectors
+  ideLabel: 'IDE',
+  outputTypeLabel: '類型',
+  ideClaudeCode: 'Claude Code',
+  ideAntigravity: 'Antigravity',
+  ideCursor: 'Cursor',
+  outputTypeSkills: 'Skills',
+  outputTypeCommands: 'Commands',
+  outputTypeWorkflows: 'Workflows',
+  fileLocationLabel: '檔案位置',
+  copyFullPrompt: '複製完整 Prompt（含下方 SOP）',
+  copiedFull: '已複製完整 Prompt',
+
+  // Prefix Templates
+  prefixClaudeSkills: `請根據以下工作流程，產生一個 Claude Code Skill。
+
+格式要求：
+- 建立資料夾結構：.claude/skills/<skill-name>/SKILL.md
+- 使用 YAML frontmatter 包含 name 和 description 欄位
+- name 使用 kebab-case 命名（小寫字母、數字、連字號）
+- description 要清楚說明此 skill 的用途以及何時應該被觸發
+- 內容使用 Markdown 格式撰寫詳細指令
+
+---
+
+`,
+  prefixClaudeCommands: `請根據以下工作流程，產生一個 Claude Code Slash Command。
+
+格式要求：
+- 建立檔案：.claude/commands/<command-name>.md
+- 可選使用 YAML frontmatter 包含 description、argument-hint、allowed-tools 等欄位
+- 檔案名稱即為指令名稱（不含 .md 副檔名）
+- 使用 $ARGUMENTS 接收使用者輸入的參數
+- 內容使用 Markdown 格式撰寫指令步驟
+
+---
+
+`,
+  prefixAntigravitySkills: `請根據以下工作流程，產生一個 Antigravity Skill。
+
+格式要求：
+- 建立資料夾結構：.agent/skills/<skill-name>/SKILL.md
+- 使用 YAML frontmatter 包含 name 和 description 欄位
+- name 使用 kebab-case 命名（小寫字母、數字、連字號）
+- description 要清楚說明此 skill 的用途以及何時應該被觸發
+- 內容使用 Markdown 格式撰寫詳細指令
+
+---
+
+`,
+  prefixAntigravityWorkflows: `請根據以下工作流程，產生一個 Antigravity Workflow。
+
+格式要求：
+- 建立檔案：.agent/workflows/<workflow-name>.md
+- 使用 Markdown 條列式格式撰寫步驟
+- 每個步驟以 * 或 - 開頭
+- 步驟要清楚、可執行
+- 可使用 // turbo-all 註解讓 agent 自動執行所有步驟
+
+---
+
+`,
+  prefixCursorSkills: `請根據以下工作流程，產生一個 Cursor Skill。
+
+格式要求：
+- 建立資料夾結構：.cursor/skills/<skill-name>/SKILL.md
+- 使用 YAML frontmatter 包含 name 和 description 欄位
+- name 使用 kebab-case 命名（小寫字母、數字、連字號）
+- description 要清楚說明此 skill 的用途以及何時應該被觸發
+- 內容使用 Markdown 格式撰寫詳細指令
+
+---
+
+`,
+  prefixCursorCommands: `請根據以下工作流程，產生一個 Cursor Slash Command。
+
+格式要求：
+- 建立檔案：.cursor/commands/<command-name>.md
+- 可選使用 YAML frontmatter 包含 description、argument-hint 等欄位
+- 檔案名稱即為指令名稱（不含 .md 副檔名）
+- 使用 $ARGUMENTS 接收使用者輸入的參數
+- 內容使用 Markdown 格式撰寫指令步驟
+
+---
+
+`,
 
   // Feature cards
   featureHierarchical: '階層式揭露',

@@ -27,6 +27,10 @@ import {
 // Right panel mode
 type RightPanelMode = 'none' | 'properties' | 'settings';
 
+// IDE and Output Type types
+type IDEType = 'claude' | 'antigravity' | 'cursor';
+type OutputTypeValue = 'skills' | 'commands' | 'workflows';
+
 const AppContent: React.FC = () => {
   const { theme, themeId, t, language, apiStatus, setApiStatus, aiProvider } = useTheme();
 
@@ -43,7 +47,10 @@ const AppContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [copyFullSuccess, setCopyFullSuccess] = useState(false);
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('none');
+  const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
+  const [selectedOutputType, setSelectedOutputType] = useState<OutputTypeValue>('skills');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -340,6 +347,77 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Get available output types based on selected IDE
+  const getAvailableOutputTypes = (ide: IDEType): OutputTypeValue[] => {
+    if (ide === 'antigravity') {
+      return ['skills', 'workflows'];
+    }
+    return ['skills', 'commands'];
+  };
+
+  // Update output type when IDE changes
+  const handleIDEChange = (ide: IDEType) => {
+    setSelectedIDE(ide);
+    const availableTypes = getAvailableOutputTypes(ide);
+    if (!availableTypes.includes(selectedOutputType)) {
+      setSelectedOutputType(availableTypes[0]);
+    }
+  };
+
+  // Get file location based on IDE and output type
+  const getFileLocation = (): string => {
+    const locations: Record<IDEType, Record<OutputTypeValue, string>> = {
+      claude: {
+        skills: '.claude/skills/<skill-name>/SKILL.md',
+        commands: '.claude/commands/<command-name>.md',
+        workflows: ''
+      },
+      antigravity: {
+        skills: '.agent/skills/<skill-name>/SKILL.md',
+        commands: '',
+        workflows: '.agent/workflows/<workflow-name>.md'
+      },
+      cursor: {
+        skills: '.cursor/skills/<skill-name>/SKILL.md',
+        commands: '.cursor/commands/<command-name>.md',
+        workflows: ''
+      }
+    };
+    return locations[selectedIDE][selectedOutputType] || '';
+  };
+
+  // Get prefix based on IDE and output type
+  const getPrefix = (): string => {
+    const prefixes: Record<IDEType, Record<OutputTypeValue, string>> = {
+      claude: {
+        skills: t.prefixClaudeSkills,
+        commands: t.prefixClaudeCommands,
+        workflows: ''
+      },
+      antigravity: {
+        skills: t.prefixAntigravitySkills,
+        commands: '',
+        workflows: t.prefixAntigravityWorkflows
+      },
+      cursor: {
+        skills: t.prefixCursorSkills,
+        commands: t.prefixCursorCommands,
+        workflows: ''
+      }
+    };
+    return prefixes[selectedIDE][selectedOutputType] || '';
+  };
+
+  // Copy full prompt (prefix + agent instructions)
+  const handleCopyFullPrompt = () => {
+    if (agentInstructions) {
+      const fullPrompt = getPrefix() + agentInstructions;
+      navigator.clipboard.writeText(fullPrompt);
+      setCopyFullSuccess(true);
+      setTimeout(() => setCopyFullSuccess(false), 2000);
+    }
+  };
+
   // Determine background class based on theme
   const bgClass = theme.gradientBg || theme.bgPrimary;
 
@@ -465,21 +543,84 @@ const AppContent: React.FC = () => {
 
                 {agentInstructions ? (
                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    {/* 使用提示區塊 */}
+                    {/* IDE/Type Selector Section */}
                     <div className="bg-blue-500/5 border border-blue-500/20 rounded-[32px] p-8 shadow-inner overflow-hidden relative">
                        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                           <Terminal size={120} className="text-blue-400" />
                        </div>
-                       <h3 className="text-blue-400 font-black text-sm mb-4 flex items-center gap-2 uppercase tracking-widest">
+                       <h3 className="text-blue-400 font-black text-sm mb-6 flex items-center gap-2 uppercase tracking-widest">
                           <Info size={18} /> {t.usageSuggestion}
                        </h3>
-                       <p className="text-slate-300 text-base mb-6 leading-relaxed max-w-3xl">
-                          {t.usageDescription}
-                       </p>
-                       <div className="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-sm font-mono text-slate-400 select-all shadow-inner leading-relaxed">
-                          <p>{t.usageTemplate}</p>
-                          <p className="my-2 opacity-30">---</p>
-                          <p className="text-slate-600 italic">{t.usagePlaceholder}</p>
+
+                       {/* IDE and Type Selectors */}
+                       <div className="flex flex-wrap gap-6 mb-6">
+                         {/* IDE Selector */}
+                         <div className="flex flex-col gap-2">
+                           <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">{t.ideLabel}</label>
+                           <div className="flex gap-2">
+                             {(['claude', 'antigravity', 'cursor'] as IDEType[]).map(ide => (
+                               <button
+                                 key={ide}
+                                 onClick={() => handleIDEChange(ide)}
+                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                   selectedIDE === ide
+                                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700'
+                                 }`}
+                               >
+                                 {ide === 'claude' ? t.ideClaudeCode : ide === 'antigravity' ? t.ideAntigravity : t.ideCursor}
+                               </button>
+                             ))}
+                           </div>
+                         </div>
+
+                         {/* Output Type Selector */}
+                         <div className="flex flex-col gap-2">
+                           <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">{t.outputTypeLabel}</label>
+                           <div className="flex gap-2">
+                             {getAvailableOutputTypes(selectedIDE).map(type => (
+                               <button
+                                 key={type}
+                                 onClick={() => setSelectedOutputType(type)}
+                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                   selectedOutputType === type
+                                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700'
+                                 }`}
+                               >
+                                 {type === 'skills' ? t.outputTypeSkills : type === 'commands' ? t.outputTypeCommands : t.outputTypeWorkflows}
+                               </button>
+                             ))}
+                           </div>
+                         </div>
+                       </div>
+
+                       {/* File Location */}
+                       <div className="mb-6">
+                         <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">{t.fileLocationLabel}</label>
+                         <div className="mt-2 bg-slate-950/80 px-4 py-3 rounded-xl border border-slate-800 text-sm font-mono text-cyan-400">
+                           {getFileLocation()}
+                         </div>
+                       </div>
+
+                       {/* Prefix Display */}
+                       <div className="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-sm font-mono text-slate-400 shadow-inner leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                         {getPrefix()}
+                       </div>
+
+                       {/* Copy Full Prompt Button */}
+                       <div className="mt-6 flex justify-end">
+                         <button
+                           onClick={handleCopyFullPrompt}
+                           className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black transition-all ${
+                             copyFullSuccess
+                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                               : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                           }`}
+                         >
+                           {copyFullSuccess ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                           {copyFullSuccess ? t.copiedFull : t.copyFullPrompt}
+                         </button>
                        </div>
                     </div>
 
