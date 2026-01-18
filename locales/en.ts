@@ -300,4 +300,16 @@ Format Requirements:
   paymentShortfallHint: 'You need',
   paymentShortfallHintMore: 'more to proceed',
   paymentSinglePayment: 'Single Payment',
+
+  // History Tab
+  historyTitle: 'History',
+  historyEmpty: 'No history yet',
+  historyEmptyHint: 'Create your first workflow to get started!',
+  historyGeneratedPrompt: 'Generated Prompt',
+  historyNoPrompt: '(No prompt recorded)',
+  historyNodeCount: 'Nodes',
+  historyCost: 'Cost',
+  historyDownload: 'Download JSON',
+  historyDelete: 'Delete',
+  historyDeleteConfirm: 'Delete this history record?',
 };

@@ -298,6 +298,18 @@ export const zhTW = {
   paymentShortfallHint: '還差',
   paymentShortfallHintMore: '，請選擇儲值金額',
   paymentSinglePayment: '單次付費',
+
+  // History Tab
+  historyTitle: '歷程瀏覽',
+  historyEmpty: '尚無歷程記錄',
+  historyEmptyHint: '開始建立您的第一個 workflow 吧！',
+  historyGeneratedPrompt: 'Generated Prompt',
+  historyNoPrompt: '(無 prompt 記錄)',
+  historyNodeCount: '節點數',
+  historyCost: '花費',
+  historyDownload: '下載 JSON',
+  historyDelete: '刪除',
+  historyDeleteConfirm: '確定要刪除此歷程記錄嗎？',
 };
 
 export type LocaleStrings = typeof zhTW;
