@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ThemeId, ThemeTokens, themes, getTheme } from '../styles/themes';
 import { Language, detectBrowserLanguage, isValidLanguage, getLocale, LocaleStrings } from '../locales';
+import { AIProviderType, AI_PROVIDERS, getAIProvider } from '../services/ai';
 
 const STORAGE_KEY = 'agentflow-settings';
 
 interface Settings {
   theme: ThemeId;
   language: Language;
+  aiProvider: AIProviderType;
 }
 
 export type ApiStatus = 'active' | 'inactive';
@@ -23,11 +25,18 @@ interface ThemeContextType {
   resetSettings: () => void;
   apiStatus: ApiStatus;
   setApiStatus: (status: ApiStatus) => void;
+  aiProvider: AIProviderType;
+  setAiProvider: (provider: AIProviderType) => void;
 }
 
 const defaultSettings: Settings = {
   theme: 'techDark',
   language: detectBrowserLanguage(),
+  aiProvider: 'gemini',
+};
+
+const isValidAiProvider = (provider: string): provider is AIProviderType => {
+  return provider in AI_PROVIDERS;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -52,6 +61,11 @@ const loadSettings = (): Settings => {
         console.warn(`Invalid language "${parsed.language}" found in storage, detecting browser language`);
         parsed.language = detectBrowserLanguage();
       }
+      // Validate AI provider exists
+      if (parsed.aiProvider && !isValidAiProvider(parsed.aiProvider)) {
+        console.warn(`Invalid AI provider "${parsed.aiProvider}" found in storage, resetting to default`);
+        parsed.aiProvider = defaultSettings.aiProvider;
+      }
       return { ...defaultSettings, ...parsed };
     }
   } catch (e) {
@@ -73,24 +87,28 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-// Check if API key exists
-const checkApiKeyExists = (): boolean => {
-  // Vite uses import.meta.env for browser-accessible env vars
-  // Also check process.env for SSR/build time
-  const viteKey = (import.meta as any).env?.VITE_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  const processKey = typeof process !== 'undefined' ? (process.env?.API_KEY || process.env?.GEMINI_API_KEY) : undefined;
-  return !!(viteKey || processKey);
+// Check if API key exists for a specific provider
+const checkApiKeyExists = (provider: AIProviderType): boolean => {
+  try {
+    return getAIProvider(provider).checkApiKey();
+  } catch {
+    return false;
+  }
 };
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [apiStatus, setApiStatusState] = useState<ApiStatus>(() =>
-    checkApiKeyExists() ? 'active' : 'inactive'
-  );
+  const [apiStatus, setApiStatusState] = useState<ApiStatus>('inactive');
 
   const setApiStatus = useCallback((status: ApiStatus) => {
     setApiStatusState(status);
+  }, []);
+
+  const setAiProvider = useCallback((provider: AIProviderType) => {
+    setSettings(prev => ({ ...prev, aiProvider: provider }));
+    // Update API status based on new provider
+    setApiStatusState(checkApiKeyExists(provider) ? 'active' : 'inactive');
   }, []);
 
   // Load settings from localStorage on mount
@@ -98,6 +116,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const loaded = loadSettings();
     setSettings(loaded);
     setIsLoaded(true);
+    // Check API key for loaded provider
+    setApiStatusState(checkApiKeyExists(loaded.aiProvider) ? 'active' : 'inactive');
   }, []);
 
   // Save settings to localStorage when they change
@@ -120,10 +140,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, []);
 
   const resetSettings = useCallback(() => {
-    setSettings({
+    const newSettings = {
       ...defaultSettings,
       language: detectBrowserLanguage(), // Re-detect on reset
-    });
+    };
+    setSettings(newSettings);
+    // Reset API status based on default provider
+    setApiStatusState(checkApiKeyExists(newSettings.aiProvider) ? 'active' : 'inactive');
   }, []);
 
   const theme = getTheme(settings.theme);
@@ -141,6 +164,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     resetSettings,
     apiStatus,
     setApiStatus,
+    aiProvider: settings.aiProvider,
+    setAiProvider,
   };
 
   return (
@@ -172,4 +197,5 @@ export const useThemeClasses = () => {
 };
 
 export type { Language };
+export type { AIProviderType };
 export default ThemeContext;

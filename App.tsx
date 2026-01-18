@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
-import { generateWorkflow, generateAgentInstructions } from './services/gemini';
+import { getAIProvider, AI_PROVIDERS } from './services/ai';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { zhTW, en } from './locales';
 import ChatSidebar from './components/ChatSidebar';
@@ -28,7 +28,7 @@ import {
 type RightPanelMode = 'none' | 'properties' | 'settings';
 
 const AppContent: React.FC = () => {
-  const { theme, themeId, t, language, apiStatus, setApiStatus } = useTheme();
+  const { theme, themeId, t, language, apiStatus, setApiStatus, aiProvider } = useTheme();
 
   const [workflow, setWorkflow] = useState<Workflow>({
     name: t.defaultWorkflowName,
@@ -62,7 +62,8 @@ const AppContent: React.FC = () => {
     setIsLoading(true);
     setConfirmation(null);
     try {
-      const result = await generateWorkflow(prompt, language);
+      const provider = getAIProvider(aiProvider);
+      const result = await provider.generateWorkflow(prompt, language);
       setWorkflow({
         ...result.workflow,
         description: result.workflow.description || t.aiGeneratedDescription
@@ -83,7 +84,8 @@ const AppContent: React.FC = () => {
     if (workflow.nodes.length === 0) return;
     setIsGeneratingInstructions(true);
     try {
-      const result = await generateAgentInstructions(workflow, language);
+      const provider = getAIProvider(aiProvider);
+      const result = await provider.generateAgentInstructions(workflow, language);
       setAgentInstructions(result);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
@@ -614,7 +616,7 @@ const AppContent: React.FC = () => {
             </div>
           </div>
           <div className={`flex items-center gap-4 ${themeId === 'minimal' ? 'text-slate-400' : 'text-slate-400'}`}>
-            <span>GEMINI-3-FLASH</span>
+            <span>{AI_PROVIDERS[aiProvider].modelName}</span>
           </div>
         </footer>
       </main>

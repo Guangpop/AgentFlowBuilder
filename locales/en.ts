@@ -39,6 +39,7 @@ export const en: LocaleStrings = {
   settingsTitle: 'Settings',
   themeLabel: 'Theme',
   languageLabel: 'Language',
+  aiProviderLabel: 'AI Provider',
   moreSettings: 'More Settings (Coming Soon)',
   canvasGrid: 'Canvas Grid',
   shortcutHints: 'Shortcut Hints',

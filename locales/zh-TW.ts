@@ -37,6 +37,7 @@ export const zhTW = {
   settingsTitle: '設定',
   themeLabel: '外觀主題',
   languageLabel: '界面語言',
+  aiProviderLabel: 'AI 提供者',
   moreSettings: '更多設定（即將推出）',
   canvasGrid: '畫布網格',
   shortcutHints: '快捷鍵提示',

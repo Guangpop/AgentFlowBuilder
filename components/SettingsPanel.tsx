@@ -1,8 +1,9 @@
 import React from 'react';
-import { X, Settings, RotateCcw, Palette, Globe, Check } from 'lucide-react';
-import { useTheme, Language } from '../contexts/ThemeContext';
+import { X, Settings, RotateCcw, Palette, Globe, Check, Cpu } from 'lucide-react';
+import { useTheme, Language, AIProviderType } from '../contexts/ThemeContext';
 import { ThemeId, themeOrder } from '../styles/themes';
 import { languages } from '../locales';
+import { AI_PROVIDERS } from '../services/ai';
 import ThemePreviewCard from './ThemePreviewCard';
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
 }
 
 const SettingsPanel: React.FC<Props> = ({ onClose }) => {
-  const { theme, themeId, setThemeId, language, setLanguage, t, resetSettings } = useTheme();
+  const { theme, themeId, setThemeId, language, setLanguage, aiProvider, setAiProvider, t, resetSettings } = useTheme();
 
   const handleThemeChange = (id: ThemeId) => {
     setThemeId(id);
@@ -18,6 +19,10 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
+  };
+
+  const handleProviderChange = (provider: AIProviderType) => {
+    setAiProvider(provider);
   };
 
   const handleReset = () => {
@@ -80,6 +85,42 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
         {/* Divider */}
         <div className={`border-t ${theme.borderColorLight}`} />
 
+        {/* AI Provider Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Cpu size={14} className="text-violet-400" />
+            <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
+              {t.aiProviderLabel}
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            {(Object.keys(AI_PROVIDERS) as AIProviderType[]).map((provider) => (
+              <button
+                key={provider}
+                onClick={() => handleProviderChange(provider)}
+                className={`relative p-3 ${theme.borderRadius} border transition-all text-left ${
+                  aiProvider === provider
+                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20'
+                    : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover}`
+                }`}
+              >
+                <span className={`text-xs font-bold ${theme.textPrimary}`}>
+                  {AI_PROVIDERS[provider].name}
+                </span>
+                {aiProvider === provider && (
+                  <div className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
+                    <Check size={10} className="text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className={`border-t ${theme.borderColorLight}`} />
+
         {/* Theme Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -101,26 +142,6 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className={`border-t ${theme.borderColorLight}`} />
-
-        {/* Future Settings Placeholder */}
-        <div className="space-y-2.5">
-          <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
-            {t.moreSettings}
-          </label>
-          <div className={`p-3 ${theme.bgCard} ${theme.borderRadius} border ${theme.borderColor} space-y-2`}>
-            {[
-              { label: t.canvasGrid, value: t.show },
-              { label: t.shortcutHints, value: t.enabled },
-            ].map((item, idx) => (
-              <div key={idx} className={`flex items-center justify-between py-1.5 ${idx !== 1 ? `border-b ${theme.borderColorLight}` : ''}`}>
-                <span className={`text-xs ${theme.textSecondary}`}>{item.label}</span>
-                <span className={`text-xs ${theme.textMuted} italic`}>{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
