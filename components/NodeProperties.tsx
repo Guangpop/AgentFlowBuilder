@@ -12,6 +12,8 @@ interface Props {
   onUpdate: (updates: Partial<WorkflowNode>) => void;
 }
 
+const MAX_DESCRIPTION_LENGTH = 350;
+
 const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, onUpdate }) => {
   const { theme, themeId, t } = useTheme();
   const [nodeIdError, setNodeIdError] = useState<string | null>(null);
@@ -133,12 +135,26 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
               <Info size={12} className="text-blue-400 opacity-60" />
               {t.functionDescription}
             </label>
-            <textarea
-              value={node.description}
-              onChange={(e) => onUpdate({ description: e.target.value })}
-              className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none h-24 leading-relaxed`}
-              placeholder={t.descriptionHint}
-            />
+            <div className="relative">
+              <textarea
+                value={node.description}
+                onChange={(e) => {
+                  if (e.target.value.length <= MAX_DESCRIPTION_LENGTH) {
+                    onUpdate({ description: e.target.value });
+                  }
+                }}
+                maxLength={MAX_DESCRIPTION_LENGTH}
+                className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none h-24 leading-relaxed`}
+                placeholder={t.descriptionHint}
+              />
+              <div className={`absolute bottom-2 right-2 text-xs ${
+                node.description.length >= MAX_DESCRIPTION_LENGTH
+                  ? 'text-red-400'
+                  : theme.textMuted
+              }`}>
+                {node.description.length}/{MAX_DESCRIPTION_LENGTH}
+              </div>
+            </div>
           </div>
         </div>
 
