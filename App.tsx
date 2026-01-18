@@ -10,6 +10,7 @@ import NodeProperties from './components/NodeProperties';
 import SettingsPanel from './components/SettingsPanel';
 import LoginPage from './components/LoginPage';
 import AuthCallback from './components/AuthCallback';
+import AccountModal from './components/AccountModal';
 import {
   Share2,
   FileCode,
@@ -36,7 +37,7 @@ type OutputTypeValue = 'skills' | 'commands' | 'workflows';
 
 const AppContent: React.FC = () => {
   const { theme, themeId, t, language, apiStatus, setApiStatus, aiProvider } = useTheme();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
 
   const [workflow, setWorkflow] = useState<Workflow>({
     name: t.defaultWorkflowName,
@@ -55,6 +56,7 @@ const AppContent: React.FC = () => {
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('none');
   const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
   const [selectedOutputType, setSelectedOutputType] = useState<OutputTypeValue>('skills');
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -494,6 +496,22 @@ const AppContent: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Balance Display */}
+            <button
+              onClick={() => setShowAccountModal(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 ${theme.bgTertiary} ${theme.borderRadius} border ${theme.borderColor} hover:border-blue-500/50 transition-all`}
+            >
+              <span className={`text-xs font-bold text-emerald-400`}>
+                ${profile?.balance?.toFixed(2) || '0.00'}
+              </span>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+              ) : (
+                <div className={`w-6 h-6 rounded-full ${theme.bgCard} flex items-center justify-center`}>
+                  <span className="text-xs font-bold">{profile?.email?.[0]?.toUpperCase()}</span>
+                </div>
+              )}
+            </button>
             <button
               onClick={handleToggleSettings}
               className={`p-2 ${theme.borderRadius} transition-all flex items-center justify-center active:scale-95 ${
@@ -785,6 +803,10 @@ const AppContent: React.FC = () => {
           </div>
         </footer>
       </main>
+
+      {showAccountModal && (
+        <AccountModal onClose={() => setShowAccountModal(false)} />
+      )}
     </div>
   );
 };
