@@ -287,4 +287,17 @@ Format Requirements:
   accountMemberSince: 'Member since',
   accountLoginRequired: 'Please log in to continue',
   accountTopupError: 'Failed to process topup. Please try again.',
+
+  // Payment Modal
+  paymentConfirmTitle: 'Confirm Payment',
+  paymentInsufficientTitle: 'Insufficient Balance',
+  paymentCost: 'Cost',
+  paymentCurrentBalance: 'Current Balance',
+  paymentShortfall: 'Shortfall',
+  paymentConfirmButton: 'Confirm Payment',
+  paymentProcessing: 'Processing...',
+  paymentSelectTopup: 'Select Topup Amount',
+  paymentShortfallHint: 'You need',
+  paymentShortfallHintMore: 'more to proceed',
+  paymentSinglePayment: 'Single Payment',
 };

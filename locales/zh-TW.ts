@@ -285,6 +285,19 @@ export const zhTW = {
   accountMemberSince: '加入於',
   accountLoginRequired: '請先登入以繼續',
   accountTopupError: '儲值處理失敗，請重試。',
+
+  // Payment Modal
+  paymentConfirmTitle: '確認付費',
+  paymentInsufficientTitle: '餘額不足',
+  paymentCost: '費用',
+  paymentCurrentBalance: '目前餘額',
+  paymentShortfall: '差額',
+  paymentConfirmButton: '確認執行',
+  paymentProcessing: '處理中...',
+  paymentSelectTopup: '選擇儲值金額',
+  paymentShortfallHint: '還差',
+  paymentShortfallHintMore: '，請選擇儲值金額',
+  paymentSinglePayment: '單次付費',
 };
 
 export type LocaleStrings = typeof zhTW;
