@@ -273,4 +273,18 @@ Format Requirements:
   themeGlassmorphismDesc: 'Frosted glass effect with soft gradients',
   themeMinimalName: 'Minimal Light',
   themeMinimalDesc: 'Clean and simple, content-focused',
+
+  // Account Modal
+  accountTitle: 'Account',
+  accountCurrentBalance: 'Current Balance',
+  accountTopup: 'Top Up',
+  accountTopupHint: 'Select an amount to top up via Stripe',
+  accountTotalSpent: 'Total Spent',
+  accountTransactions: 'Transactions',
+  accountRecentTransactions: 'Recent Transactions',
+  accountNoTransactions: 'No transactions yet',
+  accountLogout: 'Log Out',
+  accountMemberSince: 'Member since',
+  accountLoginRequired: 'Please log in to continue',
+  accountTopupError: 'Failed to process topup. Please try again.',
 };

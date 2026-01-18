@@ -271,6 +271,20 @@ export const zhTW = {
   themeGlassmorphismDesc: '毛玻璃效果，柔和漸層',
   themeMinimalName: '極簡白',
   themeMinimalDesc: '清爽簡潔，專注內容',
+
+  // Account Modal
+  accountTitle: '帳戶',
+  accountCurrentBalance: '目前餘額',
+  accountTopup: '儲值',
+  accountTopupHint: '選擇金額透過 Stripe 儲值',
+  accountTotalSpent: '總消費',
+  accountTransactions: '交易次數',
+  accountRecentTransactions: '最近交易',
+  accountNoTransactions: '尚無交易記錄',
+  accountLogout: '登出',
+  accountMemberSince: '加入於',
+  accountLoginRequired: '請先登入以繼續',
+  accountTopupError: '儲值處理失敗，請重試。',
 };
 
 export type LocaleStrings = typeof zhTW;
