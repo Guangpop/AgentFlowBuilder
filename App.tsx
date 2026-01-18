@@ -3,6 +3,7 @@ import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { getAIProvider, AI_PROVIDERS } from './services/ai';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { isLocalMode } from './lib/mode';
 import { zhTW, en } from './locales';
 import ChatSidebar from './components/ChatSidebar';
 import WorkflowCanvas from './components/WorkflowCanvas';
@@ -346,8 +347,8 @@ const AppContent: React.FC = () => {
     return <AuthCallback />;
   }
 
-  // Show login page if not authenticated
-  if (!authLoading && !user) {
+  // Show login page if not authenticated (skip in local mode)
+  if (!isLocalMode && !authLoading && !user) {
     return <LoginPage />;
   }
 

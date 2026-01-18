@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase, User, Session } from '../lib/supabase';
 import { UserProfile } from '../lib/database.types';
+import { isLocalMode } from '../lib/mode';
 
 interface AuthContextType {
   user: User | null;
@@ -22,9 +23,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isLocalMode); // Local mode: no loading needed
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('users_profile')
       .select('*')
@@ -46,6 +49,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
+    // Local mode: skip auth entirely
+    if (isLocalMode || !supabase) {
+      console.log('[Mode] Local mode - Auth disabled');
+      setIsLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -78,6 +88,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signInWithGoogle = async () => {
+    if (isLocalMode || !supabase) {
+      console.log('[Mode] Local mode - signInWithGoogle skipped');
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -91,6 +106,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (isLocalMode || !supabase) {
+      console.log('[Mode] Local mode - signOut skipped');
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error signing out:', error);

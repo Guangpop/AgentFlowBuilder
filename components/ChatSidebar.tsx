@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Loader2, Sparkles, Info } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-
-// Check if running in production (no local API key = production mode)
-const isProductionMode = !import.meta.env.VITE_LOCAL_API_KEY;
+import { isProductionMode } from '../lib/mode';
 
 interface Props {
   onGenerate: (prompt: string) => Promise<void>;
