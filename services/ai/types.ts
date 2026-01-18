@@ -30,6 +30,6 @@ export const AI_PROVIDERS: Record<AIProviderType, AIProviderConfig> = {
     id: 'claude',
     name: 'Claude Sonnet 4',
     modelName: 'CLAUDE-SONNET-4',
-    envKey: 'VITE_ANTHROPIC_API_KEY',
+    envKey: '', // Claude uses backend API, no frontend key needed
   },
 };
