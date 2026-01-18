@@ -14,12 +14,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = await verifyToken(req.headers.authorization as string);
+  const user = await verifyToken(req.headers.authorization || '');
   if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { prompt, language } = req.body;
+  const { prompt } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
   }
@@ -34,11 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }, user.id, ip);
 
   // Check balance
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('users_profile')
     .select('balance')
     .eq('id', user.id)
     .single();
+
+  if (profileError) {
+    console.error('Profile fetch error:', profileError);
+    await logEvent('api_error', { endpoint: 'generate-workflow', error: String(profileError) }, user.id, ip);
+    return res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
 
   if (!profile || profile.balance < WORKFLOW_COST) {
     await logEvent('blocked', {
@@ -72,24 +78,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Deduct balance after successful API call
     const newBalance = profile.balance - WORKFLOW_COST;
-    await supabase
+    const { error: balanceUpdateError } = await supabase
       .from('users_profile')
       .update({
         balance: newBalance,
       })
       .eq('id', user.id);
 
+    if (balanceUpdateError) {
+      console.error('Balance update error:', balanceUpdateError);
+      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(balanceUpdateError) }, user.id, ip);
+      return res.status(500).json({ error: 'Failed to update balance' });
+    }
+
     // Update total_spent using SQL increment
-    await supabase.rpc('increment_total_spent', { user_id: user.id, amount: WORKFLOW_COST });
+    const { error: rpcError } = await supabase.rpc('increment_total_spent', { user_id: user.id, amount: WORKFLOW_COST });
+
+    if (rpcError) {
+      console.error('RPC increment_total_spent error:', rpcError);
+      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(rpcError) }, user.id, ip);
+      // Not returning error here as the main operation succeeded
+    }
 
     // Record transaction
-    await supabase.from('transactions').insert({
+    const { error: transactionError } = await supabase.from('transactions').insert({
       user_id: user.id,
       type: 'charge',
       amount: -WORKFLOW_COST,
       description: 'Generate Workflow',
       balance_after: newBalance,
     });
+
+    if (transactionError) {
+      console.error('Transaction insert error:', transactionError);
+      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(transactionError) }, user.id, ip);
+      // Not returning error here as the main operation succeeded
+    }
 
     await logEvent('charge', {
       amount: WORKFLOW_COST,
@@ -106,7 +130,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Generate workflow error:', error);
     await logEvent('api_error', {
       endpoint: 'generate-workflow',
-      error: String(error)
+      error: String(error),
+      errorType: error instanceof Error ? error.name : typeof error,
     }, user.id, ip);
     return res.status(500).json({ error: 'Failed to generate workflow' });
   }
