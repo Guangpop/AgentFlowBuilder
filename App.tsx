@@ -84,6 +84,7 @@ const App: React.FC = () => {
     const id = `${type.toLowerCase()}_${Date.now().toString().slice(-4)}`;
     let defaultInputs: string[] = ['輸入數據'];
     let defaultOutputs: string[] = ['輸出數據'];
+    let defaultConfig = undefined;
 
     if (type === NodeType.UserInput) {
       defaultInputs = [];
@@ -94,9 +95,15 @@ const App: React.FC = () => {
     } else if (type === NodeType.ScriptExecution) {
       defaultInputs = ['變數 Context'];
       defaultOutputs = ['執行結果 (Stdout)'];
+      defaultConfig = { scriptType: 'python', scriptContent: '' };
     } else if (type === NodeType.MCPTool) {
       defaultInputs = ['工具參數'];
       defaultOutputs = ['工具回傳'];
+      defaultConfig = { toolName: '' };
+    } else if (type === NodeType.AgentSkill) {
+      defaultInputs = ['前置依賴'];
+      defaultOutputs = ['技能產出'];
+      defaultConfig = { provider: '', skill: '' };
     }
 
     const newNode: WorkflowNode = {
@@ -107,7 +114,7 @@ const App: React.FC = () => {
       outputs: defaultOutputs,
       position: { x: 400, y: 300 },
       next: [],
-      config: type === NodeType.ScriptExecution ? { scriptType: 'python', scriptContent: '' } : type === NodeType.MCPTool ? { toolName: '' } : undefined
+      config: defaultConfig
     };
     
     setWorkflow(prev => ({

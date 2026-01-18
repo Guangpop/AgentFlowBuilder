@@ -6,7 +6,8 @@ export enum NodeType {
   UserResponse = 'UserResponse',
   AgentAction = 'AgentAction',
   ScriptExecution = 'ScriptExecution',
-  MCPTool = 'MCPTool'
+  MCPTool = 'MCPTool',
+  AgentSkill = 'AgentSkill'
 }
 
 export interface NodePosition {

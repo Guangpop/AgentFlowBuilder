@@ -24,7 +24,7 @@ const WORKFLOW_SCHEMA = {
               node_id: { type: Type.STRING, description: "唯一標識符，建議使用小寫字母、數字及底線，不得包含空格。" },
               node_type: { 
                 type: Type.STRING, 
-                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, ScriptExecution, MCPTool" 
+                description: "必須是以下之一: UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, ScriptExecution, MCPTool, AgentSkill" 
               },
               description: { type: Type.STRING },
               inputs: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -35,7 +35,9 @@ const WORKFLOW_SCHEMA = {
                  properties: {
                     scriptType: { type: Type.STRING },
                     scriptContent: { type: Type.STRING },
-                    toolName: { type: Type.STRING }
+                    toolName: { type: Type.STRING },
+                    provider: { type: Type.STRING, description: "Agent Skill 的提供者，例如 'superpower'" },
+                    skill: { type: Type.STRING, description: "具體的技能名稱，例如 'brain_storm'" }
                  }
               }
             },
@@ -82,6 +84,7 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
       節點指南：
       - 'ScriptExecution': 處理 Python/Shell 代碼。
       - 'MCPTool': 調用外部工具 (如 google_search)。
+      - 'AgentSkill': 當使用者提到特定技能模組或 "superpower" 時使用。務必填寫 config 中的 'provider' (例如 superpower) 和 'skill' (例如 brain_storm)。
       - 'Condition': 邏輯判斷。
       - 'AgentReasoning': AI 的思考步驟。
       
@@ -196,6 +199,7 @@ ${JSON.stringify(workflow, null, 2)}
     - Condition: 判斷分支
     - **ScriptExecution**: 提醒 Agent 注意識別腳本類型 (Python/Shell)，並指示 Agent 將內容寫入檔案後編譯或執行。
     - **MCPTool**: 提醒 Agent 識別 MCP 工具名稱，並根據 Context 準備參數來調用該工具。
+    - **AgentSkill**: 針對這類節點，請明確產生呼叫指令，格式為 「[CALL SKILL] provider:skill」 (例如 [CALL SKILL] superpower:brain_storm)，並說明其輸入輸出。
 4. **State Management & Feedback Loops**: 明確說明如何處理「返回 (Loop Back)」邏輯（例如 2.1.3 返回 2 步），並指示 Agent 如何保存與過濾狀態。
 5. **Context Protocol**: 指示 Agent 如何清理不必要的歷史紀錄，只保留當前執行路徑所需的關鍵資訊。
 

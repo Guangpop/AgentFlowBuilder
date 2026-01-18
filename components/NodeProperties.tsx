@@ -1,7 +1,7 @@
 import React from 'react';
 import { WorkflowNode, NodeType } from '../types';
 import { NODE_COLORS, NODE_ICONS, NODE_DISPLAY_NAMES } from '../constants';
-import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench } from 'lucide-react';
+import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu } from 'lucide-react';
 
 interface Props {
   node: WorkflowNode | null;
@@ -147,6 +147,52 @@ const NodeProperties: React.FC<Props> = ({ node, onClose, onDelete, onUpdate }) 
                 <p className="text-[10px] text-pink-400/60 flex items-start gap-2 bg-pink-900/10 p-3 rounded-lg border border-pink-500/10">
                     <Info size={12} className="shrink-0 mt-0.5" />
                     提示：Agent 將根據上下文自動推斷調用此工具所需的參數。
+                </p>
+             </div>
+          </div>
+        )}
+
+        {/* Agent Skill Config */}
+        {node.node_type === NodeType.AgentSkill && (
+          <div className="space-y-6 pt-2 border-t border-slate-800/50">
+             <label className="text-xs font-black text-amber-400/80 uppercase tracking-widest flex items-center gap-2">
+                 <Cpu size={14} className="text-amber-400"/> Agent Skill 設定
+             </label>
+             <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                     <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-2">Provider</label>
+                     <input
+                        value={node.config?.provider || ''}
+                        onChange={(e) => updateConfig('provider', e.target.value)}
+                        placeholder="例如: superpower"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-amber-200 font-mono focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-600"
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-2">Skill</label>
+                     <input
+                        value={node.config?.skill || ''}
+                        onChange={(e) => updateConfig('skill', e.target.value)}
+                        placeholder="例如: brain_storm"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-amber-200 font-mono focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-600"
+                     />
+                  </div>
+                </div>
+                
+                {/* Preview Box */}
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+                   <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">SKILL FORMULA PREVIEW</span>
+                      <code className="text-sm font-mono text-amber-400">
+                        {node.config?.provider || 'provider'}:{node.config?.skill || 'skill'}
+                      </code>
+                   </div>
+                </div>
+
+                <p className="text-[10px] text-amber-400/60 flex items-start gap-2 bg-amber-900/10 p-3 rounded-lg border border-amber-500/10">
+                    <Info size={12} className="shrink-0 mt-0.5" />
+                    提示：這將生成特定的技能調用指令，請確保 Provider 與 Skill 名稱準確。
                 </p>
              </div>
           </div>
