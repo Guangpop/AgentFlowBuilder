@@ -105,7 +105,7 @@ export const claudeProvider: AIProvider = {
 
     try {
       const response = await getClient().messages.create({
-        model: "claude-sonnet-4-5-20250514",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 8192,
         tools: [WORKFLOW_TOOL],
         tool_choice: { type: "tool", name: "generate_workflow" },
@@ -125,8 +125,10 @@ export const claudeProvider: AIProvider = {
 
       const data = toolUse.input as WorkflowResponse;
       return postProcessWorkflow(data, language);
-    } catch (error) {
-      console.error(p.errorGenerateWorkflow, error);
+    } catch (error: any) {
+      console.error('[Claude] generateWorkflow error:', error);
+      console.error('[Claude] Error message:', error?.message);
+      console.error('[Claude] Error status:', error?.status);
       throw error;
     }
   },
@@ -136,7 +138,7 @@ export const claudeProvider: AIProvider = {
 
     try {
       const response = await getClient().messages.create({
-        model: "claude-sonnet-4-5-20250514",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 16384,
         messages: [
           {

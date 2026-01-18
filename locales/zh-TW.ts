@@ -94,12 +94,12 @@ export const zhTW = {
   skillHint: '確保 Provider 與 Skill 名稱正確。',
 
   // Instructions Tab
-  instructionsTitle: 'Agent Skill SOP 生成器',
-  instructionsDescription: '基於「階層式揭露」原則，由 Gemini 3 Pro 深度分析您的工作流，轉化為能夠防止 AI 注意力渙散的執行手冊。',
+  instructionsTitle: 'Agent SOP 生成器',
+  instructionsDescription: '基於「階層式揭露」原則，深度分析您的工作流，轉化為能夠防止 AI 注意力渙散的執行手冊。',
   generateInstructions: '開始產生 Agent SOP',
   regenerateInstructions: '重新產生指令集',
-  generatingInstructions: '正在構建 Skill SOP...',
-  generatingSubtext: 'Gemini 3 Pro 正在深度拆解工作流拓撲結構並處理狀態機邏輯',
+  generatingInstructions: '正在構建 Agent SOP...',
+  generatingSubtext: '正在深度拆解工作流拓撲結構並處理狀態機邏輯',
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: '使用建議',
   usageDescription: '請將以下內容貼給 AI agent，讓他幫你產生 workflow 以及 Agent Skills：',

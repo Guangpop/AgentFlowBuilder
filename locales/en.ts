@@ -96,12 +96,12 @@ export const en: LocaleStrings = {
   skillHint: 'Ensure Provider and Skill names are correct.',
 
   // Instructions Tab
-  instructionsTitle: 'Agent Skill SOP Generator',
-  instructionsDescription: 'Based on the "Hierarchical Disclosure" principle, Gemini 3 Pro deeply analyzes your workflow and transforms it into an execution manual that prevents AI attention drift.',
+  instructionsTitle: 'Agent SOP Generator',
+  instructionsDescription: 'Based on the "Hierarchical Disclosure" principle, deeply analyzes your workflow and transforms it into an execution manual that prevents AI attention drift.',
   generateInstructions: 'Generate Agent SOP',
   regenerateInstructions: 'Regenerate Instructions',
-  generatingInstructions: 'Building Skill SOP...',
-  generatingSubtext: 'Gemini 3 Pro is deeply analyzing workflow topology and processing state machine logic',
+  generatingInstructions: 'Building Agent SOP...',
+  generatingSubtext: 'Deeply analyzing workflow topology and processing state machine logic',
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: 'Usage Suggestion',
   usageDescription: 'Paste the following content to your AI agent to generate workflow and Agent Skills:',

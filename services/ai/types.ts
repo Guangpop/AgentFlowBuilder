@@ -24,12 +24,12 @@ export const AI_PROVIDERS: Record<AIProviderType, AIProviderConfig> = {
     id: 'gemini',
     name: 'Gemini 3 Flash',
     modelName: 'GEMINI-3-FLASH',
-    envKey: 'GEMINI_API_KEY',
+    envKey: 'VITE_GEMINI_API_KEY',
   },
   claude: {
     id: 'claude',
-    name: 'Claude Sonnet 4.5',
-    modelName: 'CLAUDE-SONNET-4.5',
-    envKey: 'ANTHROPIC_API_KEY',
+    name: 'Claude Sonnet 4',
+    modelName: 'CLAUDE-SONNET-4',
+    envKey: 'VITE_ANTHROPIC_API_KEY',
   },
 };
