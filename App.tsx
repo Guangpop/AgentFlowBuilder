@@ -1,26 +1,34 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { generateWorkflow, generateAgentInstructions } from './services/gemini';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import ChatSidebar from './components/ChatSidebar';
 import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
-import { 
-  Share2, 
-  FileCode, 
-  Layout, 
-  FileText, 
-  Download, 
-  Upload, 
-  Zap, 
-  Copy, 
-  CheckCircle2, 
-  RefreshCw, 
+import SettingsPanel from './components/SettingsPanel';
+import {
+  Share2,
+  FileCode,
+  Layout,
+  FileText,
+  Download,
+  Upload,
+  Zap,
+  Copy,
+  CheckCircle2,
+  RefreshCw,
   Sparkles,
   Info,
-  Terminal
+  Terminal,
+  Settings
 } from 'lucide-react';
 
-const App: React.FC = () => {
+// Right panel mode
+type RightPanelMode = 'none' | 'properties' | 'settings';
+
+const AppContent: React.FC = () => {
+  const { theme, themeId } = useTheme();
+
   const [workflow, setWorkflow] = useState<Workflow>({
     name: '未命名工作流',
     description: '點擊此處修改工作流描述...',
@@ -34,7 +42,8 @@ const App: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
   const [copySuccess, setCopySuccess] = useState(false);
-  
+  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('none');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = async (prompt: string) => {
@@ -71,6 +80,21 @@ const App: React.FC = () => {
 
   const handleNodeClick = (node: WorkflowNode) => {
     setSelectedNodeId(node.node_id);
+    if (node.node_id) {
+      setRightPanelMode('properties');
+    }
+  };
+
+  const handleToggleSettings = () => {
+    setRightPanelMode(prev => prev === 'settings' ? 'none' : 'settings');
+    if (rightPanelMode !== 'settings') {
+      setSelectedNodeId(null);
+    }
+  };
+
+  const handleCloseRightPanel = () => {
+    setRightPanelMode('none');
+    setSelectedNodeId(null);
   };
 
   const handleNodeMove = useCallback((nodeId: string, position: { x: number, y: number }) => {
@@ -298,8 +322,11 @@ const App: React.FC = () => {
     }
   };
 
+  // Determine background class based on theme
+  const bgClass = theme.gradientBg || theme.bgPrimary;
+
   return (
-    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 selection:bg-blue-500/30">
+    <div className={`flex h-screen w-screen ${bgClass} ${theme.textPrimary} selection:bg-blue-500/30 transition-colors duration-500`}>
       <ChatSidebar 
         onGenerate={handleGenerate} 
         isLoading={isLoading} 
@@ -309,7 +336,7 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md overflow-x-auto no-scrollbar shrink-0">
+        <header className={`h-20 flex items-center justify-between px-8 border-b ${theme.borderColorLight} ${theme.headerBg} overflow-x-auto no-scrollbar shrink-0 transition-colors duration-500`}>
           <div className="flex items-center gap-4 shrink-0">
             <div className="flex flex-col group relative">
               <input 
@@ -343,23 +370,35 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <button 
+            <button
+              onClick={handleToggleSettings}
+              className={`p-2.5 ${theme.borderRadius} transition-all flex items-center justify-center active:scale-95 ${
+                rightPanelMode === 'settings'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                  : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} border ${theme.borderColor}`
+              }`}
+              title="設定"
+            >
+              <Settings size={18} />
+            </button>
+            <div className={`w-px h-8 ${theme.borderColor} opacity-50`} />
+            <button
               onClick={handleImportClick}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl text-[12px] font-black transition-all shadow-xl border border-slate-700 flex items-center gap-2 active:scale-95"
+              className={`${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} px-4 py-2.5 ${theme.borderRadius} text-[12px] font-black transition-all ${theme.shadow} border ${theme.borderColor} flex items-center gap-2 active:scale-95`}
             >
               <Upload size={14} />
               Import
             </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImportFile} 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportFile}
+              className="hidden"
               accept=".json"
             />
-            <button 
+            <button
               onClick={handleExport}
-              className="bg-white hover:bg-slate-200 text-slate-900 px-4 py-2.5 rounded-xl text-[12px] font-black transition-all shadow-2xl uppercase tracking-[0.1em] active:scale-95 flex items-center gap-2"
+              className={`${themeId === 'minimal' ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-white hover:bg-slate-200 text-slate-900'} px-4 py-2.5 ${theme.borderRadius} text-[12px] font-black transition-all shadow-2xl uppercase tracking-[0.1em] active:scale-95 flex items-center gap-2`}
             >
               <Download size={14} />
               Export
@@ -525,35 +564,48 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'editor' && (
-            <NodeProperties 
-              node={selectedNode} 
-              onClose={() => setSelectedNodeId(null)}
+          {activeTab === 'editor' && rightPanelMode === 'properties' && selectedNode && (
+            <NodeProperties
+              node={selectedNode}
+              onClose={handleCloseRightPanel}
               onDelete={handleDeleteNode}
               onUpdate={(updates) => selectedNode && handleUpdateNode(selectedNode.node_id, updates)}
             />
           )}
+
+          {rightPanelMode === 'settings' && (
+            <SettingsPanel onClose={handleCloseRightPanel} />
+          )}
         </div>
 
-        <footer className="h-16 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-10 text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] shrink-0">
+        <footer className={`h-16 ${theme.footerBg} border-t ${theme.borderColorLight} flex items-center justify-between px-10 text-[11px] font-black ${theme.textMuted} uppercase tracking-[0.3em] shrink-0 transition-colors duration-500`}>
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-4">
               <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.7)] animate-pulse" />
-              <span className="text-slate-300">SYSTEM: ACTIVE</span>
+              <span className={theme.textSecondary}>SYSTEM: ACTIVE</span>
             </div>
-            <div className="w-px h-6 bg-slate-800" />
+            <div className={`w-px h-6 ${theme.borderColor}`} />
             <div className="flex items-center gap-8 opacity-60">
               <span>NODES: {workflow.nodes.length}</span>
               <span>EDGES: {workflow.edges.length}</span>
             </div>
           </div>
           <div className="flex items-center gap-6 opacity-40">
+            <span>THEME: {theme.name.toUpperCase()}</span>
             <span>ENGINE: GEMINI-3-FLASH</span>
-            <span>FORMAT: EXPORT COMPATIBLE</span>
           </div>
         </footer>
       </main>
     </div>
+  );
+};
+
+// Wrap with ThemeProvider
+const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 };
 

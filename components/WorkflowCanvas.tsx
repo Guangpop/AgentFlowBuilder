@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Workflow, WorkflowNode, NodeType } from '../types';
 import { NODE_COLORS, NODE_ICONS, NODE_DISPLAY_NAMES } from '../constants';
 import { Layers, Plus, Trash2 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   workflow: Workflow;
@@ -14,16 +15,17 @@ interface Props {
   readonly?: boolean;
 }
 
-const WorkflowCanvas: React.FC<Props> = ({ 
-  workflow, 
-  onNodeClick, 
-  onNodeMove, 
-  onConnect, 
-  onAddNode, 
-  onDeleteEdge, 
+const WorkflowCanvas: React.FC<Props> = ({
+  workflow,
+  onNodeClick,
+  onNodeMove,
+  onConnect,
+  onAddNode,
+  onDeleteEdge,
   selectedNodeId,
   readonly = false
 }) => {
+  const { theme, themeId } = useTheme();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -149,10 +151,17 @@ const WorkflowCanvas: React.FC<Props> = ({
     }
   };
 
+  // Generate grid style based on theme
+  const gridStyle = {
+    backgroundImage: `radial-gradient(circle, ${theme.canvasGrid} 1px, transparent 1px)`,
+    backgroundSize: '20px 20px',
+  };
+
   return (
-    <div 
+    <div
       ref={canvasRef}
-      className={`flex-1 relative bg-slate-900 overflow-hidden canvas-grid select-none ${readonly ? '' : 'cursor-crosshair'}`}
+      className={`flex-1 relative ${theme.canvasBg} overflow-hidden select-none transition-colors duration-500 ${readonly ? '' : 'cursor-crosshair'}`}
+      style={gridStyle}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -292,19 +301,19 @@ const WorkflowCanvas: React.FC<Props> = ({
       </div>
 
       {!readonly && (
-        <div className="toolbar absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 p-3.5 rounded-[32px] shadow-[0_50px_100px_rgba(0,0,0,0.8)] z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar">
+        <div className={`toolbar absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-3.5 ${theme.borderRadiusXl} ${theme.shadowXl} z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar transition-colors duration-500`}>
           <div className="flex items-center gap-2 px-2 shrink-0">
             {(Object.keys(NODE_ICONS) as NodeType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => onAddNode(type)}
                 title={`新增 ${NODE_DISPLAY_NAMES[type]}`}
-                className="p-3 hover:bg-slate-700/80 rounded-2xl text-slate-300 hover:text-white transition-all flex flex-col items-center gap-2 min-w-[100px] group shrink-0"
+                className={`p-3 ${theme.bgCardHover} ${theme.borderRadiusLg} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-2 min-w-[100px] group shrink-0`}
               >
                 <div className={`p-2.5 rounded-xl transition-all ${NODE_COLORS[type].bg} group-hover:scale-110 shadow-lg`}>
                   {NODE_ICONS[type]}
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap">
+                <span className={`text-[11px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
                   {NODE_DISPLAY_NAMES[type].replace('用戶', '').replace('AI', '')}
                 </span>
               </button>
@@ -313,12 +322,12 @@ const WorkflowCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="absolute bottom-12 left-12 flex items-center gap-6 bg-slate-800/90 backdrop-blur-3xl border border-slate-700 p-5 rounded-[32px] shadow-3xl">
-        <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className="w-12 h-12 flex items-center justify-center hover:bg-slate-700 rounded-2xl transition-colors text-white text-2xl font-bold">+</button>
-        <span className="text-sm font-mono text-slate-300 w-16 text-center">{Math.round(scale * 100)}%</span>
-        <button onClick={() => setScale(s => Math.max(s - 0.1, 0.1))} className="w-12 h-12 flex items-center justify-center hover:bg-slate-700 rounded-2xl transition-colors text-white text-2xl font-bold">-</button>
-        <div className="w-px h-10 bg-slate-700 mx-3 opacity-30" />
-        <button onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }); }} className="text-[12px] px-8 py-3 hover:bg-slate-700 rounded-2xl uppercase font-black text-slate-300 tracking-[0.2em]">Reset View</button>
+      <div className={`absolute bottom-12 left-12 flex items-center gap-6 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-5 ${theme.borderRadiusXl} ${theme.shadowXl} transition-colors duration-500`}>
+        <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className={`w-12 h-12 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadiusLg} transition-colors ${theme.textPrimary} text-2xl font-bold`}>+</button>
+        <span className={`text-sm font-mono ${theme.textSecondary} w-16 text-center`}>{Math.round(scale * 100)}%</span>
+        <button onClick={() => setScale(s => Math.max(s - 0.1, 0.1))} className={`w-12 h-12 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadiusLg} transition-colors ${theme.textPrimary} text-2xl font-bold`}>-</button>
+        <div className={`w-px h-10 ${theme.borderColor} mx-3 opacity-30`} />
+        <button onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }); }} className={`text-[12px] px-8 py-3 ${theme.bgCardHover} ${theme.borderRadiusLg} uppercase font-black ${theme.textSecondary} tracking-[0.2em]`}>Reset View</button>
       </div>
 
       <style>{`
@@ -337,8 +346,8 @@ const WorkflowCanvas: React.FC<Props> = ({
       `}</style>
 
       {!workflow.nodes.length && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-12 pointer-events-none">
-          <div className="p-16 rounded-full bg-slate-800/20 border border-slate-700/20 animate-pulse">
+        <div className={`absolute inset-0 flex flex-col items-center justify-center ${theme.textMuted} gap-12 pointer-events-none`}>
+          <div className={`p-16 rounded-full ${theme.bgCard} border ${theme.borderColorLight} animate-pulse`}>
             <Layers size={140} className="opacity-10" />
           </div>
           <div className="text-center space-y-6">

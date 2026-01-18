@@ -1,8 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Workflow, WorkflowResponse, NodeType } from "../types";
 
-// 使用命名參數初始化，並直接使用 process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 延遲初始化 - 只在需要時才建立實例
+let ai: GoogleGenAI | null = null;
+
+const getAI = (): GoogleGenAI => {
+  if (!ai) {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("請設定 GEMINI_API_KEY 環境變數");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 const WORKFLOW_SCHEMA = {
   type: Type.OBJECT,
@@ -71,7 +82,7 @@ const slugifyId = (id: string) => id.trim().toLowerCase().replace(/[^a-z0-9]/g, 
 
 export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `你是一個專業的 AI Agent 工作流架構師與 DSL 生成引擎。
       請將使用者的描述轉化為結構化的工作流數據。
@@ -177,7 +188,7 @@ export const generateWorkflow = async (prompt: string): Promise<WorkflowResponse
  */
 export const generateAgentInstructions = async (workflow: Workflow): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-pro-preview",
       contents: `你是一個資深的 AI Agent 架構師與 Prompt 工程專家。
 你的任務是將一個視覺化的工作流 (Workflow) 轉換為一段精確、具備高度結構化的「Agent 執行指令 (Master Instructions)」。
