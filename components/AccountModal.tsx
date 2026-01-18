@@ -10,10 +10,11 @@ interface Props {
 }
 
 const TOPUP_OPTIONS = [3, 5, 10, 20, 50];
+const MAX_TRANSACTIONS = 20;
 
 const AccountModal: React.FC<Props> = ({ onClose }) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
-  const { theme, t } = useTheme();
+  const { theme, t, language } = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [isLoadingTopup, setIsLoadingTopup] = useState<number | null>(null);
@@ -28,7 +29,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
   // Refresh profile when modal opens (in case of recent topup)
   useEffect(() => {
     refreshProfile();
-  }, []);
+  }, [refreshProfile]);
 
   const fetchTransactions = async () => {
     setIsLoadingTransactions(true);
@@ -38,7 +39,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(MAX_TRANSACTIONS);
 
       if (error) {
         console.error('Error fetching transactions:', error);
@@ -104,7 +105,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-TW', {
+    return new Date(dateStr).toLocaleDateString(language === 'zh-TW' ? 'zh-TW' : 'en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -281,7 +282,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
                   {t.accountNoTransactions || 'No transactions yet'}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-700/50">
+                <div className={`divide-y ${theme.borderColorLight}`}>
                   {transactions.map((tx) => (
                     <div
                       key={tx.id}
