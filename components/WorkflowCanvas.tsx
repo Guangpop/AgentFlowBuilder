@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Workflow, WorkflowNode, NodeType } from '../types';
-import { NODE_COLORS, NODE_ICONS, NODE_DISPLAY_NAMES } from '../constants';
+import { NODE_COLORS, NODE_ICONS } from '../constants';
 import { Layers, Plus, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -29,7 +29,39 @@ const WorkflowCanvas: React.FC<Props> = ({
   hideToolbar = false,
   hideZoomControls = false
 }) => {
-  const { theme, themeId } = useTheme();
+  const { theme, themeId, t } = useTheme();
+
+  // Helper to get node display name from translations
+  const getNodeDisplayName = (type: NodeType): string => {
+    const nameMap: Record<NodeType, string> = {
+      [NodeType.UserInput]: t.nodeTypeUserInput,
+      [NodeType.AgentReasoning]: t.nodeTypeAgentReasoning,
+      [NodeType.Condition]: t.nodeTypeCondition,
+      [NodeType.AgentQuestion]: t.nodeTypeAgentQuestion,
+      [NodeType.UserResponse]: t.nodeTypeUserResponse,
+      [NodeType.AgentAction]: t.nodeTypeAgentAction,
+      [NodeType.ScriptExecution]: t.nodeTypeScriptExecution,
+      [NodeType.MCPTool]: t.nodeTypeMCPTool,
+      [NodeType.AgentSkill]: t.nodeTypeAgentSkill,
+    };
+    return nameMap[type];
+  };
+
+  // Helper to get short node name for toolbar
+  const getNodeShortName = (type: NodeType): string => {
+    const nameMap: Record<NodeType, string> = {
+      [NodeType.UserInput]: t.nodeShortUserInput,
+      [NodeType.AgentReasoning]: t.nodeShortAgentReasoning,
+      [NodeType.Condition]: t.nodeShortCondition,
+      [NodeType.AgentQuestion]: t.nodeShortAgentQuestion,
+      [NodeType.UserResponse]: t.nodeShortUserResponse,
+      [NodeType.AgentAction]: t.nodeShortAgentAction,
+      [NodeType.ScriptExecution]: t.nodeShortScriptExecution,
+      [NodeType.MCPTool]: t.nodeShortMCPTool,
+      [NodeType.AgentSkill]: t.nodeShortAgentSkill,
+    };
+    return nameMap[type];
+  };
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -254,7 +286,7 @@ const WorkflowCanvas: React.FC<Props> = ({
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
                   <span className="text-xs font-bold uppercase tracking-wider text-white leading-tight">
-                    {NODE_DISPLAY_NAMES[node.node_type]}
+                    {getNodeDisplayName(node.node_type)}
                   </span>
                   <span className="text-[9px] font-mono text-slate-500 opacity-50 truncate">{node.node_id}</span>
                 </div>
@@ -311,14 +343,14 @@ const WorkflowCanvas: React.FC<Props> = ({
               <button
                 key={type}
                 onClick={() => onAddNode(type)}
-                title={`新增 ${NODE_DISPLAY_NAMES[type]}`}
+                title={t.addNodeTooltip(getNodeDisplayName(type))}
                 className={`p-2 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-1 min-w-[72px] group shrink-0`}
               >
                 <div className={`p-1.5 rounded-lg transition-all ${NODE_COLORS[type].bg} group-hover:scale-110`}>
                   {NODE_ICONS[type]}
                 </div>
                 <span className={`text-[9px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
-                  {NODE_DISPLAY_NAMES[type].replace('用戶', '').replace('AI', '')}
+                  {getNodeShortName(type)}
                 </span>
               </button>
             ))}
@@ -357,8 +389,8 @@ const WorkflowCanvas: React.FC<Props> = ({
             <Layers size={64} className="opacity-10" />
           </div>
           <div className="text-center space-y-2">
-            <p className="text-xl font-bold tracking-tight opacity-40">WORKSPACE READY</p>
-            <p className="text-sm opacity-20 max-w-sm leading-relaxed">在左側輸入工作流構想，引擎將即時生成畫布</p>
+            <p className="text-xl font-bold tracking-tight opacity-40">{t.workspaceReady}</p>
+            <p className="text-sm opacity-20 max-w-sm leading-relaxed">{t.workspaceHint}</p>
           </div>
         </div>
       )}

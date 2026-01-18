@@ -1,26 +1,33 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ThemeId, ThemeTokens, themes, getTheme } from '../styles/themes';
+import { Language, detectBrowserLanguage, isValidLanguage, getLocale, LocaleStrings } from '../locales';
 
 const STORAGE_KEY = 'agentflow-settings';
 
 interface Settings {
   theme: ThemeId;
-  // 未來擴充
-  // language?: string;
-  // showCanvasGrid?: boolean;
+  language: Language;
 }
+
+export type ApiStatus = 'active' | 'inactive';
 
 interface ThemeContextType {
   theme: ThemeTokens;
   themeId: ThemeId;
   setThemeId: (id: ThemeId) => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: LocaleStrings;
   settings: Settings;
   updateSettings: (updates: Partial<Settings>) => void;
   resetSettings: () => void;
+  apiStatus: ApiStatus;
+  setApiStatus: (status: ApiStatus) => void;
 }
 
 const defaultSettings: Settings = {
   theme: 'techDark',
+  language: detectBrowserLanguage(),
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -39,6 +46,11 @@ const loadSettings = (): Settings => {
       if (parsed.theme && !isValidThemeId(parsed.theme)) {
         console.warn(`Invalid theme ID "${parsed.theme}" found in storage, resetting to default`);
         parsed.theme = defaultSettings.theme;
+      }
+      // Validate language exists
+      if (parsed.language && !isValidLanguage(parsed.language)) {
+        console.warn(`Invalid language "${parsed.language}" found in storage, detecting browser language`);
+        parsed.language = detectBrowserLanguage();
       }
       return { ...defaultSettings, ...parsed };
     }
@@ -61,9 +73,25 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+// Check if API key exists
+const checkApiKeyExists = (): boolean => {
+  // Vite uses import.meta.env for browser-accessible env vars
+  // Also check process.env for SSR/build time
+  const viteKey = (import.meta as any).env?.VITE_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  const processKey = typeof process !== 'undefined' ? (process.env?.API_KEY || process.env?.GEMINI_API_KEY) : undefined;
+  return !!(viteKey || processKey);
+};
+
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [apiStatus, setApiStatusState] = useState<ApiStatus>(() =>
+    checkApiKeyExists() ? 'active' : 'inactive'
+  );
+
+  const setApiStatus = useCallback((status: ApiStatus) => {
+    setApiStatusState(status);
+  }, []);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -83,23 +111,36 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setSettings(prev => ({ ...prev, theme: id }));
   }, []);
 
+  const setLanguage = useCallback((lang: Language) => {
+    setSettings(prev => ({ ...prev, language: lang }));
+  }, []);
+
   const updateSettings = useCallback((updates: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
   }, []);
 
   const resetSettings = useCallback(() => {
-    setSettings(defaultSettings);
+    setSettings({
+      ...defaultSettings,
+      language: detectBrowserLanguage(), // Re-detect on reset
+    });
   }, []);
 
   const theme = getTheme(settings.theme);
+  const t = getLocale(settings.language);
 
   const value: ThemeContextType = {
     theme,
     themeId: settings.theme,
     setThemeId,
+    language: settings.language,
+    setLanguage,
+    t,
     settings,
     updateSettings,
     resetSettings,
+    apiStatus,
+    setApiStatus,
   };
 
   return (
@@ -130,4 +171,5 @@ export const useThemeClasses = () => {
   };
 };
 
+export type { Language };
 export default ThemeContext;

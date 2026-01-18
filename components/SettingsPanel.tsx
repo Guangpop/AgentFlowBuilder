@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Settings, RotateCcw, Palette } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { X, Settings, RotateCcw, Palette, Globe, Check } from 'lucide-react';
+import { useTheme, Language } from '../contexts/ThemeContext';
 import { ThemeId, themeOrder } from '../styles/themes';
+import { languages } from '../locales';
 import ThemePreviewCard from './ThemePreviewCard';
 
 interface Props {
@@ -9,14 +10,18 @@ interface Props {
 }
 
 const SettingsPanel: React.FC<Props> = ({ onClose }) => {
-  const { theme, themeId, setThemeId, resetSettings } = useTheme();
+  const { theme, themeId, setThemeId, language, setLanguage, t, resetSettings } = useTheme();
 
   const handleThemeChange = (id: ThemeId) => {
     setThemeId(id);
   };
 
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+  };
+
   const handleReset = () => {
-    if (confirm('確定要重置所有設定為預設值嗎？')) {
+    if (confirm(t.resetConfirm)) {
       resetSettings();
     }
   };
@@ -27,7 +32,7 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
       <div className={`px-4 py-3 border-b ${theme.borderColorLight} flex items-center justify-between ${theme.bgSecondary}`}>
         <h2 className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest flex items-center gap-2`}>
           <Settings size={14} className="text-blue-500" />
-          設定
+          {t.settingsTitle}
         </h2>
         <button
           onClick={onClose}
@@ -39,12 +44,48 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* Language Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe size={14} className="text-emerald-400" />
+            <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
+              {t.languageLabel}
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(languages) as Language[]).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => handleLanguageChange(lang)}
+                className={`relative p-3 ${theme.borderRadius} border transition-all text-left ${
+                  language === lang
+                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                    : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover}`
+                }`}
+              >
+                <span className={`text-xs font-bold ${theme.textPrimary}`}>
+                  {languages[lang].nativeName}
+                </span>
+                {language === lang && (
+                  <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <Check size={10} className="text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className={`border-t ${theme.borderColorLight}`} />
+
         {/* Theme Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Palette size={14} className="text-blue-400" />
             <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
-              外觀主題
+              {t.themeLabel}
             </label>
           </div>
 
@@ -66,15 +107,14 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
         {/* Future Settings Placeholder */}
         <div className="space-y-2.5">
           <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
-            更多設定（即將推出）
+            {t.moreSettings}
           </label>
           <div className={`p-3 ${theme.bgCard} ${theme.borderRadius} border ${theme.borderColor} space-y-2`}>
             {[
-              { label: '界面語言', value: '繁體中文', disabled: true },
-              { label: '畫布網格', value: '顯示', disabled: true },
-              { label: '快捷鍵提示', value: '開啟', disabled: true },
+              { label: t.canvasGrid, value: t.show },
+              { label: t.shortcutHints, value: t.enabled },
             ].map((item, idx) => (
-              <div key={idx} className={`flex items-center justify-between py-1.5 ${idx !== 2 ? `border-b ${theme.borderColorLight}` : ''}`}>
+              <div key={idx} className={`flex items-center justify-between py-1.5 ${idx !== 1 ? `border-b ${theme.borderColorLight}` : ''}`}>
                 <span className={`text-xs ${theme.textSecondary}`}>{item.label}</span>
                 <span className={`text-xs ${theme.textMuted} italic`}>{item.value}</span>
               </div>
@@ -90,7 +130,7 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
           className={`w-full flex items-center justify-center gap-2 py-2 ${theme.bgCard} ${theme.bgCardHover} ${theme.textMuted} ${theme.borderRadius} transition-all border ${theme.borderColor} text-xs font-medium`}
         >
           <RotateCcw size={14} />
-          重置為預設值
+          {t.resetToDefault}
         </button>
       </div>
     </div>

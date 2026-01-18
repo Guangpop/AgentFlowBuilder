@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { ThemeId, themes } from '../styles/themes';
+import { ThemeId } from '../styles/themes';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ThemePreviewCardProps {
@@ -65,8 +65,19 @@ const ThemePreview: React.FC<{ themeId: ThemeId }> = ({ themeId }) => {
 };
 
 const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({ themeId, isSelected, onSelect }) => {
-  const { theme } = useTheme();
-  const t = themes[themeId];
+  const { theme, t } = useTheme();
+
+  // Get theme name and description from translations
+  const getThemeInfo = (id: ThemeId): { name: string; description: string } => {
+    const themeNames: Record<ThemeId, { name: string; description: string }> = {
+      techDark: { name: t.themeTechDarkName, description: t.themeTechDarkDesc },
+      glassmorphism: { name: t.themeGlassmorphismName, description: t.themeGlassmorphismDesc },
+      minimal: { name: t.themeMinimalName, description: t.themeMinimalDesc },
+    };
+    return themeNames[id];
+  };
+
+  const themeInfo = getThemeInfo(themeId);
 
   return (
     <button
@@ -85,7 +96,7 @@ const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({ themeId, isSelected
       {/* Info */}
       <div className="flex-1 min-w-0">
         <h3 className={`text-xs font-bold ${theme.textPrimary} flex items-center gap-2`}>
-          {t.name}
+          {themeInfo.name}
           {isSelected && (
             <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
               <Check size={10} className="text-white" />
@@ -93,7 +104,7 @@ const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({ themeId, isSelected
           )}
         </h3>
         <p className={`text-[9px] ${theme.textMuted} truncate`}>
-          {t.description}
+          {themeInfo.description}
         </p>
       </div>
     </button>

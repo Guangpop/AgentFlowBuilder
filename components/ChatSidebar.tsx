@@ -9,7 +9,7 @@ interface Props {
 }
 
 const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) => {
-  const { theme, themeId } = useTheme();
+  const { theme, themeId, t } = useTheme();
   const [prompt, setPrompt] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -19,6 +19,13 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
     setPrompt('');
   };
 
+  const quickTags = [
+    { key: 'customerSupport', label: t.tagCustomerSupport },
+    { key: 'newsSummary', label: t.tagNewsSummary },
+    { key: 'codeReview', label: t.tagCodeReview },
+    { key: 'salesAssistant', label: t.tagSalesAssistant },
+  ];
+
   return (
     <div className={`w-[280px] flex flex-col border-r ${theme.sidebarBorder} ${theme.sidebarBg} shadow-[4px_0_20px_rgba(0,0,0,0.3)] z-10 transition-colors duration-500`}>
       <div className={`px-4 py-3 border-b ${theme.borderColorLight}`}>
@@ -27,8 +34,8 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
             <Sparkles size={16} className="text-white" />
           </div>
           <div>
-            <h1 className={`text-sm font-bold ${theme.textPrimary} tracking-tight`}>AI 工作流引擎</h1>
-            <p className={`text-[9px] ${theme.textMuted} font-medium uppercase tracking-wider`}>Workflow Builder</p>
+            <h1 className={`text-sm font-bold ${theme.textPrimary} tracking-tight`}>{t.sidebarTitle}</h1>
+            <p className={`text-[9px] ${theme.textMuted} font-medium uppercase tracking-wider`}>{t.sidebarSubtitle}</p>
           </div>
         </div>
       </div>
@@ -37,16 +44,16 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
         <div className="space-y-3">
           <div className={`${themeId === 'minimal' ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/10 border-blue-500/20'} ${theme.borderRadius} p-3 border`}>
             <p className={`text-sm ${themeId === 'minimal' ? 'text-blue-900' : 'text-blue-100'} leading-relaxed`}>
-              請輸入 AI Agent 工作流需求。
+              {t.promptInstruction}
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {['客戶支持', '新聞摘要', '代碼審查', '銷售管家'].map(tag => (
+              {quickTags.map(tag => (
                 <button
-                  key={tag}
-                  onClick={() => setPrompt(`建立一個帶有反饋回圈的${tag}工作流`)}
+                  key={tag.key}
+                  onClick={() => setPrompt(t.tagTemplate(tag.label))}
                   className={`text-[10px] px-2 py-1 ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} transition-all border ${theme.borderColor}`}
                 >
-                  {tag}
+                  {tag.label}
                 </button>
               ))}
             </div>
@@ -66,7 +73,7 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
           {isLoading && (
             <div className={`flex items-center gap-2 text-blue-400 animate-pulse ${themeId === 'minimal' ? 'bg-blue-50 border-blue-200' : 'bg-blue-500/5 border-blue-500/10'} p-2 ${theme.borderRadius} border`}>
               <Loader2 size={12} className="animate-spin" />
-              <span className="text-[11px] font-medium">正在規劃節點邏輯...</span>
+              <span className="text-[11px] font-medium">{t.generatingMessage}</span>
             </div>
           )}
         </div>
@@ -78,7 +85,7 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isLoading}
-            placeholder="描述您的工作流需求..."
+            placeholder={t.promptPlaceholder}
             className={`w-full ${theme.bgInput} border ${theme.borderColor} ${theme.borderRadius} py-2.5 pl-3 pr-10 text-xs ${theme.textPrimary} placeholder:${theme.textMuted} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none h-16 leading-relaxed`}
           />
           <button
@@ -89,9 +96,6 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
             {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </form>
-        <p className={`mt-1.5 text-[7px] text-center ${theme.textMuted} uppercase font-medium tracking-wider`}>
-          Powered by Gemini 3 Flash
-        </p>
       </div>
     </div>
   );

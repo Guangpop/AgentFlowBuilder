@@ -12,18 +12,6 @@ import {
 } from 'lucide-react';
 import { NodeType } from './types';
 
-export const NODE_DISPLAY_NAMES: Record<NodeType, string> = {
-  [NodeType.UserInput]: '用戶輸入',
-  [NodeType.AgentReasoning]: 'AI 邏輯推理',
-  [NodeType.Condition]: '條件分支判斷',
-  [NodeType.AgentQuestion]: 'AI 澄清提問',
-  [NodeType.UserResponse]: '用戶補充回答',
-  [NodeType.AgentAction]: '執行任務動作',
-  [NodeType.ScriptExecution]: '執行腳本代碼',
-  [NodeType.MCPTool]: '調用 MCP 工具',
-  [NodeType.AgentSkill]: '調用 Agent 技能',
-};
-
 export const NODE_COLORS: Record<NodeType, { bg: string; border: string; icon: string }> = {
   [NodeType.UserInput]: { bg: 'bg-blue-900/40', border: 'border-blue-500', icon: 'text-blue-400' },
   [NodeType.AgentReasoning]: { bg: 'bg-purple-900/40', border: 'border-purple-500', icon: 'text-purple-400' },
