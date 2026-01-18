@@ -1,18 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkflowNode, NodeType } from '../types';
 import { NODE_COLORS, NODE_ICONS } from '../constants';
-import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu } from 'lucide-react';
+import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   node: WorkflowNode | null;
+  allNodeIds: string[];
   onClose: () => void;
   onDelete: (nodeId: string) => void;
   onUpdate: (updates: Partial<WorkflowNode>) => void;
 }
 
-const NodeProperties: React.FC<Props> = ({ node, onClose, onDelete, onUpdate }) => {
+const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, onUpdate }) => {
   const { theme, themeId, t } = useTheme();
+  const [nodeIdError, setNodeIdError] = useState<string | null>(null);
+  const [pendingNodeId, setPendingNodeId] = useState<string>('');
+
+  // Sync pendingNodeId with node.node_id when node changes
+  useEffect(() => {
+    if (node) {
+      setPendingNodeId(node.node_id);
+      setNodeIdError(null);
+    }
+  }, [node?.node_id]);
 
   // Helper to get node display name from translations
   const getNodeDisplayName = (type: NodeType): string => {
@@ -89,11 +100,31 @@ const NodeProperties: React.FC<Props> = ({ node, onClose, onDelete, onUpdate }) 
             <div className="space-y-1.5">
               <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Node ID</label>
               <input
-                value={node.node_id}
-                onChange={(e) => onUpdate({ node_id: e.target.value })}
+                value={pendingNodeId}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setPendingNodeId(newId);
+
+                  // Check for duplicate (exclude current node's original ID)
+                  const otherNodeIds = allNodeIds.filter(id => id !== node.node_id);
+                  if (otherNodeIds.includes(newId)) {
+                    setNodeIdError(t.nodeIdDuplicate);
+                  } else {
+                    setNodeIdError(null);
+                    onUpdate({ node_id: newId });
+                  }
+                }}
                 placeholder={t.nodeIdPlaceholder}
-                className="w-full bg-white/5 rounded-lg px-3 py-2 text-sm font-bold text-white border border-white/10 focus:border-blue-500/50 focus:bg-white/10 focus:outline-none transition-all"
+                className={`w-full bg-white/5 rounded-lg px-3 py-2 text-sm font-bold text-white border ${
+                  nodeIdError ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 focus:border-blue-500/50'
+                } focus:bg-white/10 focus:outline-none transition-all`}
               />
+              {nodeIdError && (
+                <div className="flex items-center gap-1.5 text-rose-400 text-[10px] font-medium mt-1">
+                  <AlertCircle size={12} />
+                  {nodeIdError}
+                </div>
+              )}
             </div>
           </div>
 

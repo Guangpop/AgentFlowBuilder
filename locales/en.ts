@@ -231,6 +231,9 @@ Format Requirements:
   alertImportFailed: 'Import failed, please ensure you selected a valid JSON file.',
   alertApiKeyMissing: 'Please set the GEMINI_API_KEY environment variable',
 
+  // Validation
+  nodeIdDuplicate: 'This Node ID already exists, please use a different name.',
+
   // AI generated text
   aiGeneratedDescription: 'AI-generated workflow',
 

@@ -731,6 +731,7 @@ const AppContent: React.FC = () => {
           {activeTab === 'editor' && rightPanelMode === 'properties' && selectedNode && (
             <NodeProperties
               node={selectedNode}
+              allNodeIds={workflow.nodes.map(n => n.node_id)}
               onClose={handleCloseRightPanel}
               onDelete={handleDeleteNode}
               onUpdate={(updates) => selectedNode && handleUpdateNode(selectedNode.node_id, updates)}

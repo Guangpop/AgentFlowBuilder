@@ -229,6 +229,9 @@ export const zhTW = {
   alertImportFailed: '導入失敗，請確保選擇的是正確的 JSON 檔案。',
   alertApiKeyMissing: '請設定 GEMINI_API_KEY 環境變數',
 
+  // Validation
+  nodeIdDuplicate: '此 Node ID 已存在，請使用其他名稱。',
+
   // AI generated text
   aiGeneratedDescription: '由 AI 生成的工作流',
 
