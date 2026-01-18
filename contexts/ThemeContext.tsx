@@ -32,7 +32,7 @@ interface ThemeContextType {
 const defaultSettings: Settings = {
   theme: 'techDark',
   language: detectBrowserLanguage(),
-  aiProvider: 'gemini',
+  aiProvider: 'claude',
 };
 
 const isValidAiProvider = (provider: string): provider is AIProviderType => {

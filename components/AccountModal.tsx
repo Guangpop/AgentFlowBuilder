@@ -5,12 +5,50 @@ import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { Transaction } from '../lib/database.types';
 
+// Paddle types
+declare global {
+  interface Window {
+    Paddle?: {
+      Checkout: {
+        open: (options: PaddleCheckoutOptions) => void;
+      };
+    };
+  }
+}
+
+interface PaddleCheckoutOptions {
+  settings?: {
+    displayMode?: 'overlay' | 'inline';
+    theme?: 'light' | 'dark';
+    locale?: string;
+    variant?: 'one-page' | 'multi-page';
+    successUrl?: string;
+  };
+  items: Array<{
+    priceId: string;
+    quantity: number;
+  }>;
+  customData?: Record<string, string | number>;
+  customer?: {
+    email?: string;
+  };
+}
+
 interface Props {
   onClose: () => void;
 }
 
 const TOPUP_OPTIONS = [3, 5, 10, 20, 50];
 const MAX_TRANSACTIONS = 20;
+
+// Map amounts to environment variable names
+const PRICE_ID_MAP: Record<number, string> = {
+  3: import.meta.env.VITE_PADDLE_PRICE_3 || '',
+  5: import.meta.env.VITE_PADDLE_PRICE_5 || '',
+  10: import.meta.env.VITE_PADDLE_PRICE_10 || '',
+  20: import.meta.env.VITE_PADDLE_PRICE_20 || '',
+  50: import.meta.env.VITE_PADDLE_PRICE_50 || '',
+};
 
 const AccountModal: React.FC<Props> = ({ onClose }) => {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -59,38 +97,51 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
+      if (!user?.id) {
         setError(t.accountLoginRequired || 'Please log in to continue');
         return;
       }
 
-      const response = await fetch('/api/stripe/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+      const priceId = PRICE_ID_MAP[amount];
+      if (!priceId) {
+        setError('Price not configured for this amount');
+        return;
+      }
+
+      if (!window.Paddle) {
+        setError('Payment system not loaded. Please refresh the page.');
+        return;
+      }
+
+      // Open Paddle checkout overlay
+      window.Paddle.Checkout.open({
+        settings: {
+          displayMode: 'overlay',
+          theme: 'dark',
+          variant: 'one-page',
+          successUrl: `${window.location.origin}?payment=success&amount=${amount}`,
         },
-        body: JSON.stringify({
-          amount,
-          returnUrl: window.location.origin,
-        }),
+        items: [
+          {
+            priceId: priceId,
+            quantity: 1,
+          },
+        ],
+        customData: {
+          user_id: user.id,
+          amount: amount.toString(),
+        },
+        customer: {
+          email: user.email || undefined,
+        },
       });
 
-      const data = await response.json();
+      // Reset loading state since Paddle overlay is now open
+      setIsLoadingTopup(null);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
     } catch (err) {
       console.error('Topup error:', err);
       setError(t.accountTopupError || 'Failed to process topup. Please try again.');
-    } finally {
       setIsLoadingTopup(null);
     }
   };
@@ -227,7 +278,7 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
               ))}
             </div>
             <p className={`text-xs ${theme.textMuted} text-center`}>
-              {t.accountTopupHint || 'Select an amount to top up via Stripe'}
+              {t.accountTopupHint || 'Select an amount to top up via Paddle'}
             </p>
           </div>
 

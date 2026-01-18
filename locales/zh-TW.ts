@@ -278,7 +278,7 @@ export const zhTW = {
   accountTitle: '帳戶',
   accountCurrentBalance: '目前餘額',
   accountTopup: '儲值',
-  accountTopupHint: '選擇金額透過 Stripe 儲值',
+  accountTopupHint: '選擇金額透過 Paddle 儲值',
   accountTotalSpent: '總消費',
   accountTransactions: '交易次數',
   accountRecentTransactions: '最近交易',
