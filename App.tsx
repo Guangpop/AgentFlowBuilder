@@ -2,11 +2,14 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { getAIProvider, AI_PROVIDERS } from './services/ai';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { zhTW, en } from './locales';
 import ChatSidebar from './components/ChatSidebar';
 import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
 import SettingsPanel from './components/SettingsPanel';
+import LoginPage from './components/LoginPage';
+import AuthCallback from './components/AuthCallback';
 import {
   Share2,
   FileCode,
@@ -33,6 +36,7 @@ type OutputTypeValue = 'skills' | 'commands' | 'workflows';
 
 const AppContent: React.FC = () => {
   const { theme, themeId, t, language, apiStatus, setApiStatus, aiProvider } = useTheme();
+  const { user, isLoading: authLoading } = useAuth();
 
   const [workflow, setWorkflow] = useState<Workflow>({
     name: t.defaultWorkflowName,
@@ -332,6 +336,25 @@ const AppContent: React.FC = () => {
       nodes: nodesWithoutPosition
     };
   }, [workflow]);
+
+  // Handle auth callback - must be after all hooks
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+
+  // Show login page if not authenticated
+  if (!authLoading && !user) {
+    return <LoginPage />;
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${theme.gradientBg || theme.bgPrimary}`}>
+        <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const selectedNode = workflow.nodes.find(n => n.node_id === selectedNodeId) || null;
 
@@ -766,11 +789,13 @@ const AppContent: React.FC = () => {
   );
 };
 
-// Wrap with ThemeProvider
+// Wrap with ThemeProvider and AuthProvider
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 };
