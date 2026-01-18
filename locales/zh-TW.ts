@@ -12,6 +12,7 @@ export const zhTW = {
   tabMermaid: 'Mermaid',
   tabMarkdown: 'MD',
   tabJson: 'JSON',
+  tabHistory: '歷程',
 
   // Buttons
   settings: '設定',

@@ -14,6 +14,7 @@ export const en: LocaleStrings = {
   tabMermaid: 'Mermaid',
   tabMarkdown: 'MD',
   tabJson: 'JSON',
+  tabHistory: 'History',
 
   // Buttons
   settings: 'Settings',

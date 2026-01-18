@@ -11,6 +11,7 @@ import SettingsPanel from './components/SettingsPanel';
 import LoginPage from './components/LoginPage';
 import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
+import HistoryTab from './components/HistoryTab';
 import {
   Share2,
   FileCode,
@@ -25,7 +26,8 @@ import {
   Sparkles,
   Info,
   Terminal,
-  Settings
+  Settings,
+  History
 } from 'lucide-react';
 
 // Right panel mode
@@ -50,7 +52,7 @@ const AppContent: React.FC = () => {
   const [agentInstructions, setAgentInstructions] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json' | 'history'>('editor');
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyFullSuccess, setCopyFullSuccess] = useState(false);
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('none');
@@ -481,7 +483,8 @@ const AppContent: React.FC = () => {
                 { id: 'instructions', label: t.tabInstructions, icon: <Zap size={12}/> },
                 { id: 'mermaid', label: t.tabMermaid, icon: <Share2 size={12}/> },
                 { id: 'markdown', label: t.tabMarkdown, icon: <FileText size={12}/> },
-                { id: 'json', label: t.tabJson, icon: <FileCode size={12}/> }
+                { id: 'json', label: t.tabJson, icon: <FileCode size={12}/> },
+                { id: 'history', label: t.tabHistory, icon: <History size={12}/> }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -748,7 +751,7 @@ const AppContent: React.FC = () => {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'markdown' ? (
             <div className="flex-1 bg-slate-950 p-12 overflow-auto">
               <div className="max-w-5xl mx-auto">
                 <div className="p-20 rounded-[80px] bg-slate-900 border border-slate-800 text-slate-200 shadow-[0_50px_150px_rgba(0,0,0,0.8)] space-y-12">
@@ -767,7 +770,9 @@ const AppContent: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'history' ? (
+            <HistoryTab />
+          ) : null}
 
           {activeTab === 'editor' && rightPanelMode === 'properties' && selectedNode && (
             <NodeProperties
