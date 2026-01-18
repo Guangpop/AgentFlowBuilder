@@ -1,4 +1,4 @@
-export type ThemeId = 'techDark' | 'glassmorphism' | 'minimal' | 'bentoGrid';
+export type ThemeId = 'techDark' | 'glassmorphism' | 'minimal';
 
 export interface ThemeTokens {
   id: ThemeId;
@@ -34,7 +34,6 @@ export interface ThemeTokens {
 
   // 特殊
   gradientBg?: string;
-  layout: 'default' | 'bento';
 
   // 節點相關
   nodeBorderWidth: string;
@@ -68,9 +67,9 @@ export const themes: Record<ThemeId, ThemeTokens> = {
 
     borderColor: 'border-slate-700',
     borderColorLight: 'border-slate-800',
-    borderRadius: 'rounded-xl',
-    borderRadiusLg: 'rounded-2xl',
-    borderRadiusXl: 'rounded-3xl',
+    borderRadius: 'rounded-lg',
+    borderRadiusLg: 'rounded-xl',
+    borderRadiusXl: 'rounded-2xl',
 
     textPrimary: 'text-white',
     textSecondary: 'text-slate-300',
@@ -81,8 +80,6 @@ export const themes: Record<ThemeId, ThemeTokens> = {
     shadowLg: 'shadow-xl',
     shadowXl: 'shadow-2xl',
     blur: '',
-
-    layout: 'default',
 
     nodeBorderWidth: 'border-2',
     nodeHeaderBg: 'bg-white/5',
@@ -111,9 +108,9 @@ export const themes: Record<ThemeId, ThemeTokens> = {
 
     borderColor: 'border-white/20',
     borderColorLight: 'border-white/10',
-    borderRadius: 'rounded-2xl',
-    borderRadiusLg: 'rounded-3xl',
-    borderRadiusXl: 'rounded-[32px]',
+    borderRadius: 'rounded-xl',
+    borderRadiusLg: 'rounded-2xl',
+    borderRadiusXl: 'rounded-3xl',
 
     textPrimary: 'text-white',
     textSecondary: 'text-white/70',
@@ -126,7 +123,6 @@ export const themes: Record<ThemeId, ThemeTokens> = {
     blur: 'backdrop-blur-xl',
 
     gradientBg: 'bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900',
-    layout: 'default',
 
     nodeBorderWidth: 'border',
     nodeHeaderBg: 'bg-white/5 backdrop-blur',
@@ -169,8 +165,6 @@ export const themes: Record<ThemeId, ThemeTokens> = {
     shadowXl: 'shadow-lg',
     blur: '',
 
-    layout: 'default',
-
     nodeBorderWidth: 'border',
     nodeHeaderBg: 'bg-slate-50',
 
@@ -183,51 +177,8 @@ export const themes: Record<ThemeId, ThemeTokens> = {
     canvasBg: 'bg-slate-50',
     canvasGrid: 'rgba(148, 163, 184, 0.3)',
   },
-
-  bentoGrid: {
-    id: 'bentoGrid',
-    name: '便當盒',
-    description: 'Apple 風格模組化佈局',
-
-    bgPrimary: 'bg-slate-950',
-    bgSecondary: 'bg-slate-900',
-    bgTertiary: 'bg-slate-800/50',
-    bgCard: 'bg-slate-800/30',
-    bgCardHover: 'hover:bg-slate-800/50',
-    bgInput: 'bg-slate-900/50',
-
-    borderColor: 'border-slate-700/50',
-    borderColorLight: 'border-slate-800/50',
-    borderRadius: 'rounded-2xl',
-    borderRadiusLg: 'rounded-3xl',
-    borderRadiusXl: 'rounded-[32px]',
-
-    textPrimary: 'text-white',
-    textSecondary: 'text-slate-300',
-    textMuted: 'text-slate-500',
-    textInverse: 'text-slate-900',
-
-    shadow: 'shadow-lg',
-    shadowLg: 'shadow-xl',
-    shadowXl: 'shadow-2xl',
-    blur: '',
-
-    layout: 'bento',
-
-    nodeBorderWidth: 'border',
-    nodeHeaderBg: 'bg-slate-900/50',
-
-    sidebarBg: 'bg-slate-900/50',
-    sidebarBorder: 'border-slate-800/50',
-
-    headerBg: 'bg-slate-900/80 backdrop-blur-md',
-    footerBg: 'bg-slate-900/80',
-
-    canvasBg: 'bg-slate-950',
-    canvasGrid: 'rgba(51, 65, 85, 0.3)',
-  },
 };
 
-export const themeOrder: ThemeId[] = ['techDark', 'glassmorphism', 'minimal', 'bentoGrid'];
+export const themeOrder: ThemeId[] = ['techDark', 'glassmorphism', 'minimal'];
 
 export const getTheme = (id: ThemeId): ThemeTokens => themes[id];

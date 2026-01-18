@@ -25,12 +25,21 @@ const defaultSettings: Settings = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const isValidThemeId = (id: string): id is ThemeId => {
+  return id in themes;
+};
+
 const loadSettings = (): Settings => {
   if (typeof window === 'undefined') return defaultSettings;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
+      // Validate theme ID exists (in case it was removed)
+      if (parsed.theme && !isValidThemeId(parsed.theme)) {
+        console.warn(`Invalid theme ID "${parsed.theme}" found in storage, resetting to default`);
+        parsed.theme = defaultSettings.theme;
+      }
       return { ...defaultSettings, ...parsed };
     }
   } catch (e) {

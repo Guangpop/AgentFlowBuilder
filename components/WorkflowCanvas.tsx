@@ -13,6 +13,8 @@ interface Props {
   onDeleteEdge: (edgeId: string) => void;
   selectedNodeId: string | null;
   readonly?: boolean;
+  hideToolbar?: boolean;
+  hideZoomControls?: boolean;
 }
 
 const WorkflowCanvas: React.FC<Props> = ({
@@ -23,7 +25,9 @@ const WorkflowCanvas: React.FC<Props> = ({
   onAddNode,
   onDeleteEdge,
   selectedNodeId,
-  readonly = false
+  readonly = false,
+  hideToolbar = false,
+  hideZoomControls = false
 }) => {
   const { theme, themeId } = useTheme();
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -123,8 +127,8 @@ const WorkflowCanvas: React.FC<Props> = ({
     const node = workflow.nodes.find(n => n.node_id === nodeId);
     if (!node) return { x: 0, y: 0 };
     return {
-      x: node.position.x + (type === 'in' ? 0 : 320),
-      y: node.position.y + 68 + (portIdx * 38) + 19
+      x: node.position.x + (type === 'in' ? 0 : 240),
+      y: node.position.y + 50 + (portIdx * 28) + 14
     };
   };
 
@@ -238,58 +242,58 @@ const WorkflowCanvas: React.FC<Props> = ({
             <div
               key={node.node_id}
               onClick={(e) => { e.stopPropagation(); onNodeClick(node); }}
-              className={`workflow-node absolute w-[320px] min-h-[180px] p-0 rounded-[40px] border-2 cursor-default shadow-2xl transition-all duration-300 ${style.bg} ${style.border} ${isSelected ? 'ring-[12px] ring-white/10 scale-[1.05] z-20 shadow-white/5' : 'hover:scale-[1.02] hover:shadow-white/10 z-10'}`}
+              className={`workflow-node absolute w-[240px] min-h-[120px] p-0 rounded-2xl border cursor-default shadow-xl transition-all duration-300 ${style.bg} ${style.border} ${isSelected ? 'ring-4 ring-white/10 scale-[1.03] z-20' : 'hover:scale-[1.01] z-10'}`}
               style={{ left: node.position.x, top: node.position.y }}
             >
-              <div 
+              <div
                 onMouseDown={(e) => handleNodeDragStart(e, node.node_id)}
-                className={`node-header flex items-center gap-5 p-6 bg-white/5 rounded-t-[38px] border-b border-white/5 ${readonly ? '' : 'cursor-grab active:cursor-grabbing'}`}
+                className={`node-header flex items-center gap-3 px-4 py-3 bg-white/5 rounded-t-[14px] border-b border-white/5 ${readonly ? '' : 'cursor-grab active:cursor-grabbing'}`}
               >
-                <div className={`p-3.5 rounded-2xl bg-white/10 shrink-0 shadow-lg ${style.icon}`}>
+                <div className={`p-2 rounded-lg bg-white/10 shrink-0 ${style.icon}`}>
                   {NODE_ICONS[node.node_type]}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-black uppercase tracking-widest text-white leading-tight mb-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white leading-tight">
                     {NODE_DISPLAY_NAMES[node.node_type]}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-500 opacity-50 truncate">ID: {node.node_id}</span>
+                  <span className="text-[9px] font-mono text-slate-500 opacity-50 truncate">{node.node_id}</span>
                 </div>
               </div>
 
-              <div className="p-8">
-                <p className="text-[18px] font-semibold text-white leading-relaxed tracking-tight">
+              <div className="px-4 py-3">
+                <p className="text-sm text-white/90 leading-relaxed line-clamp-3">
                   {node.description}
                 </p>
               </div>
-              
-              <div className="absolute -left-4 top-16 flex flex-col gap-6">
+
+              <div className="absolute -left-3 top-12 flex flex-col gap-4">
                 {node.inputs.map((input, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     onMouseDown={(e) => handlePortMouseDown(e, node.node_id, idx, 'in')}
                     onMouseEnter={() => setHoveredPort({ nodeId: node.node_id, portIdx: idx, type: 'in' })}
                     onMouseLeave={() => setHoveredPort(null)}
-                    className={`port w-8 h-8 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'in' ? 'border-blue-400 scale-125 bg-blue-900 shadow-[0_0_25px_rgba(96,165,250,0.8)]' : 'border-slate-500 hover:border-blue-400'}`}
+                    className={`port w-6 h-6 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'in' ? 'border-blue-400 scale-125 bg-blue-900 shadow-[0_0_15px_rgba(96,165,250,0.7)]' : 'border-slate-500 hover:border-blue-400'}`}
                   >
-                    <div className="w-3.5 h-3.5 rounded-full bg-slate-400 group-hover:bg-blue-300" />
-                    <span className="absolute left-10 top-1/2 -translate-y-1/2 text-xs text-slate-200 font-bold bg-slate-900/95 px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 pointer-events-none z-50 border border-slate-700">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400 group-hover:bg-blue-300" />
+                    <span className="absolute left-8 top-1/2 -translate-y-1/2 text-[10px] text-slate-200 font-medium bg-slate-900/95 px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border border-slate-700">
                       {input}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="absolute -right-4 top-16 flex flex-col gap-6">
+              <div className="absolute -right-3 top-12 flex flex-col gap-4">
                 {node.outputs.map((output, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     onMouseDown={(e) => handlePortMouseDown(e, node.node_id, idx, 'out')}
                     onMouseEnter={() => setHoveredPort({ nodeId: node.node_id, portIdx: idx, type: 'out' })}
                     onMouseLeave={() => setHoveredPort(null)}
-                    className={`port w-8 h-8 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'out' ? 'border-emerald-400 scale-125 bg-emerald-900 shadow-[0_0_25px_rgba(52,211,153,0.8)]' : 'border-slate-500 hover:border-emerald-400'}`}
+                    className={`port w-6 h-6 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'out' ? 'border-emerald-400 scale-125 bg-emerald-900 shadow-[0_0_15px_rgba(52,211,153,0.7)]' : 'border-slate-500 hover:border-emerald-400'}`}
                   >
-                    <div className="w-3.5 h-3.5 rounded-full bg-slate-400 group-hover:bg-emerald-300" />
-                    <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-emerald-300 font-bold bg-slate-900/95 px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 pointer-events-none z-50 border border-emerald-900/40">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400 group-hover:bg-emerald-300" />
+                    <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[10px] text-emerald-300 font-medium bg-slate-900/95 px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border border-emerald-900/40">
                       {output}
                     </span>
                   </div>
@@ -300,20 +304,20 @@ const WorkflowCanvas: React.FC<Props> = ({
         })}
       </div>
 
-      {!readonly && (
-        <div className={`toolbar absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-3.5 ${theme.borderRadiusXl} ${theme.shadowXl} z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar transition-colors duration-500`}>
-          <div className="flex items-center gap-2 px-2 shrink-0">
+      {!readonly && !hideToolbar && (
+        <div className={`toolbar absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-2 ${theme.borderRadiusLg} ${theme.shadow} z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar transition-colors duration-500`}>
+          <div className="flex items-center gap-1 px-1 shrink-0">
             {(Object.keys(NODE_ICONS) as NodeType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => onAddNode(type)}
                 title={`新增 ${NODE_DISPLAY_NAMES[type]}`}
-                className={`p-3 ${theme.bgCardHover} ${theme.borderRadiusLg} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-2 min-w-[100px] group shrink-0`}
+                className={`p-2 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-1 min-w-[72px] group shrink-0`}
               >
-                <div className={`p-2.5 rounded-xl transition-all ${NODE_COLORS[type].bg} group-hover:scale-110 shadow-lg`}>
+                <div className={`p-1.5 rounded-lg transition-all ${NODE_COLORS[type].bg} group-hover:scale-110`}>
                   {NODE_ICONS[type]}
                 </div>
-                <span className={`text-[11px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
+                <span className={`text-[9px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
                   {NODE_DISPLAY_NAMES[type].replace('用戶', '').replace('AI', '')}
                 </span>
               </button>
@@ -322,13 +326,15 @@ const WorkflowCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      <div className={`absolute bottom-12 left-12 flex items-center gap-6 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-5 ${theme.borderRadiusXl} ${theme.shadowXl} transition-colors duration-500`}>
-        <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className={`w-12 h-12 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadiusLg} transition-colors ${theme.textPrimary} text-2xl font-bold`}>+</button>
-        <span className={`text-sm font-mono ${theme.textSecondary} w-16 text-center`}>{Math.round(scale * 100)}%</span>
-        <button onClick={() => setScale(s => Math.max(s - 0.1, 0.1))} className={`w-12 h-12 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadiusLg} transition-colors ${theme.textPrimary} text-2xl font-bold`}>-</button>
-        <div className={`w-px h-10 ${theme.borderColor} mx-3 opacity-30`} />
-        <button onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }); }} className={`text-[12px] px-8 py-3 ${theme.bgCardHover} ${theme.borderRadiusLg} uppercase font-black ${theme.textSecondary} tracking-[0.2em]`}>Reset View</button>
-      </div>
+      {!hideZoomControls && (
+        <div className={`absolute bottom-6 left-6 flex items-center gap-2 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-2 ${theme.borderRadiusLg} ${theme.shadow} transition-colors duration-500`}>
+          <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className={`w-8 h-8 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadius} transition-colors ${theme.textPrimary} text-lg font-bold`}>+</button>
+          <span className={`text-xs font-mono ${theme.textSecondary} w-12 text-center`}>{Math.round(scale * 100)}%</span>
+          <button onClick={() => setScale(s => Math.max(s - 0.1, 0.1))} className={`w-8 h-8 flex items-center justify-center ${theme.bgCardHover} ${theme.borderRadius} transition-colors ${theme.textPrimary} text-lg font-bold`}>-</button>
+          <div className={`w-px h-6 ${theme.borderColor} mx-1 opacity-30`} />
+          <button onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }); }} className={`text-[10px] px-3 py-1.5 ${theme.bgCardHover} ${theme.borderRadius} uppercase font-bold ${theme.textSecondary} tracking-wider`}>Reset</button>
+        </div>
+      )}
 
       <style>{`
         @keyframes dash {
@@ -346,13 +352,13 @@ const WorkflowCanvas: React.FC<Props> = ({
       `}</style>
 
       {!workflow.nodes.length && (
-        <div className={`absolute inset-0 flex flex-col items-center justify-center ${theme.textMuted} gap-12 pointer-events-none`}>
-          <div className={`p-16 rounded-full ${theme.bgCard} border ${theme.borderColorLight} animate-pulse`}>
-            <Layers size={140} className="opacity-10" />
+        <div className={`absolute inset-0 flex flex-col items-center justify-center ${theme.textMuted} gap-6 pointer-events-none`}>
+          <div className={`p-8 rounded-full ${theme.bgCard} border ${theme.borderColorLight} animate-pulse`}>
+            <Layers size={64} className="opacity-10" />
           </div>
-          <div className="text-center space-y-6">
-            <p className="text-4xl font-black tracking-tighter opacity-40">WORKSPACE READY</p>
-            <p className="text-xl opacity-20 max-w-lg font-medium leading-relaxed">請在左側輸入您的 Agent 工作流構想，引擎將即時為您生成畫布。</p>
+          <div className="text-center space-y-2">
+            <p className="text-xl font-bold tracking-tight opacity-40">WORKSPACE READY</p>
+            <p className="text-sm opacity-20 max-w-sm leading-relaxed">在左側輸入工作流構想，引擎將即時生成畫布</p>
           </div>
         </div>
       )}

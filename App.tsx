@@ -327,40 +327,45 @@ const AppContent: React.FC = () => {
 
   return (
     <div className={`flex h-screen w-screen ${bgClass} ${theme.textPrimary} selection:bg-blue-500/30 transition-colors duration-500`}>
-      <ChatSidebar 
-        onGenerate={handleGenerate} 
-        isLoading={isLoading} 
-        confirmation={confirmation} 
-        workflowDescription={workflow.description}
-        onUpdateDescription={(val) => updateWorkflowMeta('description', val)}
+      <ChatSidebar
+        onGenerate={handleGenerate}
+        isLoading={isLoading}
+        confirmation={confirmation}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className={`h-20 flex items-center justify-between px-8 border-b ${theme.borderColorLight} ${theme.headerBg} overflow-x-auto no-scrollbar shrink-0 transition-colors duration-500`}>
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="flex flex-col group relative">
-              <input 
+        <header className={`h-14 flex items-center justify-between px-6 border-b ${theme.borderColorLight} ${theme.headerBg} overflow-x-auto no-scrollbar shrink-0 transition-colors duration-500`}>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 group">
+              <input
                 type="text"
                 value={workflow.name}
                 onChange={(e) => updateWorkflowMeta('name', e.target.value)}
-                className="bg-transparent border-none text-xl font-black text-white leading-none mb-1 tracking-tight focus:outline-none focus:ring-0 w-[240px]"
-                placeholder="輸入工作流名稱"
+                className={`bg-transparent border-none text-base font-bold ${theme.textPrimary} leading-none tracking-tight focus:outline-none focus:ring-0 w-[160px]`}
+                placeholder="工作流名稱"
               />
-              <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-[0.2em] opacity-80 font-black">Workflow Editor v2.7</span>
+              <span className={`text-xs ${theme.textMuted}`}>·</span>
+              <input
+                type="text"
+                value={workflow.description}
+                onChange={(e) => updateWorkflowMeta('description', e.target.value)}
+                className={`bg-transparent border-none text-xs ${theme.textSecondary} leading-none focus:outline-none focus:ring-0 w-[200px] truncate`}
+                placeholder="點擊輸入描述..."
+              />
             </div>
             
-            <nav className="flex items-center bg-slate-800/80 rounded-[22px] p-1 shadow-inner border border-slate-700/50 shrink-0 ml-2">
+            <nav className={`flex items-center ${theme.bgTertiary} rounded-lg p-0.5 border ${theme.borderColor} shrink-0 ml-3`}>
               {[
-                { id: 'editor', label: '畫布編輯器', icon: <Layout size={14}/> },
-                { id: 'instructions', label: 'Agent 指令集', icon: <Zap size={14}/> },
-                { id: 'mermaid', label: 'Mermaid', icon: <Share2 size={14}/> },
-                { id: 'markdown', label: 'Markdown', icon: <FileText size={14}/> },
-                { id: 'json', label: 'Raw JSON', icon: <FileCode size={14}/> }
+                { id: 'editor', label: '畫布', icon: <Layout size={12}/> },
+                { id: 'instructions', label: '指令集', icon: <Zap size={12}/> },
+                { id: 'mermaid', label: 'Mermaid', icon: <Share2 size={12}/> },
+                { id: 'markdown', label: 'MD', icon: <FileText size={12}/> },
+                { id: 'json', label: 'JSON', icon: <FileCode size={12}/> }
               ].map(tab => (
-                <button 
+                <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)} 
-                  className={`flex items-center gap-2 px-4 py-2 rounded-[18px] text-[12px] font-black transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-700 text-white shadow-lg ring-1 ring-white/10' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'}`}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all whitespace-nowrap ${activeTab === tab.id ? `${theme.bgCard} ${theme.textPrimary} shadow-sm` : `${theme.textMuted} hover:${theme.textSecondary}`}`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -369,24 +374,24 @@ const AppContent: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleToggleSettings}
-              className={`p-2.5 ${theme.borderRadius} transition-all flex items-center justify-center active:scale-95 ${
+              className={`p-2 ${theme.borderRadius} transition-all flex items-center justify-center active:scale-95 ${
                 rightPanelMode === 'settings'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
                   : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} border ${theme.borderColor}`
               }`}
               title="設定"
             >
-              <Settings size={18} />
+              <Settings size={14} />
             </button>
-            <div className={`w-px h-8 ${theme.borderColor} opacity-50`} />
+            <div className={`w-px h-6 ${theme.borderColor} opacity-50`} />
             <button
               onClick={handleImportClick}
-              className={`${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} px-4 py-2.5 ${theme.borderRadius} text-[12px] font-black transition-all ${theme.shadow} border ${theme.borderColor} flex items-center gap-2 active:scale-95`}
+              className={`${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} px-3 py-1.5 ${theme.borderRadius} text-[10px] font-bold transition-all border ${theme.borderColor} flex items-center gap-1.5 active:scale-95`}
             >
-              <Upload size={14} />
+              <Upload size={12} />
               Import
             </button>
             <input
@@ -398,9 +403,9 @@ const AppContent: React.FC = () => {
             />
             <button
               onClick={handleExport}
-              className={`${themeId === 'minimal' ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-white hover:bg-slate-200 text-slate-900'} px-4 py-2.5 ${theme.borderRadius} text-[12px] font-black transition-all shadow-2xl uppercase tracking-[0.1em] active:scale-95 flex items-center gap-2`}
+              className={`${themeId === 'minimal' ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-white hover:bg-slate-200 text-slate-900'} px-3 py-1.5 ${theme.borderRadius} text-[10px] font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5`}
             >
-              <Download size={14} />
+              <Download size={12} />
               Export
             </button>
           </div>
@@ -578,21 +583,21 @@ const AppContent: React.FC = () => {
           )}
         </div>
 
-        <footer className={`h-16 ${theme.footerBg} border-t ${theme.borderColorLight} flex items-center justify-between px-10 text-[11px] font-black ${theme.textMuted} uppercase tracking-[0.3em] shrink-0 transition-colors duration-500`}>
-          <div className="flex items-center gap-10">
-            <div className="flex items-center gap-4">
-              <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.7)] animate-pulse" />
-              <span className={theme.textSecondary}>SYSTEM: ACTIVE</span>
+        <footer className={`h-10 ${theme.footerBg} border-t ${theme.borderColorLight} flex items-center justify-between px-6 text-[9px] font-medium ${theme.textMuted} uppercase tracking-wider shrink-0 transition-colors duration-500`}>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+              <span className={theme.textSecondary}>ACTIVE</span>
             </div>
-            <div className={`w-px h-6 ${theme.borderColor}`} />
-            <div className="flex items-center gap-8 opacity-60">
+            <div className={`w-px h-4 ${theme.borderColor}`} />
+            <div className="flex items-center gap-4 opacity-60">
               <span>NODES: {workflow.nodes.length}</span>
               <span>EDGES: {workflow.edges.length}</span>
             </div>
           </div>
-          <div className="flex items-center gap-6 opacity-40">
-            <span>THEME: {theme.name.toUpperCase()}</span>
-            <span>ENGINE: GEMINI-3-FLASH</span>
+          <div className="flex items-center gap-4 opacity-40">
+            <span>{theme.name}</span>
+            <span>GEMINI-3-FLASH</span>
           </div>
         </footer>
       </main>
