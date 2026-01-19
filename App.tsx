@@ -3,7 +3,7 @@ import { Workflow, WorkflowNode, Edge, NodeType } from './types';
 import { getAIProvider, AI_PROVIDERS } from './services/ai';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { isLocalMode } from './lib/mode';
+import { uiConfig } from './services';
 import { zhTW, en } from './locales';
 import ChatSidebar from './components/ChatSidebar';
 import WorkflowCanvas from './components/WorkflowCanvas';
@@ -348,7 +348,7 @@ const AppContent: React.FC = () => {
   }
 
   // Show login page if not authenticated (skip in local mode)
-  if (!isLocalMode && !authLoading && !user) {
+  if (uiConfig.showLoginPage && !authLoading && !user) {
     return <LoginPage />;
   }
 
@@ -501,7 +501,7 @@ const AppContent: React.FC = () => {
 
           <div className="flex items-center gap-2 shrink-0">
             {/* Balance Display - Hidden in local mode */}
-            {!isLocalMode && (
+            {uiConfig.showAccountButton && (
               <button
                 onClick={() => setShowAccountModal(true)}
                 className={`flex items-center gap-2 px-3 py-1.5 ${theme.bgTertiary} ${theme.borderRadius} border ${theme.borderColor} hover:border-blue-500/50 transition-all`}

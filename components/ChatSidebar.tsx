@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Loader2, Sparkles, Info } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { isProductionMode } from '../lib/mode';
+import { uiConfig } from '../services';
 
 interface Props {
   onGenerate: (prompt: string) => Promise<void>;
@@ -43,7 +43,7 @@ const ChatSidebar: React.FC<Props> = ({ onGenerate, isLoading, confirmation }) =
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         <div className="space-y-3">
-          {isProductionMode && (
+          {uiConfig.showPricing && (
             <div className={`${themeId === 'minimal' ? 'bg-amber-50 border-amber-200' : 'bg-amber-900/10 border-amber-500/20'} ${theme.borderRadius} p-2.5 border`}>
               <div className="flex items-start gap-2">
                 <Info size={14} className={`${themeId === 'minimal' ? 'text-amber-600' : 'text-amber-400'} shrink-0 mt-0.5`} />

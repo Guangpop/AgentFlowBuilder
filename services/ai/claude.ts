@@ -5,9 +5,7 @@ import { getPrompts } from "../../prompts";
 import { AIProvider, AI_PROVIDERS } from "./types";
 import { postProcessWorkflow } from "./postProcess";
 import { supabase } from "../../lib/supabase";
-
-// Determine mode based on environment variable
-const isLocalMode = !!import.meta.env.VITE_LOCAL_API_KEY;
+import { isLocalMode } from "../../lib/mode";
 
 // ============================================================
 // Local Mode: Direct Claude API calls (developer's own key)

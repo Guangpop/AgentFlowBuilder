@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { supabase, withTimeout, User, Session } from '../lib/supabase';
+import { User, Session } from '../lib/supabase';
 import { UserProfile } from '../lib/database.types';
-import { isLocalMode } from '../lib/mode';
+import { authService } from '../services';
 
 interface AuthContextType {
   user: User | null;
@@ -23,139 +23,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(!isLocalMode); // Local mode: no loading needed
-
-  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-    if (!supabase) return null;
-
-    try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from('users_profile')
-          .select('*')
-          .eq('id', userId)
-          .single(),
-        5000,
-        { data: null, error: null }
-      );
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      return data as UserProfile;
-    } catch (err) {
-      console.warn('[Auth] fetchProfile timed out');
-      return null;
-    }
-  };
+  const [isLoading, setIsLoading] = useState(authService.enabled);
 
   const refreshProfile = useCallback(async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await authService.fetchProfile(user.id);
       setProfile(profileData);
     }
   }, [user]);
 
   useEffect(() => {
-    // Local mode: skip auth entirely
-    if (isLocalMode || !supabase) {
-      console.log('[Mode] Local mode - Auth disabled');
+    // Skip if auth is disabled (local mode)
+    if (!authService.enabled) {
       setIsLoading(false);
       return;
     }
 
-    // Add timeout to prevent infinite hang (workaround for Chrome-specific issue)
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('getSession timeout')), 5000);
+    // Get initial session
+    authService.getSession().then(({ session, user }) => {
+      setSession(session);
+      setUser(user);
+      if (user) {
+        authService.fetchProfile(user.id).then(setProfile);
+      }
+      setIsLoading(false);
     });
 
-    // Get initial session with timeout
-    Promise.race([
-      supabase.auth.getSession(),
-      timeoutPromise
-    ])
-      .then((result) => {
-        const { data: { session } } = result as { data: { session: Session | null } };
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id).then(setProfile);
-        }
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.warn('[Auth] getSession failed:', error.message);
-        // On timeout, try to read from localStorage directly as fallback
-        if (error.message?.includes('timeout')) {
-          const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-          if (storageKey) {
-            try {
-              const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-              if (stored.user) {
-                console.log('[Auth] Using localStorage fallback');
-                setUser(stored.user);
-                setSession(stored);
-                fetchProfile(stored.user.id).then(setProfile);
-              }
-            } catch (e) {
-              console.error('[Auth] localStorage fallback failed:', e);
-            }
-          }
-        }
-        setIsLoading(false);
-      });
+    // Subscribe to auth state changes
+    const unsubscribe = authService.onAuthStateChange(async (session, user) => {
+      setSession(session);
+      setUser(user);
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-        } else {
-          setProfile(null);
-        }
-        setIsLoading(false);
+      if (user) {
+        const profileData = await authService.fetchProfile(user.id);
+        setProfile(profileData);
+      } else {
+        setProfile(null);
       }
-    );
+      setIsLoading(false);
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
   const signInWithGoogle = async () => {
-    if (isLocalMode || !supabase) {
-      console.log('[Mode] Local mode - signInWithGoogle skipped');
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      console.error('Error signing in:', error);
-      throw error;
-    }
+    await authService.signInWithGoogle();
   };
 
   const signOut = async () => {
-    if (isLocalMode || !supabase) {
-      console.log('[Mode] Local mode - signOut skipped');
-      return;
-    }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-      throw error;
-    }
+    await authService.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
