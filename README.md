@@ -1,8 +1,46 @@
 # Agent Flow Builder
 
-A visual node-based workflow editor that converts natural language descriptions into structured AI agent workflows. Built with React 19 + TypeScript + Vite.
+A visual node-based workflow editor that converts natural language descriptions into structured AI agent workflows.
 
 ![Agent Flow Builder Screenshot](docs/images/screenshot.png)
+
+[![Demo Video](https://img.youtube.com/vi/NqIp4d7LQxg/maxresdefault.jpg)](https://youtu.be/NqIp4d7LQxg)
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+- Claude API Key ([get one here](https://console.anthropic.com/))
+
+### Run Locally
+
+```bash
+# 1. Clone and install
+git clone https://github.com/anthropics/agent-flow-builder.git
+cd agent-flow-builder
+npm install
+
+# 2. Set up environment
+cp .env.example .env.local
+# Edit .env.local and add your VITE_LOCAL_API_KEY
+
+# 3. Start dev server
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+### Environment Variables (Local)
+
+Create `.env.local` with:
+
+```env
+VITE_LOCAL_API_KEY=your_claude_api_key_here
+```
+
+That's it! The app runs in local mode with just your Claude API key.
 
 ## Features
 
@@ -22,54 +60,6 @@ A visual node-based workflow editor that converts natural language descriptions 
 - MCP Tool
 - Agent Skill
 
-## Tech Stack
-
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS
-- **AI**: Claude API (via Vercel serverless functions)
-- **Database**: Supabase (PostgreSQL)
-- **Payment**: TapPay (Taiwan)
-- **Deployment**: Vercel
-
-## Local Development
-
-### Prerequisites
-
-- Node.js 18+
-- npm or pnpm
-
-### Setup
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Copy `.env.example` to `.env.local` and fill in your values:
-   ```bash
-   cp .env.example .env.local
-   ```
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The app will be available at `http://localhost:3000`.
-
-### Environment Variables
-
-See `.env.example` for all available configuration options.
-
-**Local Development:**
-- `VITE_LOCAL_API_KEY` - Your Claude API key for local testing
-- `VITE_SUPABASE_URL` - Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
-
-**Production (Vercel Dashboard only):**
-- `ANTHROPIC_API_KEY` - Backend Claude API key
-- `SUPABASE_SERVICE_ROLE_KEY` - Backend Supabase admin key
-- `TAPPAY_PARTNER_KEY` - TapPay payment integration
-- `TAPPAY_MERCHANT_ID` - TapPay merchant ID
-
 ## Commands
 
 ```bash
@@ -78,13 +68,10 @@ npm run build    # Production build
 npm run preview  # Preview production build
 ```
 
-## Architecture
+## Project Structure
 
 ```
 ├── api/                    # Vercel serverless functions
-│   ├── generate-workflow.ts
-│   ├── generate-sop.ts
-│   └── payment/
 ├── components/             # React components
 │   ├── WorkflowCanvas.tsx  # Main canvas with nodes/edges
 │   ├── ChatSidebar.tsx     # AI prompt input
@@ -95,6 +82,24 @@ npm run preview  # Preview production build
 ├── prompts/                # AI prompt templates
 └── services/               # AI service integrations
 ```
+
+---
+
+## Production Environment
+
+For production deployment, the following stack is used:
+
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS
+- **AI**: Claude API (via Vercel serverless functions)
+- **Database**: Supabase (PostgreSQL)
+- **Payment**: TapPay (Taiwan)
+- **Deployment**: Vercel
+
+Production environment variables (set in Vercel Dashboard):
+
+- `ANTHROPIC_API_KEY` - Backend Claude API key
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` - Database
+- `TAPPAY_PARTNER_KEY`, `TAPPAY_MERCHANT_ID` - Payment integration
 
 ## License
 
