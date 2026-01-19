@@ -178,13 +178,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createSupabaseAdmin();
   const ip = req.headers['x-forwarded-for'] as string;
 
+  // Rate limit check (5 requests per minute per user)
+  const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+    p_user_id: user.id,
+    p_endpoint: 'generate-workflow',
+    p_max_requests: 5
+  });
+
+  if (rateLimitError) {
+    console.error('Rate limit check error:', rateLimitError);
+    // Don't block on rate limit errors, just log
+  } else if (!allowed) {
+    await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-workflow' }, user.id, ip);
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  }
+
   // Log API request
   await logEvent('api_request', {
     endpoint: 'generate-workflow',
     prompt_length: prompt.length
   }, user.id, ip);
 
-  // Check balance
+  // Pre-check balance (for better UX, actual deduction is atomic later)
   const { data: profile, error: profileError } = await supabase
     .from('users_profile')
     .select('balance')
@@ -240,49 +255,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Return structured data directly (input is already an object)
     const result = toolUseBlock.input;
 
-    // Deduct balance after successful API call
-    const newBalance = profile.balance - WORKFLOW_COST;
-    const { error: balanceUpdateError } = await supabase
-      .from('users_profile')
-      .update({
-        balance: newBalance,
-      })
-      .eq('id', user.id);
-
-    if (balanceUpdateError) {
-      console.error('Balance update error:', balanceUpdateError);
-      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(balanceUpdateError) }, user.id, ip);
-      return res.status(500).json({ error: 'Failed to update balance' });
-    }
-
-    // Update total_spent using SQL increment
-    const { error: rpcError } = await supabase.rpc('increment_total_spent', { user_id: user.id, amount: WORKFLOW_COST });
-
-    if (rpcError) {
-      console.error('RPC increment_total_spent error:', rpcError);
-      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(rpcError) }, user.id, ip);
-      // Not returning error here as the main operation succeeded
-    }
-
-    // Record transaction
-    const { error: transactionError } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      type: 'charge',
-      amount: -WORKFLOW_COST,
-      description: 'Generate Workflow',
-      balance_after: newBalance,
+    // Atomic balance deduction (handles balance update, transaction record, total_spent)
+    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_balance', {
+      p_user_id: user.id,
+      p_amount: WORKFLOW_COST,
+      p_description: 'Generate Workflow'
     });
 
-    if (transactionError) {
-      console.error('Transaction insert error:', transactionError);
-      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(transactionError) }, user.id, ip);
-      // Not returning error here as the main operation succeeded
+    if (deductError) {
+      console.error('Deduct balance error:', deductError);
+      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(deductError) }, user.id, ip);
+      return res.status(500).json({ error: 'Failed to process payment' });
+    }
+
+    const deductData = deductResult?.[0];
+    if (!deductData?.success) {
+      // This shouldn't happen if pre-check passed, but handle it
+      await logEvent('blocked', {
+        reason: 'insufficient_balance_atomic',
+        required: WORKFLOW_COST,
+        actual: deductData?.new_balance || 0
+      }, user.id, ip);
+      return res.status(402).json({
+        error: 'Insufficient balance',
+        required: WORKFLOW_COST,
+        balance: deductData?.new_balance || 0
+      });
     }
 
     await logEvent('charge', {
       amount: WORKFLOW_COST,
       endpoint: 'generate-workflow',
-      new_balance: newBalance
+      new_balance: deductData.new_balance
     }, user.id, ip);
 
     await logEvent('api_success', {

@@ -51,6 +51,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createSupabaseAdmin();
   const ip = req.headers['x-forwarded-for'] as string;
 
+  // Rate limit check (5 requests per minute per user)
+  const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+    p_user_id: user.id,
+    p_endpoint: 'generate-sop',
+    p_max_requests: 5
+  });
+
+  if (rateLimitError) {
+    console.error('Rate limit check error:', rateLimitError);
+    // Don't block on rate limit errors, just log
+  } else if (!allowed) {
+    await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-sop' }, user.id, ip);
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  }
+
   // Log API request
   await logEvent('api_request', {
     endpoint: 'generate-sop',
@@ -58,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     language,
   }, user.id, ip);
 
-  // Check balance
+  // Pre-check balance (for better UX, actual deduction is atomic later)
   const { data: profile, error: profileError } = await supabase
     .from('users_profile')
     .select('balance')
@@ -106,43 +121,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const textBlock = response.content.find(block => block.type === 'text');
     const result = textBlock?.type === 'text' ? textBlock.text : '';
 
-    // Deduct balance after successful API call
-    const newBalance = profile.balance - totalCost;
-    const { error: balanceUpdateError } = await supabase
-      .from('users_profile')
-      .update({
-        balance: newBalance,
-      })
-      .eq('id', user.id);
-
-    if (balanceUpdateError) {
-      console.error('Balance update error:', balanceUpdateError);
-      await logEvent('api_error', { endpoint: 'generate-sop', error: String(balanceUpdateError) }, user.id, ip);
-      return res.status(500).json({ error: 'Failed to update balance' });
-    }
-
-    // Update total_spent using SQL increment
-    const { error: rpcError } = await supabase.rpc('increment_total_spent', { user_id: user.id, amount: totalCost });
-
-    if (rpcError) {
-      console.error('RPC increment_total_spent error:', rpcError);
-      await logEvent('api_error', { endpoint: 'generate-sop', error: String(rpcError) }, user.id, ip);
-      // Not returning error here as the main operation succeeded
-    }
-
-    // Record transaction
-    const { error: transactionError } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      type: 'charge',
-      amount: -totalCost,
-      description: `Generate SOP (${nodeCount} nodes)`,
-      balance_after: newBalance,
+    // Atomic balance deduction (handles balance update, transaction record, total_spent)
+    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_balance', {
+      p_user_id: user.id,
+      p_amount: totalCost,
+      p_description: `Generate SOP (${nodeCount} nodes)`
     });
 
-    if (transactionError) {
-      console.error('Transaction insert error:', transactionError);
-      await logEvent('api_error', { endpoint: 'generate-sop', error: String(transactionError) }, user.id, ip);
-      // Not returning error here as the main operation succeeded
+    if (deductError) {
+      console.error('Deduct balance error:', deductError);
+      await logEvent('api_error', { endpoint: 'generate-sop', error: String(deductError) }, user.id, ip);
+      return res.status(500).json({ error: 'Failed to process payment' });
+    }
+
+    const deductData = deductResult?.[0];
+    if (!deductData?.success) {
+      // This shouldn't happen if pre-check passed, but handle it
+      await logEvent('blocked', {
+        reason: 'insufficient_balance_atomic',
+        required: totalCost,
+        actual: deductData?.new_balance || 0
+      }, user.id, ip);
+      return res.status(402).json({
+        error: 'Insufficient balance',
+        required: totalCost,
+        balance: deductData?.new_balance || 0
+      });
     }
 
     // Save to workflow_history
@@ -164,7 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await logEvent('charge', {
       amount: totalCost,
       endpoint: 'generate-sop',
-      new_balance: newBalance,
+      new_balance: deductData.new_balance,
       node_count: nodeCount,
     }, user.id, ip);
 
@@ -176,7 +180,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       result,
       cost: totalCost,
-      newBalance,
+      newBalance: deductData.new_balance,
     });
   } catch (error) {
     console.error('Generate SOP error:', error);
