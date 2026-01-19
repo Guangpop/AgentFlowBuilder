@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { supabase, User, Session } from '../lib/supabase';
+import { supabase, withTimeout, User, Session } from '../lib/supabase';
 import { UserProfile } from '../lib/database.types';
 import { isLocalMode } from '../lib/mode';
 
@@ -28,17 +28,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
 
-    const { data, error } = await supabase
-      .from('users_profile')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('users_profile')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        5000,
+        { data: null, error: null }
+      );
 
-    if (error) {
-      console.error('Error fetching profile:', error);
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data as UserProfile;
+    } catch (err) {
+      console.warn('[Auth] fetchProfile timed out');
       return null;
     }
-    return data as UserProfile;
   };
 
   const refreshProfile = useCallback(async () => {

@@ -285,7 +285,7 @@ Format Requirements:
   accountTitle: 'Account',
   accountCurrentBalance: 'Current Balance',
   accountTopup: 'Top Up',
-  accountTopupHint: 'Select an amount to top up via Paddle',
+  accountTopupHint: 'Select an amount to top up via TapPay',
   accountTotalSpent: 'Total Spent',
   accountTransactions: 'Transactions',
   accountRecentTransactions: 'Recent Transactions',

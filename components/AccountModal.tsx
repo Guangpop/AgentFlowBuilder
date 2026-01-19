@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Wallet, CreditCard, LogOut, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { supabase } from '../lib/supabase';
+import { supabase, withTimeout } from '../lib/supabase';
 import { Transaction } from '../lib/database.types';
 import { setupCardForm, onCardUpdate, getPrime, TapPayCardUpdate } from '../lib/tappay';
 
@@ -66,14 +66,22 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
   }, [selectedAmount]);
 
   const fetchTransactions = async () => {
+    if (!supabase) return;
+
     setIsLoadingTransactions(true);
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(MAX_TRANSACTIONS);
+      const result = await withTimeout(
+        supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false })
+          .limit(MAX_TRANSACTIONS),
+        5000,
+        { data: [], error: null }
+      );
+
+      const { data, error } = result;
 
       if (error) {
         console.error('Error fetching transactions:', error);
@@ -83,6 +91,8 @@ const AccountModal: React.FC<Props> = ({ onClose }) => {
       if (data) {
         setTransactions(data);
       }
+    } catch (err) {
+      console.warn('[AccountModal] fetchTransactions timed out');
     } finally {
       setIsLoadingTransactions(false);
     }
