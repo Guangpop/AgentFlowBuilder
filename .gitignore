@@ -31,4 +31,5 @@ dist-ssr
 *.sw?
 .mcp.json
 docs/*
+!docs/images/
 .vercel
