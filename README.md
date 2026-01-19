@@ -4,7 +4,7 @@ A visual node-based workflow editor that converts natural language descriptions 
 
 ![Agent Flow Builder Screenshot](docs/images/screenshot.png)
 
-[![Demo Video](https://img.youtube.com/vi/NqIp4d7LQxg/maxresdefault.jpg)](https://youtu.be/NqIp4d7LQxg)
+YouTube 介紹：[https://youtu.be/NqIp4d7LQxg](https://youtu.be/NqIp4d7LQxg)
 
 ## Quick Start
 
