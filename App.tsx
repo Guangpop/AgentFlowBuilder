@@ -89,8 +89,13 @@ const AppContent: React.FC = () => {
       setAgentInstructions(null);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
-      setApiStatus('inactive'); // API call failed
-      alert(err instanceof Error ? err.message : t.alertGenerateFailed);
+      const errMsg = err instanceof Error ? err.message : '';
+      // Only set inactive for real API failures, not business logic errors
+      const isBusinessError = errMsg.includes('餘額不足') || errMsg.includes('Insufficient balance') || errMsg.includes('Too many requests');
+      if (!isBusinessError) {
+        setApiStatus('inactive');
+      }
+      alert(errMsg || t.alertGenerateFailed);
     } finally {
       setIsLoading(false);
     }
@@ -105,8 +110,13 @@ const AppContent: React.FC = () => {
       setAgentInstructions(result);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
-      setApiStatus('inactive'); // API call failed
-      alert(err instanceof Error ? err.message : t.alertInstructionsFailed);
+      const errMsg = err instanceof Error ? err.message : '';
+      // Only set inactive for real API failures, not business logic errors
+      const isBusinessError = errMsg.includes('餘額不足') || errMsg.includes('Insufficient balance') || errMsg.includes('Too many requests');
+      if (!isBusinessError) {
+        setApiStatus('inactive');
+      }
+      alert(errMsg || t.alertInstructionsFailed);
     } finally {
       setIsGeneratingInstructions(false);
     }
