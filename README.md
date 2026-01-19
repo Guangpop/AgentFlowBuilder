@@ -2,6 +2,8 @@
 
 A visual node-based workflow editor that converts natural language descriptions into structured AI agent workflows. Built with React 19 + TypeScript + Vite.
 
+![Agent Flow Builder Screenshot](docs/images/screenshot.png)
+
 ## Features
 
 - **AI-Powered Workflow Generation** - Describe your workflow in natural language, AI generates the node structure
