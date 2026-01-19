@@ -56,9 +56,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+    // Add timeout to prevent infinite hang (workaround for Chrome-specific issue)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('getSession timeout')), 5000);
+    });
+
+    // Get initial session with timeout
+    Promise.race([
+      supabase.auth.getSession(),
+      timeoutPromise
+    ])
+      .then((result) => {
+        const { data: { session } } = result as { data: { session: Session | null } };
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -67,7 +76,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error('[Auth] Failed to get session:', error);
+        console.warn('[Auth] getSession failed:', error.message);
+        // On timeout, try to read from localStorage directly as fallback
+        if (error.message?.includes('timeout')) {
+          const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (storageKey) {
+            try {
+              const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+              if (stored.user) {
+                console.log('[Auth] Using localStorage fallback');
+                setUser(stored.user);
+                setSession(stored);
+                fetchProfile(stored.user.id).then(setProfile);
+              }
+            } catch (e) {
+              console.error('[Auth] localStorage fallback failed:', e);
+            }
+          }
+        }
         setIsLoading(false);
       });
 
