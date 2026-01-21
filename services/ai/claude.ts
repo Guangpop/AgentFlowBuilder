@@ -149,7 +149,7 @@ const getAuthToken = async (language: Language): Promise<string> => {
   return session.access_token;
 };
 
-const prodGenerateWorkflow = async (prompt: string, language: Language): Promise<WorkflowResponse> => {
+const prodGenerateWorkflow = async (prompt: string, language: Language, prime?: string): Promise<WorkflowResponse> => {
   const t = getLocale(language);
   const token = await getAuthToken(language);
 
@@ -159,13 +159,13 @@ const prodGenerateWorkflow = async (prompt: string, language: Language): Promise
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ prompt, language }),
+    body: JSON.stringify({ prompt, language, prime }),
   });
 
   if (!response.ok) {
     const error = await response.json();
     if (response.status === 402) {
-      throw new Error(t.alertInsufficientBalance(error.required, error.balance));
+      throw new Error(t.alertPaymentFailed || error.error || '付款失敗，請重試');
     }
     throw new Error(error.error || t.alertGenerateFailed);
   }
@@ -174,7 +174,7 @@ const prodGenerateWorkflow = async (prompt: string, language: Language): Promise
   return postProcessWorkflow(result, language);
 };
 
-const prodGenerateInstructions = async (workflow: Workflow, language: Language): Promise<string> => {
+const prodGenerateInstructions = async (workflow: Workflow, language: Language, prime?: string): Promise<string> => {
   const t = getLocale(language);
   const token = await getAuthToken(language);
 
@@ -184,13 +184,13 @@ const prodGenerateInstructions = async (workflow: Workflow, language: Language):
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ workflow, language }),
+    body: JSON.stringify({ workflow, language, prime }),
   });
 
   if (!response.ok) {
     const error = await response.json();
     if (response.status === 402) {
-      throw new Error(t.alertInsufficientBalance(error.required, error.balance));
+      throw new Error(t.alertPaymentFailed || error.error || '付款失敗，請重試');
     }
     throw new Error(error.error || t.alertInstructionsFailed);
   }
@@ -214,19 +214,19 @@ export const claudeProvider: AIProvider = {
     return isLocalMode ? !!import.meta.env.VITE_LOCAL_API_KEY : true;
   },
 
-  async generateWorkflow(prompt: string, language: Language = 'zh-TW'): Promise<WorkflowResponse> {
+  async generateWorkflow(prompt: string, language: Language = 'zh-TW', prime?: string): Promise<WorkflowResponse> {
     if (isLocalMode) {
       return localGenerateWorkflow(prompt, language);
     } else {
-      return prodGenerateWorkflow(prompt, language);
+      return prodGenerateWorkflow(prompt, language, prime);
     }
   },
 
-  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW'): Promise<string> {
+  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW', prime?: string): Promise<string> {
     if (isLocalMode) {
       return localGenerateInstructions(workflow, language);
     } else {
-      return prodGenerateInstructions(workflow, language);
+      return prodGenerateInstructions(workflow, language, prime);
     }
   }
 };

@@ -7,6 +7,10 @@ import { promptsEn } from '../prompts/en.js';
 
 const COST_PER_NODE = 15; // TWD per node
 
+// TapPay API endpoint
+const TAPPAY_SANDBOX_URL = 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime';
+const TAPPAY_PROD_URL = 'https://prod.tappaysdk.com/tpc/payment/pay-by-prime';
+
 // Lazy initialization to avoid cold start errors
 let anthropic: Anthropic | null = null;
 
@@ -22,6 +26,75 @@ const getAnthropicClient = () => {
   return anthropic;
 };
 
+// Process TapPay payment
+async function processTapPayPayment(
+  prime: string,
+  amount: number,
+  userEmail: string,
+  description: string
+): Promise<{ success: boolean; recTradeId?: string; error?: { code: number; message: string } }> {
+  const partnerKey = process.env.TAPPAY_PARTNER_KEY;
+  const merchantId = process.env.TAPPAY_MERCHANT_ID;
+
+  if (!partnerKey || !merchantId) {
+    return { success: false, error: { code: -99, message: 'TapPay not configured' } };
+  }
+
+  const isProduction = process.env.VITE_TAPPAY_ENV === 'production';
+  const apiUrl = isProduction ? TAPPAY_PROD_URL : TAPPAY_SANDBOX_URL;
+
+  const tapPayRequest = {
+    prime,
+    partner_key: partnerKey,
+    merchant_id: merchantId,
+    details: description,
+    amount,
+    currency: 'TWD',
+    cardholder: {
+      phone_number: '',
+      name: userEmail.split('@')[0] || 'User',
+      email: userEmail,
+    },
+  };
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': partnerKey,
+    },
+    body: JSON.stringify(tapPayRequest),
+  });
+
+  const result = await response.json();
+
+  if (result.status === 0) {
+    return { success: true, recTradeId: result.rec_trade_id };
+  } else {
+    return { success: false, error: { code: result.status, message: result.msg } };
+  }
+}
+
+// Log critical event to system_logs table
+async function logCriticalEvent(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  userId: string,
+  userEmail: string,
+  details: Record<string, unknown>
+) {
+  try {
+    await supabase.from('system_logs').insert({
+      level: 'critical',
+      event: 'payment_failed_after_generation',
+      user_id: userId,
+      user_email: userEmail,
+      details,
+    });
+  } catch (err) {
+    console.error('Failed to log critical event:', err);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -32,13 +105,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { workflow, language = 'zh-TW' } = req.body;
+  const { workflow, language = 'zh-TW', prime } = req.body;
   if (!workflow) {
     return res.status(400).json({ error: 'Workflow is required' });
   }
 
   if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
     return res.status(400).json({ error: 'Invalid workflow: nodes array is required' });
+  }
+
+  if (!prime) {
+    return res.status(400).json({ error: 'Payment information is required' });
   }
 
   const nodeCount = workflow.nodes.length;
@@ -60,7 +137,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (rateLimitError) {
     console.error('Rate limit check error:', rateLimitError);
-    // Don't block on rate limit errors, just log
   } else if (!allowed) {
     await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-sop' }, user.id, ip);
     return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
@@ -73,39 +149,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     language,
   }, user.id, ip);
 
-  // Pre-check balance (for better UX, actual deduction is atomic later)
-  const { data: profile, error: profileError } = await supabase
-    .from('users_profile')
-    .select('balance')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError) {
-    console.error('Profile fetch error:', profileError);
-    await logEvent('api_error', { endpoint: 'generate-sop', error: String(profileError) }, user.id, ip);
-    return res.status(500).json({ error: 'Failed to fetch user profile' });
-  }
-
-  if (!profile || profile.balance < totalCost) {
-    await logEvent('blocked', {
-      reason: 'insufficient_balance',
-      required: totalCost,
-      actual: profile?.balance || 0
-    }, user.id, ip);
-    return res.status(402).json({
-      error: 'Insufficient balance',
-      required: totalCost,
-      balance: profile?.balance || 0
-    });
-  }
-
   try {
     // Select prompts based on language
     const prompts = language === 'en' ? promptsEn : promptsZhTW;
     const workflowJson = JSON.stringify(workflow, null, 2);
     const prompt = prompts.agentInstructionsPrompt(workflowJson);
 
-    // Call Claude API with larger max_tokens for SOP generation
+    // Step 1: Generate SOP first
     const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16384,
@@ -121,33 +171,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const textBlock = response.content.find(block => block.type === 'text');
     const result = textBlock?.type === 'text' ? textBlock.text : '';
 
-    // Atomic balance deduction (handles balance update, transaction record, total_spent)
-    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_balance', {
-      p_user_id: user.id,
-      p_amount: totalCost,
-      p_description: `Generate SOP (${nodeCount} nodes)`
-    });
+    // Step 2: Process payment after successful generation
+    const paymentResult = await processTapPayPayment(
+      prime,
+      totalCost,
+      user.email || '',
+      `生成 SOP (${nodeCount} 節點) - NT$${totalCost}`
+    );
 
-    if (deductError) {
-      console.error('Deduct balance error:', deductError);
-      await logEvent('api_error', { endpoint: 'generate-sop', error: String(deductError) }, user.id, ip);
-      return res.status(500).json({ error: 'Failed to process payment' });
-    }
+    if (!paymentResult.success) {
+      // Generation succeeded but payment failed - log critical event
+      const firstNode = workflow.nodes[0] || {};
+      await logCriticalEvent(supabase, user.id, user.email || '', {
+        type: 'sop',
+        amount: totalCost,
+        node_count: nodeCount,
+        workflow_title: workflow.name || 'Untitled',
+        workflow_description: workflow.description || '',
+        first_node: {
+          id: firstNode.node_id || '',
+          type: firstNode.node_type || '',
+          description: firstNode.description || '',
+        },
+        tappay_error: paymentResult.error,
+      });
 
-    const deductData = deductResult?.[0];
-    if (!deductData?.success) {
-      // This shouldn't happen if pre-check passed, but handle it
-      await logEvent('blocked', {
-        reason: 'insufficient_balance_atomic',
-        required: totalCost,
-        actual: deductData?.new_balance || 0
+      await logEvent('payment_failed', {
+        endpoint: 'generate-sop',
+        amount: totalCost,
+        node_count: nodeCount,
+        error: paymentResult.error,
       }, user.id, ip);
+
       return res.status(402).json({
-        error: 'Insufficient balance',
-        required: totalCost,
-        balance: deductData?.new_balance || 0
+        error: '付款失敗，請重試',
+        payment_error: paymentResult.error,
       });
     }
+
+    // Step 3: Record transaction
+    const { error: txError } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      type: 'charge',
+      amount: -totalCost,
+      description: `Generate SOP (${nodeCount} nodes)`,
+      stripe_payment_id: paymentResult.recTradeId,
+      balance_after: 0, // Not using balance anymore
+    });
+
+    if (txError) {
+      console.error('Transaction record error:', txError);
+      // Non-critical - payment succeeded, just log the error
+    }
+
+    // Update total_spent
+    await supabase.rpc('increment_total_spent', {
+      p_user_id: user.id,
+      p_amount: totalCost,
+    }).catch(err => {
+      console.error('Failed to update total_spent:', err);
+    });
 
     // Save to workflow_history
     const { error: historyError } = await supabase.from('workflow_history').insert({
@@ -161,14 +244,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (historyError) {
       console.error('Workflow history insert error:', historyError);
-      await logEvent('api_error', { endpoint: 'generate-sop', error: String(historyError) }, user.id, ip);
       // Not returning error here as the main operation succeeded
     }
 
     await logEvent('charge', {
       amount: totalCost,
       endpoint: 'generate-sop',
-      new_balance: deductData.new_balance,
+      rec_trade_id: paymentResult.recTradeId,
       node_count: nodeCount,
     }, user.id, ip);
 
@@ -180,7 +262,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       result,
       cost: totalCost,
-      newBalance: deductData.new_balance,
     });
   } catch (error) {
     console.error('Generate SOP error:', error);

@@ -294,17 +294,30 @@ export const zhTW = {
   accountTopupError: '儲值處理失敗，請重試。',
 
   // Payment Modal
-  paymentConfirmTitle: '確認付費',
+  paymentConfirmTitle: '確認付款',
   paymentInsufficientTitle: '餘額不足',
   paymentCost: '費用',
   paymentCurrentBalance: '目前餘額',
   paymentShortfall: '差額',
-  paymentConfirmButton: '確認執行',
+  paymentConfirmButton: '確認付款',
   paymentProcessing: '處理中...',
   paymentSelectTopup: '選擇儲值金額',
   paymentShortfallHint: '還差',
   paymentShortfallHintMore: '，請選擇儲值金額',
   paymentSinglePayment: '單次付費',
+  paymentDescription: '服務項目',
+  paymentWorkflowDesc: '生成 Flow',
+  paymentSopDesc: (nodeCount: number) => `生成 SOP (${nodeCount} 節點)`,
+  paymentError: '付款處理失敗，請稍後再試',
+  alertPaymentFailed: '付款失敗，請重試',
+
+  // TapPay Card Form
+  accountSecurePayment: '安全加密付款 by TapPay',
+  accountProcessing: '處理中...',
+  accountCardError: '請檢查信用卡資訊',
+  accountEnterCard: '請輸入信用卡資訊',
+  accountCardNumber: '卡號',
+  accountCardExpiry: '到期日',
 
   // History Tab
   historyTitle: '歷程瀏覽',

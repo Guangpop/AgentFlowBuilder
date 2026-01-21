@@ -13,6 +13,8 @@ import LoginPage from './components/LoginPage';
 import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
 import HistoryTab from './components/HistoryTab';
+import InstantPaymentModal from './components/InstantPaymentModal';
+import { isLocalMode } from './lib/mode';
 import {
   Share2,
   FileCode,
@@ -61,6 +63,13 @@ const AppContent: React.FC = () => {
   const [selectedOutputType, setSelectedOutputType] = useState<OutputTypeValue>('skills');
   const [showAccountModal, setShowAccountModal] = useState(false);
 
+  // Payment flow states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'workflow' | 'sop' | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentDescription, setPaymentDescription] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 當語言切換時，如果工作流名稱是預設值，則更新為新語言的預設值
@@ -74,12 +83,29 @@ const AppContent: React.FC = () => {
     });
   }, [language, t.defaultWorkflowName]);
 
+  const WORKFLOW_COST = 15; // TWD
+
   const handleGenerate = async (prompt: string) => {
+    // In local mode, skip payment flow
+    if (isLocalMode) {
+      await executeWorkflowGeneration(prompt);
+      return;
+    }
+
+    // In production mode, open payment modal first
+    setPendingAction('workflow');
+    setPendingPrompt(prompt);
+    setPaymentAmount(WORKFLOW_COST);
+    setPaymentDescription(t.paymentWorkflowDesc || '生成 Flow');
+    setShowPaymentModal(true);
+  };
+
+  const executeWorkflowGeneration = async (prompt: string, prime?: string) => {
     setIsLoading(true);
     setConfirmation(null);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateWorkflow(prompt, language);
+      const result = await provider.generateWorkflow(prompt, language, prime);
       setWorkflow({
         ...result.workflow,
         description: result.workflow.description || t.aiGeneratedDescription
@@ -91,7 +117,7 @@ const AppContent: React.FC = () => {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : '';
       // Only set inactive for real API failures, not business logic errors
-      const isBusinessError = errMsg.includes('餘額不足') || errMsg.includes('Insufficient balance') || errMsg.includes('Too many requests');
+      const isBusinessError = errMsg.includes('付款失敗') || errMsg.includes('Payment failed') || errMsg.includes('Too many requests');
       if (!isBusinessError) {
         setApiStatus('inactive');
       }
@@ -101,18 +127,36 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const SOP_COST_PER_NODE = 15; // TWD per node
+
   const handleGenerateInstructions = async () => {
     if (workflow.nodes.length === 0) return;
+
+    // In local mode, skip payment flow
+    if (isLocalMode) {
+      await executeInstructionsGeneration();
+      return;
+    }
+
+    // In production mode, open payment modal first
+    const totalCost = workflow.nodes.length * SOP_COST_PER_NODE;
+    setPendingAction('sop');
+    setPaymentAmount(totalCost);
+    setPaymentDescription(t.paymentSopDesc ? t.paymentSopDesc(workflow.nodes.length) : `生成 SOP (${workflow.nodes.length} 節點)`);
+    setShowPaymentModal(true);
+  };
+
+  const executeInstructionsGeneration = async (prime?: string) => {
     setIsGeneratingInstructions(true);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateAgentInstructions(workflow, language);
+      const result = await provider.generateAgentInstructions(workflow, language, prime);
       setAgentInstructions(result);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : '';
       // Only set inactive for real API failures, not business logic errors
-      const isBusinessError = errMsg.includes('餘額不足') || errMsg.includes('Insufficient balance') || errMsg.includes('Too many requests');
+      const isBusinessError = errMsg.includes('付款失敗') || errMsg.includes('Payment failed') || errMsg.includes('Too many requests');
       if (!isBusinessError) {
         setApiStatus('inactive');
       }
@@ -120,6 +164,30 @@ const AppContent: React.FC = () => {
     } finally {
       setIsGeneratingInstructions(false);
     }
+  };
+
+  const handlePaymentSuccess = async (prime: string) => {
+    setShowPaymentModal(false);
+
+    if (pendingAction === 'workflow') {
+      await executeWorkflowGeneration(pendingPrompt, prime);
+    } else if (pendingAction === 'sop') {
+      await executeInstructionsGeneration(prime);
+    }
+
+    // Reset pending states
+    setPendingAction(null);
+    setPendingPrompt('');
+    setPaymentAmount(0);
+    setPaymentDescription('');
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
+    setPendingAction(null);
+    setPendingPrompt('');
+    setPaymentAmount(0);
+    setPaymentDescription('');
   };
 
   const handleNodeClick = (node: WorkflowNode) => {
@@ -510,15 +578,12 @@ const AppContent: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Balance Display - Hidden in local mode */}
+            {/* Account Button - Hidden in local mode */}
             {uiConfig.showAccountButton && (
               <button
                 onClick={() => setShowAccountModal(true)}
                 className={`flex items-center gap-2 px-3 py-1.5 ${theme.bgTertiary} ${theme.borderRadius} border ${theme.borderColor} hover:border-blue-500/50 transition-all`}
               >
-                <span className={`text-xs font-bold text-emerald-400`}>
-                  NT${Math.floor(profile?.balance || 0)}
-                </span>
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="" aria-hidden="true" className="w-6 h-6 rounded-full" />
                 ) : (
@@ -824,6 +889,16 @@ const AppContent: React.FC = () => {
 
       {showAccountModal && (
         <AccountModal onClose={() => setShowAccountModal(false)} />
+      )}
+
+      {showPaymentModal && (
+        <InstantPaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentCancel}
+          onPaymentSuccess={handlePaymentSuccess}
+          amount={paymentAmount}
+          description={paymentDescription}
+        />
       )}
     </div>
   );

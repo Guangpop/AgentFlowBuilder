@@ -307,6 +307,19 @@ Format Requirements:
   paymentShortfallHint: 'You need',
   paymentShortfallHintMore: 'more to proceed',
   paymentSinglePayment: 'Single Payment',
+  paymentDescription: 'Service',
+  paymentWorkflowDesc: 'Generate Flow',
+  paymentSopDesc: (nodeCount: number) => `Generate SOP (${nodeCount} nodes)`,
+  paymentError: 'Payment failed. Please try again.',
+  alertPaymentFailed: 'Payment failed. Please retry.',
+
+  // TapPay Card Form
+  accountSecurePayment: 'Secure payment by TapPay',
+  accountProcessing: 'Processing...',
+  accountCardError: 'Please check your card information',
+  accountEnterCard: 'Enter card information',
+  accountCardNumber: 'Card Number',
+  accountCardExpiry: 'Expiry',
 
   // History Tab
   historyTitle: 'History',

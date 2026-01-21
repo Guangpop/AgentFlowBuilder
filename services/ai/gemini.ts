@@ -94,7 +94,7 @@ export const geminiProvider: AIProvider = {
     return !!getApiKey();
   },
 
-  async generateWorkflow(prompt: string, language: Language = 'zh-TW'): Promise<WorkflowResponse> {
+  async generateWorkflow(prompt: string, language: Language = 'zh-TW', _prime?: string): Promise<WorkflowResponse> {
     const p = getPrompts(language);
 
     try {
@@ -115,7 +115,7 @@ export const geminiProvider: AIProvider = {
     }
   },
 
-  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW'): Promise<string> {
+  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW', _prime?: string): Promise<string> {
     const p = getPrompts(language);
 
     try {

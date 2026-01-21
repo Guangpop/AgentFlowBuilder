@@ -5,6 +5,10 @@ import { logEvent } from './_utils/logger.js';
 
 const WORKFLOW_COST = 15; // TWD
 
+// TapPay API endpoint
+const TAPPAY_SANDBOX_URL = 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime';
+const TAPPAY_PROD_URL = 'https://prod.tappaysdk.com/tpc/payment/pay-by-prime';
+
 // Lazy initialization to avoid cold start errors
 let anthropic: Anthropic | null = null;
 
@@ -160,6 +164,75 @@ const createWorkflowTool = (lang: string): Anthropic.Tool => {
   };
 };
 
+// Process TapPay payment
+async function processTapPayPayment(
+  prime: string,
+  amount: number,
+  userEmail: string,
+  description: string
+): Promise<{ success: boolean; recTradeId?: string; error?: { code: number; message: string } }> {
+  const partnerKey = process.env.TAPPAY_PARTNER_KEY;
+  const merchantId = process.env.TAPPAY_MERCHANT_ID;
+
+  if (!partnerKey || !merchantId) {
+    return { success: false, error: { code: -99, message: 'TapPay not configured' } };
+  }
+
+  const isProduction = process.env.VITE_TAPPAY_ENV === 'production';
+  const apiUrl = isProduction ? TAPPAY_PROD_URL : TAPPAY_SANDBOX_URL;
+
+  const tapPayRequest = {
+    prime,
+    partner_key: partnerKey,
+    merchant_id: merchantId,
+    details: description,
+    amount,
+    currency: 'TWD',
+    cardholder: {
+      phone_number: '',
+      name: userEmail.split('@')[0] || 'User',
+      email: userEmail,
+    },
+  };
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': partnerKey,
+    },
+    body: JSON.stringify(tapPayRequest),
+  });
+
+  const result = await response.json();
+
+  if (result.status === 0) {
+    return { success: true, recTradeId: result.rec_trade_id };
+  } else {
+    return { success: false, error: { code: result.status, message: result.msg } };
+  }
+}
+
+// Log critical event to system_logs table
+async function logCriticalEvent(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  userId: string,
+  userEmail: string,
+  details: Record<string, unknown>
+) {
+  try {
+    await supabase.from('system_logs').insert({
+      level: 'critical',
+      event: 'payment_failed_after_generation',
+      user_id: userId,
+      user_email: userEmail,
+      details,
+    });
+  } catch (err) {
+    console.error('Failed to log critical event:', err);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -170,9 +243,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { prompt, language = 'zh-TW' } = req.body;
+  const { prompt, language = 'zh-TW', prime } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  if (!prime) {
+    return res.status(400).json({ error: 'Payment information is required' });
   }
 
   const supabase = createSupabaseAdmin();
@@ -187,7 +264,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (rateLimitError) {
     console.error('Rate limit check error:', rateLimitError);
-    // Don't block on rate limit errors, just log
   } else if (!allowed) {
     await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-workflow' }, user.id, ip);
     return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
@@ -199,32 +275,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     prompt_length: prompt.length
   }, user.id, ip);
 
-  // Pre-check balance (for better UX, actual deduction is atomic later)
-  const { data: profile, error: profileError } = await supabase
-    .from('users_profile')
-    .select('balance')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError) {
-    console.error('Profile fetch error:', profileError);
-    await logEvent('api_error', { endpoint: 'generate-workflow', error: String(profileError) }, user.id, ip);
-    return res.status(500).json({ error: 'Failed to fetch user profile' });
-  }
-
-  if (!profile || profile.balance < WORKFLOW_COST) {
-    await logEvent('blocked', {
-      reason: 'insufficient_balance',
-      required: WORKFLOW_COST,
-      actual: profile?.balance || 0
-    }, user.id, ip);
-    return res.status(402).json({
-      error: 'Insufficient balance',
-      required: WORKFLOW_COST,
-      balance: profile?.balance || 0
-    });
-  }
-
   try {
     const systemPrompt = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS['zh-TW'];
     const workflowTool = createWorkflowTool(language);
@@ -232,7 +282,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? `User Requirements:\n"${prompt}"`
       : `使用者需求：\n"${prompt}"`;
 
-    // Call Claude API with tool use
+    // Step 1: Generate workflow first
     const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
@@ -252,41 +302,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!toolUseBlock || toolUseBlock.type !== 'tool_use') {
       throw new Error('No tool use response from Claude');
     }
-    // Return structured data directly (input is already an object)
     const result = toolUseBlock.input;
 
-    // Atomic balance deduction (handles balance update, transaction record, total_spent)
-    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_balance', {
-      p_user_id: user.id,
-      p_amount: WORKFLOW_COST,
-      p_description: 'Generate Workflow'
-    });
+    // Step 2: Process payment after successful generation
+    const paymentResult = await processTapPayPayment(
+      prime,
+      WORKFLOW_COST,
+      user.email || '',
+      `生成 Flow - NT$${WORKFLOW_COST}`
+    );
 
-    if (deductError) {
-      console.error('Deduct balance error:', deductError);
-      await logEvent('api_error', { endpoint: 'generate-workflow', error: String(deductError) }, user.id, ip);
-      return res.status(500).json({ error: 'Failed to process payment' });
-    }
+    if (!paymentResult.success) {
+      // Generation succeeded but payment failed - log critical event
+      await logCriticalEvent(supabase, user.id, user.email || '', {
+        type: 'workflow',
+        amount: WORKFLOW_COST,
+        user_prompt: prompt,
+        tappay_error: paymentResult.error,
+      });
 
-    const deductData = deductResult?.[0];
-    if (!deductData?.success) {
-      // This shouldn't happen if pre-check passed, but handle it
-      await logEvent('blocked', {
-        reason: 'insufficient_balance_atomic',
-        required: WORKFLOW_COST,
-        actual: deductData?.new_balance || 0
+      await logEvent('payment_failed', {
+        endpoint: 'generate-workflow',
+        amount: WORKFLOW_COST,
+        error: paymentResult.error,
       }, user.id, ip);
+
       return res.status(402).json({
-        error: 'Insufficient balance',
-        required: WORKFLOW_COST,
-        balance: deductData?.new_balance || 0
+        error: '付款失敗，請重試',
+        payment_error: paymentResult.error,
       });
     }
+
+    // Step 3: Record transaction
+    const { error: txError } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      type: 'charge',
+      amount: -WORKFLOW_COST,
+      description: 'Generate Workflow',
+      stripe_payment_id: paymentResult.recTradeId,
+      balance_after: 0, // Not using balance anymore
+    });
+
+    if (txError) {
+      console.error('Transaction record error:', txError);
+      // Non-critical - payment succeeded, just log the error
+    }
+
+    // Update total_spent
+    await supabase.rpc('increment_total_spent', {
+      p_user_id: user.id,
+      p_amount: WORKFLOW_COST,
+    }).catch(err => {
+      console.error('Failed to update total_spent:', err);
+    });
 
     await logEvent('charge', {
       amount: WORKFLOW_COST,
       endpoint: 'generate-workflow',
-      new_balance: deductData.new_balance
+      rec_trade_id: paymentResult.recTradeId,
     }, user.id, ip);
 
     await logEvent('api_success', {
