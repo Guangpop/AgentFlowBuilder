@@ -3,6 +3,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createSupabaseAdmin, verifyToken } from './_utils/supabase.js';
 import { logEvent } from './_utils/logger.js';
 
+const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
+const isAnonymousMode = process.env.ANONYMOUS_MODE === 'true';
+
 const WORKFLOW_COST = 15; // TWD
 
 // TapPay API endpoint
@@ -238,9 +241,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = await verifyToken(req.headers.authorization || '');
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Anonymous mode: skip JWT verification
+  let user: { id: string; email?: string } | null = null;
+
+  if (isAnonymousMode) {
+    user = { id: ANONYMOUS_USER_ID, email: 'anonymous@local' };
+  } else {
+    user = await verifyToken(req.headers.authorization || '');
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
   }
 
   const { prompt, language = 'zh-TW', prime } = req.body;
@@ -255,18 +265,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createSupabaseAdmin();
   const ip = req.headers['x-forwarded-for'] as string;
 
-  // Rate limit check (5 requests per minute per user)
-  const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
-    p_user_id: user.id,
-    p_endpoint: 'generate-workflow',
-    p_max_requests: 5
-  });
+  // Rate limit check (skip in anonymous mode)
+  if (!isAnonymousMode) {
+    const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id,
+      p_endpoint: 'generate-workflow',
+      p_max_requests: 5
+    });
 
-  if (rateLimitError) {
-    console.error('Rate limit check error:', rateLimitError);
-  } else if (!allowed) {
-    await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-workflow' }, user.id, ip);
-    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    } else if (!allowed) {
+      await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-workflow' }, user.id, ip);
+      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+    }
   }
 
   // Log API request
@@ -338,9 +350,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user_id: user.id,
       type: 'charge',
       amount: -WORKFLOW_COST,
-      description: 'Generate Workflow',
+      description: isAnonymousMode ? 'Anonymous Workflow Generation' : 'Generate Workflow',
       stripe_payment_id: paymentResult.recTradeId,
-      balance_after: 0, // Not using balance anymore
+      balance_after: isAnonymousMode ? null : 0,
     });
 
     if (txError) {
@@ -348,13 +360,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Non-critical - payment succeeded, just log the error
     }
 
-    // Update total_spent
-    await supabase.rpc('increment_total_spent', {
-      p_user_id: user.id,
-      p_amount: WORKFLOW_COST,
-    }).catch(err => {
-      console.error('Failed to update total_spent:', err);
-    });
+    // Update total_spent (skip in anonymous mode)
+    if (!isAnonymousMode) {
+      await supabase.rpc('increment_total_spent', {
+        p_user_id: user.id,
+        p_amount: WORKFLOW_COST,
+      }).catch(err => {
+        console.error('Failed to update total_spent:', err);
+      });
+    }
 
     await logEvent('charge', {
       amount: WORKFLOW_COST,
