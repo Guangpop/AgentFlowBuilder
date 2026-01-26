@@ -14,7 +14,7 @@ import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
 import HistoryTab from './components/HistoryTab';
 import InstantPaymentModal from './components/InstantPaymentModal';
-import { isLocalMode } from './lib/mode';
+import { isLocalMode, isAnonymousMode } from './lib/mode';
 import {
   Share2,
   FileCode,
