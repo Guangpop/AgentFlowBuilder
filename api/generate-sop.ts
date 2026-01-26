@@ -5,6 +5,9 @@ import { logEvent } from './_utils/logger.js';
 import { promptsZhTW } from '../prompts/zh-TW.js';
 import { promptsEn } from '../prompts/en.js';
 
+const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
+const isAnonymousMode = process.env.ANONYMOUS_MODE === 'true';
+
 const COST_PER_NODE = 15; // TWD per node
 
 // TapPay API endpoint
@@ -100,9 +103,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = await verifyToken(req.headers.authorization || '');
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Anonymous mode: skip JWT verification
+  let user: { id: string; email?: string } | null = null;
+
+  if (isAnonymousMode) {
+    user = { id: ANONYMOUS_USER_ID, email: 'anonymous@local' };
+  } else {
+    user = await verifyToken(req.headers.authorization || '');
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
   }
 
   const { workflow, language = 'zh-TW', prime } = req.body;
@@ -128,18 +138,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createSupabaseAdmin();
   const ip = req.headers['x-forwarded-for'] as string;
 
-  // Rate limit check (5 requests per minute per user)
-  const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
-    p_user_id: user.id,
-    p_endpoint: 'generate-sop',
-    p_max_requests: 5
-  });
+  // Rate limit check (5 requests per minute per user) - skip in anonymous mode
+  if (!isAnonymousMode) {
+    const { data: allowed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id,
+      p_endpoint: 'generate-sop',
+      p_max_requests: 5
+    });
 
-  if (rateLimitError) {
-    console.error('Rate limit check error:', rateLimitError);
-  } else if (!allowed) {
-    await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-sop' }, user.id, ip);
-    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    } else if (!allowed) {
+      await logEvent('blocked', { reason: 'rate_limit', endpoint: 'generate-sop' }, user.id, ip);
+      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+    }
   }
 
   // Log API request
@@ -214,9 +226,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user_id: user.id,
       type: 'charge',
       amount: -totalCost,
-      description: `Generate SOP (${nodeCount} nodes)`,
+      description: isAnonymousMode ? `Anonymous SOP (${nodeCount} nodes)` : `Generate SOP (${nodeCount} nodes)`,
       stripe_payment_id: paymentResult.recTradeId,
-      balance_after: 0, // Not using balance anymore
+      balance_after: isAnonymousMode ? null : 0,
     });
 
     if (txError) {
@@ -224,27 +236,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Non-critical - payment succeeded, just log the error
     }
 
-    // Update total_spent
-    await supabase.rpc('increment_total_spent', {
-      p_user_id: user.id,
-      p_amount: totalCost,
-    }).catch(err => {
-      console.error('Failed to update total_spent:', err);
-    });
+    // Update total_spent and save history (skip in anonymous mode)
+    if (!isAnonymousMode) {
+      await supabase.rpc('increment_total_spent', {
+        p_user_id: user.id,
+        p_amount: totalCost,
+      }).catch(err => {
+        console.error('Failed to update total_spent:', err);
+      });
 
-    // Save to workflow_history
-    const { error: historyError } = await supabase.from('workflow_history').insert({
-      user_id: user.id,
-      workflow_name: workflow.name || 'Untitled Workflow',
-      workflow_json: workflow,
-      node_count: nodeCount,
-      generated_prompt: result,
-      cost: totalCost,
-    });
+      // Save to workflow_history
+      const { error: historyError } = await supabase.from('workflow_history').insert({
+        user_id: user.id,
+        workflow_name: workflow.name || 'Untitled Workflow',
+        workflow_json: workflow,
+        node_count: nodeCount,
+        generated_prompt: result,
+        cost: totalCost,
+      });
 
-    if (historyError) {
-      console.error('Workflow history insert error:', historyError);
-      // Not returning error here as the main operation succeeded
+      if (historyError) {
+        console.error('Workflow history insert error:', historyError);
+      }
     }
 
     await logEvent('charge', {

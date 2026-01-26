@@ -8,6 +8,9 @@ export interface UIConfig {
   showPricing: boolean;
   showTopupOptions: boolean;
 
+  // Auth requirement
+  requireAuth: boolean;
+
   // Mode indicator
   modeName: 'local' | 'production';
 }
