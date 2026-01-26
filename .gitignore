@@ -33,3 +33,4 @@ dist-ssr
 docs/*
 !docs/images/
 .vercel
+supabase/
