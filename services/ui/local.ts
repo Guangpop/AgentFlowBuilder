@@ -6,5 +6,6 @@ export const localUIConfig: UIConfig = {
   showLoginPage: false,
   showPricing: false,
   showTopupOptions: false,
+  requireAuth: false,
   modeName: 'local',
 };
