@@ -27,8 +27,8 @@ export const zhTW = {
   generatingMessage: '正在規劃節點邏輯...',
   poweredBy: 'Powered by Gemini 3 Flash',
   pricingTitle: '使用計費說明',
-  pricingWorkflow: '• 生成工作流：NT$15/次',
-  pricingSop: '• 生成 SOP 指令集：NT$15/節點',
+  pricingWorkflow: '• 生成工作流：$0.99 USD/次',
+  pricingSop: '• 生成 SOP 指令集：$0.49 USD/節點',
 
   // Quick tags
   tagCustomerSupport: '客戶支持',
@@ -233,7 +233,7 @@ export const zhTW = {
   alertInvalidJson: '無效的工作流 JSON 檔案結構。',
   alertImportFailed: '導入失敗，請確保選擇的是正確的 JSON 檔案。',
   alertApiKeyMissing: '請設定 GEMINI_API_KEY 環境變數',
-  alertInsufficientBalance: (required: number, balance: number) => `餘額不足。需要 NT$${Math.floor(required)}，目前餘額 NT$${Math.floor(balance)}`,
+  alertInsufficientBalance: (required: number, balance: number) => `餘額不足。需要 $${required.toFixed(2)}，目前餘額 $${balance.toFixed(2)}`,
   alertNotAuthenticated: '請先登入以繼續',
 
   // Validation
@@ -283,7 +283,7 @@ export const zhTW = {
   accountTitle: '帳戶',
   accountCurrentBalance: '目前餘額',
   accountTopup: '儲值',
-  accountTopupHint: '選擇金額透過 TapPay 儲值',
+  accountTopupHint: '選擇金額透過 PayPal 儲值',
   accountTotalSpent: '總消費',
   accountTransactions: '交易次數',
   accountRecentTransactions: '最近交易',
@@ -311,13 +311,9 @@ export const zhTW = {
   paymentError: '付款處理失敗，請稍後再試',
   alertPaymentFailed: '付款失敗，請重試',
 
-  // TapPay Card Form
-  accountSecurePayment: '安全加密付款 by TapPay',
+  // PayPal Payment
+  accountSecurePayment: '安全加密付款 by PayPal',
   accountProcessing: '處理中...',
-  accountCardError: '請檢查信用卡資訊',
-  accountEnterCard: '請輸入信用卡資訊',
-  accountCardNumber: '卡號',
-  accountCardExpiry: '到期日',
 
   // History Tab
   historyTitle: '歷程瀏覽',

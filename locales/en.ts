@@ -29,8 +29,8 @@ export const en: LocaleStrings = {
   generatingMessage: 'Planning node logic...',
   poweredBy: 'Powered by Gemini 3 Flash',
   pricingTitle: 'Pricing Info',
-  pricingWorkflow: '• Workflow Generation: NT$15/time',
-  pricingSop: '• SOP Instructions: NT$15/node',
+  pricingWorkflow: '• Workflow Generation: $0.99 USD/time',
+  pricingSop: '• SOP Instructions: $0.49 USD/node',
 
   // Quick tags
   tagCustomerSupport: 'Customer Support',
@@ -235,7 +235,7 @@ Format Requirements:
   alertInvalidJson: 'Invalid workflow JSON file structure.',
   alertImportFailed: 'Import failed, please ensure you selected a valid JSON file.',
   alertApiKeyMissing: 'Please set the GEMINI_API_KEY environment variable',
-  alertInsufficientBalance: (required: number, balance: number) => `Insufficient balance. Required: NT$${Math.floor(required)}, Current: NT$${Math.floor(balance)}`,
+  alertInsufficientBalance: (required: number, balance: number) => `Insufficient balance. Required: $${required.toFixed(2)}, Current: $${balance.toFixed(2)}`,
   alertNotAuthenticated: 'Please log in to continue',
 
   // Validation
@@ -285,7 +285,7 @@ Format Requirements:
   accountTitle: 'Account',
   accountCurrentBalance: 'Current Balance',
   accountTopup: 'Top Up',
-  accountTopupHint: 'Select an amount to top up via TapPay',
+  accountTopupHint: 'Select an amount to top up via PayPal',
   accountTotalSpent: 'Total Spent',
   accountTransactions: 'Transactions',
   accountRecentTransactions: 'Recent Transactions',
@@ -313,13 +313,9 @@ Format Requirements:
   paymentError: 'Payment failed. Please try again.',
   alertPaymentFailed: 'Payment failed. Please retry.',
 
-  // TapPay Card Form
-  accountSecurePayment: 'Secure payment by TapPay',
+  // PayPal Payment
+  accountSecurePayment: 'Secure payment by PayPal',
   accountProcessing: 'Processing...',
-  accountCardError: 'Please check your card information',
-  accountEnterCard: 'Enter card information',
-  accountCardNumber: 'Card Number',
-  accountCardExpiry: 'Expiry',
 
   // History Tab
   historyTitle: 'History',
