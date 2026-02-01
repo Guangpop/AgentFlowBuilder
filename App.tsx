@@ -14,6 +14,7 @@ import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
 import HistoryTab from './components/HistoryTab';
 import PayPalPaymentModal from './components/PayPalPaymentModal';
+import { TermsOfService, PrivacyPolicy, RefundPolicy } from './components/LegalPages';
 import { WORKFLOW_COST, SOP_COST_PER_NODE } from './lib/paypal';
 import { isLocalMode, isAnonymousMode } from './lib/mode';
 import {
@@ -63,6 +64,9 @@ const AppContent: React.FC = () => {
   const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
   const [selectedOutputType, setSelectedOutputType] = useState<OutputTypeValue>('skills');
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
 
   // Payment flow states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -879,6 +883,11 @@ const AppContent: React.FC = () => {
             </div>
           </div>
           <div className={`flex items-center gap-4 ${themeId === 'minimal' ? 'text-slate-400' : 'text-slate-400'}`}>
+            <a href="mailto:aiflow.dev@hotmail.com" className="hover:text-blue-400 transition-colors normal-case">{language === 'zh-TW' ? '客服信箱' : 'Support'}</a>
+            <button onClick={() => setShowTermsModal(true)} className="hover:text-blue-400 transition-colors">{language === 'zh-TW' ? '服務條款' : 'Terms'}</button>
+            <button onClick={() => setShowPrivacyModal(true)} className="hover:text-blue-400 transition-colors">{language === 'zh-TW' ? '隱私政策' : 'Privacy'}</button>
+            <button onClick={() => setShowRefundModal(true)} className="hover:text-blue-400 transition-colors">{language === 'zh-TW' ? '退款政策' : 'Refund'}</button>
+            <div className={`w-px h-4 ${theme.borderColor}`} />
             <span>{AI_PROVIDERS[aiProvider].modelName}</span>
           </div>
         </footer>
@@ -900,6 +909,10 @@ const AppContent: React.FC = () => {
           currentBalance={profile?.balance ? parseFloat(String(profile.balance)) : 0}
         />
       )}
+
+      <TermsOfService isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
+      <PrivacyPolicy isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
+      <RefundPolicy isOpen={showRefundModal} onClose={() => setShowRefundModal(false)} />
     </div>
   );
 };

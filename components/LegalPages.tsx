@@ -85,8 +85,8 @@ export const TermsOfService: React.FC<{ isOpen: boolean; onClose: () => void }> 
 
         <h3 className="text-white font-semibold">{isZhTW ? '8. 聯繫方式' : '8. Contact'}</h3>
         <p>{isZhTW
-          ? '如有任何問題，請聯繫我們：support@agent-flow-builder.com'
-          : 'For any questions, please contact us at: support@agent-flow-builder.com'
+          ? '如有任何問題，請聯繫我們：aiflow.dev@hotmail.com'
+          : 'For any questions, please contact us at: aiflow.dev@hotmail.com'
         }</p>
       </div>
     </LegalModal>
@@ -104,8 +104,8 @@ export const PrivacyPolicy: React.FC<{ isOpen: boolean; onClose: () => void }> =
 
         <h3 className="text-white font-semibold">{isZhTW ? '1. 資料收集' : '1. Information We Collect'}</h3>
         <p>{isZhTW
-          ? '我們收集以下類型的資訊：(a) 帳戶資訊：當您註冊時，我們會收集您的電子郵件地址和姓名；(b) 使用數據：我們記錄您如何使用本服務；(c) 付款資訊：透過 Paddle 處理，我們不直接存儲您的付款卡資訊。'
-          : 'We collect the following types of information: (a) Account information: email address and name when you register; (b) Usage data: how you use the Service; (c) Payment information: processed through Paddle, we do not directly store your payment card information.'
+          ? '我們收集以下類型的資訊：(a) 帳戶資訊：當您註冊時，我們會收集您的電子郵件地址和姓名；(b) 使用數據：我們記錄您如何使用本服務；(c) 付款資訊：透過 藍新金流 (NewebPay) 處理，我們不直接存儲您的付款卡資訊。'
+          : 'We collect the following types of information: (a) Account information: email address and name when you register; (b) Usage data: how you use the Service; (c) Payment information: processed through 藍新金流 (NewebPay), we do not directly store your payment card information.'
         }</p>
 
         <h3 className="text-white font-semibold">{isZhTW ? '2. 資料使用' : '2. How We Use Your Information'}</h3>
@@ -116,8 +116,8 @@ export const PrivacyPolicy: React.FC<{ isOpen: boolean; onClose: () => void }> =
 
         <h3 className="text-white font-semibold">{isZhTW ? '3. 資料分享' : '3. Information Sharing'}</h3>
         <p>{isZhTW
-          ? '我們不會出售您的個人資訊。我們可能會與以下第三方分享資訊：(a) 服務提供商（如 Paddle 用於付款處理，Supabase 用於數據存儲）；(b) 法律要求時。'
-          : 'We do not sell your personal information. We may share information with: (a) service providers (such as Paddle for payment processing, Supabase for data storage); (b) when required by law.'
+          ? '我們不會出售您的個人資訊。我們可能會與以下第三方分享資訊：(a) 服務提供商（如 藍新金流 (NewebPay) 用於付款處理，Supabase 用於數據存儲）；(b) 法律要求時。'
+          : 'We do not sell your personal information. We may share information with: (a) service providers (such as 藍新金流 (NewebPay) for payment processing, Supabase for data storage); (b) when required by law.'
         }</p>
 
         <h3 className="text-white font-semibold">{isZhTW ? '4. 資料安全' : '4. Data Security'}</h3>
@@ -140,8 +140,8 @@ export const PrivacyPolicy: React.FC<{ isOpen: boolean; onClose: () => void }> =
 
         <h3 className="text-white font-semibold">{isZhTW ? '7. 聯繫方式' : '7. Contact'}</h3>
         <p>{isZhTW
-          ? '如有隱私相關問題，請聯繫：privacy@agent-flow-builder.com'
-          : 'For privacy-related questions, please contact: privacy@agent-flow-builder.com'
+          ? '如有隱私相關問題，請聯繫：aiflow.dev@hotmail.com'
+          : 'For privacy-related questions, please contact: aiflow.dev@hotmail.com'
         }</p>
       </div>
     </LegalModal>
@@ -177,8 +177,8 @@ export const RefundPolicy: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
         <h3 className="text-white font-semibold">{isZhTW ? '4. 退款流程' : '4. Refund Process'}</h3>
         <p>{isZhTW
-          ? '申請退款請聯繫 refund@agent-flow-builder.com，並提供：(a) 您的帳戶電子郵件；(b) 購買日期；(c) 退款原因。我們將在 5-10 個工作日內處理退款請求。'
-          : 'To request a refund, contact refund@agent-flow-builder.com with: (a) your account email; (b) purchase date; (c) reason for refund. We will process refund requests within 5-10 business days.'
+          ? '申請退款請聯繫 aiflow.dev@hotmail.com，並提供：(a) 您的帳戶電子郵件；(b) 購買日期；(c) 退款原因。我們將在 5-10 個工作日內處理退款請求。'
+          : 'To request a refund, contact aiflow.dev@hotmail.com with: (a) your account email; (b) purchase date; (c) reason for refund. We will process refund requests within 5-10 business days.'
         }</p>
 
         <h3 className="text-white font-semibold">{isZhTW ? '5. 退款方式' : '5. Refund Method'}</h3>
@@ -195,8 +195,8 @@ export const RefundPolicy: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
         <h3 className="text-white font-semibold">{isZhTW ? '7. 聯繫方式' : '7. Contact'}</h3>
         <p>{isZhTW
-          ? '退款相關問題，請聯繫：refund@agent-flow-builder.com'
-          : 'For refund-related questions, please contact: refund@agent-flow-builder.com'
+          ? '退款相關問題，請聯繫：aiflow.dev@hotmail.com'
+          : 'For refund-related questions, please contact: aiflow.dev@hotmail.com'
         }</p>
       </div>
     </LegalModal>
