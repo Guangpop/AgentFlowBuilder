@@ -13,7 +13,8 @@ import LoginPage from './components/LoginPage';
 import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
 import HistoryTab from './components/HistoryTab';
-import InstantPaymentModal from './components/InstantPaymentModal';
+import PayPalPaymentModal from './components/PayPalPaymentModal';
+import { WORKFLOW_COST, SOP_COST_PER_NODE } from './lib/paypal';
 import { isLocalMode, isAnonymousMode } from './lib/mode';
 import {
   Share2,
@@ -83,8 +84,6 @@ const AppContent: React.FC = () => {
     });
   }, [language, t.defaultWorkflowName]);
 
-  const WORKFLOW_COST = 15; // TWD
-
   const handleGenerate = async (prompt: string) => {
     // In local mode, skip payment flow
     if (isLocalMode) {
@@ -100,12 +99,12 @@ const AppContent: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const executeWorkflowGeneration = async (prompt: string, prime?: string) => {
+  const executeWorkflowGeneration = async (prompt: string) => {
     setIsLoading(true);
     setConfirmation(null);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateWorkflow(prompt, language, prime);
+      const result = await provider.generateWorkflow(prompt, language);
       setWorkflow({
         ...result.workflow,
         description: result.workflow.description || t.aiGeneratedDescription
@@ -127,8 +126,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const SOP_COST_PER_NODE = 15; // TWD per node
-
   const handleGenerateInstructions = async () => {
     if (workflow.nodes.length === 0) return;
 
@@ -146,11 +143,11 @@ const AppContent: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const executeInstructionsGeneration = async (prime?: string) => {
+  const executeInstructionsGeneration = async () => {
     setIsGeneratingInstructions(true);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateAgentInstructions(workflow, language, prime);
+      const result = await provider.generateAgentInstructions(workflow, language);
       setAgentInstructions(result);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
@@ -166,13 +163,13 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handlePaymentSuccess = async (prime: string) => {
+  const handlePaymentSuccess = async () => {
     setShowPaymentModal(false);
 
     if (pendingAction === 'workflow') {
-      await executeWorkflowGeneration(pendingPrompt, prime);
+      await executeWorkflowGeneration(pendingPrompt);
     } else if (pendingAction === 'sop') {
-      await executeInstructionsGeneration(prime);
+      await executeInstructionsGeneration();
     }
 
     // Reset pending states
@@ -892,12 +889,15 @@ const AppContent: React.FC = () => {
       )}
 
       {showPaymentModal && (
-        <InstantPaymentModal
+        <PayPalPaymentModal
           isOpen={showPaymentModal}
           onClose={handlePaymentCancel}
-          onPaymentSuccess={handlePaymentSuccess}
+          onSuccess={handlePaymentSuccess}
+          type={pendingAction || 'workflow'}
           amount={paymentAmount}
+          nodeCount={pendingAction === 'sop' ? workflow.nodes.length : undefined}
           description={paymentDescription}
+          currentBalance={profile?.balance ? parseFloat(String(profile.balance)) : 0}
         />
       )}
     </div>
