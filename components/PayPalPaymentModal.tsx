@@ -27,7 +27,7 @@ const PayPalPaymentModal: React.FC<Props> = ({
   currentBalance,
 }) => {
   const { theme, t } = useTheme();
-  const { user, token, refreshProfile } = useAuth();
+  const { user, session, refreshProfile } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTopup, setSelectedTopup] = useState<number | null>(null);
@@ -42,6 +42,8 @@ const PayPalPaymentModal: React.FC<Props> = ({
     setIsProcessing(true);
     onSuccess();
   };
+
+  const token = session?.access_token;
 
   const createOrder = async (orderType: 'workflow' | 'sop' | 'topup', orderAmount?: number) => {
     const response = await fetch('/api/paypal/create-order', {

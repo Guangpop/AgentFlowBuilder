@@ -10,7 +10,9 @@ type EventType =
   | 'api_error'
   | 'blocked'
   | 'webhook'
-  | 'error';
+  | 'error'
+  | 'paypal_order_created'
+  | 'paypal_payment_captured';
 
 export const logEvent = async (
   eventType: EventType,
