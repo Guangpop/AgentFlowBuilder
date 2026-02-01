@@ -4,6 +4,7 @@ import { X, AlertCircle, Loader2, CreditCard } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { TOPUP_OPTIONS, formatUSD } from '../lib/paypal';
+import { isAnonymousMode } from '../lib/mode';
 
 interface Props {
   isOpen: boolean;
@@ -32,9 +33,11 @@ const PayPalPaymentModal: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedTopup, setSelectedTopup] = useState<number | null>(null);
 
-  const canAfford = currentBalance >= amount;
-  const shortfall = amount - currentBalance;
-  const isRegisteredUser = Boolean(user);
+  // In anonymous mode, treat user as not registered (no balance, no topup)
+  const isRegisteredUser = Boolean(user) && !isAnonymousMode;
+  const effectiveBalance = isRegisteredUser ? currentBalance : 0;
+  const canAfford = effectiveBalance >= amount;
+  const shortfall = amount - effectiveBalance;
 
   if (!isOpen) return null;
 
@@ -115,7 +118,7 @@ const PayPalPaymentModal: React.FC<Props> = ({
                 <div className="flex justify-between items-center">
                   <span className={`text-sm ${theme.textMuted}`}>{t.paymentCurrentBalance || 'Current Balance'}</span>
                   <span className={`text-lg font-bold ${canAfford ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {formatUSD(currentBalance)}
+                    {formatUSD(effectiveBalance)}
                   </span>
                 </div>
               )}
