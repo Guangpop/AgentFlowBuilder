@@ -32,5 +32,6 @@ dist-ssr
 .mcp.json
 docs/*
 !docs/images/
+!docs/plans/
 .vercel
 supabase/
