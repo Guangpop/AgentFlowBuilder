@@ -149,7 +149,7 @@ const getAuthToken = async (language: Language): Promise<string> => {
   return session.access_token;
 };
 
-const prodGenerateWorkflow = async (prompt: string, language: Language, prime?: string): Promise<WorkflowResponse> => {
+const prodGenerateWorkflow = async (prompt: string, language: Language, prime?: string, paymentToken?: string): Promise<WorkflowResponse> => {
   const t = getLocale(language);
   const token = await getAuthToken(language);
 
@@ -158,6 +158,7 @@ const prodGenerateWorkflow = async (prompt: string, language: Language, prime?: 
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(paymentToken && { 'X-Payment-Token': paymentToken }),
     },
     body: JSON.stringify({ prompt, language, prime }),
   });
@@ -174,7 +175,7 @@ const prodGenerateWorkflow = async (prompt: string, language: Language, prime?: 
   return postProcessWorkflow(result, language);
 };
 
-const prodGenerateInstructions = async (workflow: Workflow, language: Language, prime?: string): Promise<string> => {
+const prodGenerateInstructions = async (workflow: Workflow, language: Language, prime?: string, paymentToken?: string): Promise<string> => {
   const t = getLocale(language);
   const token = await getAuthToken(language);
 
@@ -183,6 +184,7 @@ const prodGenerateInstructions = async (workflow: Workflow, language: Language, 
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(paymentToken && { 'X-Payment-Token': paymentToken }),
     },
     body: JSON.stringify({ workflow, language, prime }),
   });
@@ -214,19 +216,19 @@ export const claudeProvider: AIProvider = {
     return isLocalMode ? !!import.meta.env.VITE_LOCAL_API_KEY : true;
   },
 
-  async generateWorkflow(prompt: string, language: Language = 'zh-TW', prime?: string): Promise<WorkflowResponse> {
+  async generateWorkflow(prompt: string, language: Language = 'zh-TW', prime?: string, paymentToken?: string): Promise<WorkflowResponse> {
     if (isLocalMode) {
       return localGenerateWorkflow(prompt, language);
     } else {
-      return prodGenerateWorkflow(prompt, language, prime);
+      return prodGenerateWorkflow(prompt, language, prime, paymentToken);
     }
   },
 
-  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW', prime?: string): Promise<string> {
+  async generateAgentInstructions(workflow: Workflow, language: Language = 'zh-TW', prime?: string, paymentToken?: string): Promise<string> {
     if (isLocalMode) {
       return localGenerateInstructions(workflow, language);
     } else {
-      return prodGenerateInstructions(workflow, language, prime);
+      return prodGenerateInstructions(workflow, language, prime, paymentToken);
     }
   }
 };

@@ -13,9 +13,8 @@ import LoginPage from './components/LoginPage';
 import AuthCallback from './components/AuthCallback';
 import AccountModal from './components/AccountModal';
 import HistoryTab from './components/HistoryTab';
-import PayPalPaymentModal from './components/PayPalPaymentModal';
+import GumroadPaymentModal from './components/GumroadPaymentModal';
 import { TermsOfService, PrivacyPolicy, RefundPolicy } from './components/LegalPages';
-import { WORKFLOW_COST, SOP_COST_PER_NODE } from './lib/paypal';
 import { isLocalMode, isAnonymousMode } from './lib/mode';
 import {
   Share2,
@@ -72,7 +71,6 @@ const AppContent: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'workflow' | 'sop' | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
-  const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentDescription, setPaymentDescription] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,17 +96,16 @@ const AppContent: React.FC = () => {
     // In production mode, open payment modal first
     setPendingAction('workflow');
     setPendingPrompt(prompt);
-    setPaymentAmount(WORKFLOW_COST);
     setPaymentDescription(t.paymentWorkflowDesc || '生成 Flow');
     setShowPaymentModal(true);
   };
 
-  const executeWorkflowGeneration = async (prompt: string) => {
+  const executeWorkflowGeneration = async (prompt: string, paymentToken?: string) => {
     setIsLoading(true);
     setConfirmation(null);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateWorkflow(prompt, language);
+      const result = await provider.generateWorkflow(prompt, language, undefined, paymentToken);
       setWorkflow({
         ...result.workflow,
         description: result.workflow.description || t.aiGeneratedDescription
@@ -140,18 +137,16 @@ const AppContent: React.FC = () => {
     }
 
     // In production mode, open payment modal first
-    const totalCost = workflow.nodes.length * SOP_COST_PER_NODE;
     setPendingAction('sop');
-    setPaymentAmount(totalCost);
     setPaymentDescription(t.paymentSopDesc ? t.paymentSopDesc(workflow.nodes.length) : `生成 SOP (${workflow.nodes.length} 節點)`);
     setShowPaymentModal(true);
   };
 
-  const executeInstructionsGeneration = async () => {
+  const executeInstructionsGeneration = async (paymentToken?: string) => {
     setIsGeneratingInstructions(true);
     try {
       const provider = getAIProvider(aiProvider);
-      const result = await provider.generateAgentInstructions(workflow, language);
+      const result = await provider.generateAgentInstructions(workflow, language, undefined, paymentToken);
       setAgentInstructions(result);
       setApiStatus('active'); // API call succeeded
     } catch (err) {
@@ -167,19 +162,18 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentToken: string) => {
     setShowPaymentModal(false);
 
     if (pendingAction === 'workflow') {
-      await executeWorkflowGeneration(pendingPrompt);
+      await executeWorkflowGeneration(pendingPrompt, paymentToken);
     } else if (pendingAction === 'sop') {
-      await executeInstructionsGeneration();
+      await executeInstructionsGeneration(paymentToken);
     }
 
     // Reset pending states
     setPendingAction(null);
     setPendingPrompt('');
-    setPaymentAmount(0);
     setPaymentDescription('');
   };
 
@@ -187,7 +181,6 @@ const AppContent: React.FC = () => {
     setShowPaymentModal(false);
     setPendingAction(null);
     setPendingPrompt('');
-    setPaymentAmount(0);
     setPaymentDescription('');
   };
 
@@ -898,15 +891,13 @@ const AppContent: React.FC = () => {
       )}
 
       {showPaymentModal && (
-        <PayPalPaymentModal
+        <GumroadPaymentModal
           isOpen={showPaymentModal}
           onClose={handlePaymentCancel}
           onSuccess={handlePaymentSuccess}
           type={pendingAction || 'workflow'}
-          amount={paymentAmount}
           nodeCount={pendingAction === 'sop' ? workflow.nodes.length : undefined}
           description={paymentDescription}
-          currentBalance={profile?.balance ? parseFloat(String(profile.balance)) : 0}
         />
       )}
 

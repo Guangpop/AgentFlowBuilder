@@ -7,8 +7,8 @@ export interface AIProvider {
   id: AIProviderType;
   name: string;
   modelName: string;
-  generateWorkflow(prompt: string, language: Language, prime?: string): Promise<WorkflowResponse>;
-  generateAgentInstructions(workflow: Workflow, language: Language, prime?: string): Promise<string>;
+  generateWorkflow(prompt: string, language: Language, prime?: string, paymentToken?: string): Promise<WorkflowResponse>;
+  generateAgentInstructions(workflow: Workflow, language: Language, prime?: string, paymentToken?: string): Promise<string>;
   checkApiKey(): boolean;
 }
 

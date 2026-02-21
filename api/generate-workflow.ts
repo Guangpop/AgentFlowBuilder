@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createSupabaseAdmin, verifyToken } from './_utils/supabase.js';
 import { logEvent } from './_utils/logger.js';
+import { consumePaymentToken } from './_utils/paymentToken.js';
 
 const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
 const isAnonymousMode = process.env.ANONYMOUS_MODE === 'true';
@@ -177,6 +178,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     user = await verifyToken(req.headers.authorization || '');
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
+  // Validate payment token (skip in anonymous/dev mode)
+  if (!isAnonymousMode) {
+    const paymentToken = req.headers['x-payment-token'] as string;
+    try {
+      await consumePaymentToken(paymentToken, 'workflow');
+    } catch (err) {
+      return res.status(402).json({
+        error: err instanceof Error ? err.message : 'Payment required',
+      });
     }
   }
 
