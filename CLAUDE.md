@@ -4,43 +4,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AgentFlowBuilder is a visual node-based workflow editor that uses Google Gemini AI to convert natural language descriptions into structured AI agent workflows. Built with React 19 + TypeScript + Vite.
+AgentFlow Builder (`agentflow-mcp`) is an npm MCP Server package for AI Agent workflow generation. It includes a visual node-based workflow editor web UI and an MCP server that exposes workflow tools to AI assistants like Claude. Built with TypeScript, Express, React 19, and Vite.
 
 ## Commands
 
 ```bash
-npm run dev      # Start dev server on port 3000
-npm run build    # Production build to dist/
-npm run preview  # Preview production build
-```
-
-## Environment Setup
-
-Create `.env.local` with:
-```
-GEMINI_API_KEY=your_key_here
+npm run build          # Build everything (server + web)
+npm run build:server   # Build MCP server (TypeScript compilation)
+npm run build:web      # Build React web app (Vite)
+npm run dev:mcp        # Run MCP server in dev mode
+npm run dev:web        # Run web UI in dev mode
 ```
 
 ## Architecture
 
-### Core Files
-- `App.tsx` - Main state management, tab system, workflow operations, Gemini API calls
-- `types.ts` - TypeScript definitions for nodes, edges, workflows
-- `constants.tsx` - Node type configurations with colors and icons
-- `services/gemini.ts` - Gemini API integration (Flash for workflow gen, Pro for instructions)
+The project has three main layers:
 
-### Components
-- `WorkflowCanvas.tsx` - Interactive canvas with pan/zoom, node dragging, connection drawing
-- `ChatSidebar.tsx` - Left panel (420px) for AI prompt input and workflow description
-- `NodeProperties.tsx` - Right panel (420px) for editing selected node properties
+### MCP Server (`src/mcp/`)
+- Exposes workflow generation and management as MCP tools
+- Communicates via stdio transport with AI assistants
+- Entry point: `src/mcp/server.ts`
 
-### Data Flow
-1. User enters natural language prompt in ChatSidebar
-2. `generateWorkflow()` calls Gemini Flash to produce structured JSON
-3. Post-processing validates/slugifies node IDs, auto-layouts nodes, rebuilds edges
-4. WorkflowCanvas renders nodes and edges
-5. User can edit via NodeProperties panel
-6. `generateAgentInstructions()` converts workflow to hierarchical instruction set
+### Web UI (`src/web-app/`)
+- React 19 + TypeScript + Vite single-page application
+- Visual node-based workflow editor with canvas, sidebars
+- Served by the Express server in production
+- Entry point: `src/web-app/index.tsx`
+- Build config: `vite.config.ts` (root: `src/web-app`, output: `dist/web-app`)
+
+### Web Server (`src/web/`)
+- Express server serving the built web app and REST APIs
+- APIs: `/api/list`, `/api/load/:name`, `/api/save`, `/api/delete/:name`, `/api/watch` (SSE)
+- Manages workflows as JSON files in a local `workflows/` directory
+- Entry point: `src/web/server.ts`
+
+### Shared Logic (`src/shared/`)
+- TypeScript types, utilities, and workflow logic shared between MCP server and web app
+- Node types, edge rebuilding, validation, export formats
+
+### CLI (`src/cli.ts`)
+- Entry point for the `agentflow-mcp` binary
+- Dispatches to MCP server or web server based on commands
+
+## Key Concepts
 
 ### Node Types (9 total)
 - `UserInput`, `AgentReasoning`, `Condition`, `AgentQuestion`, `UserResponse`, `AgentAction`, `ScriptExecution`, `MCPTool`, `AgentSkill`
@@ -49,14 +55,22 @@ GEMINI_API_KEY=your_key_here
 - Edges are rebuilt from each node's `next` array (source of truth)
 - Condition nodes require exactly 2 outputs (True/False branches)
 - Node IDs are auto-slugified (lowercase, underscores)
-- Canvas uses fixed 420px sidebars with flex-fill center
+- Workflows are stored as JSON files on disk
 
-## Export Formats
+### Export Formats
 - JSON (raw workflow data)
 - Markdown (documentation)
 - Mermaid diagram (visual representation)
 
+## Build Configuration
+
+- `tsconfig.json` - Compiles `src/shared/`, `src/mcp/`, `src/web/`, `src/cli.ts` to `dist/`
+- `vite.config.ts` - Builds `src/web-app/` to `dist/web-app/`
+- `tailwind.config.js` - Scans `src/web-app/**/*.{tsx,ts,jsx,js}`
+- `postcss.config.js` - Tailwind + Autoprefixer
+
 ## Notes
-- UI text is in Traditional Chinese (繁體中文)
+- UI text is in Traditional Chinese
 - All styling assumes dark theme (slate-950 base)
-- Tailwind CSS loaded via CDN
+- Package type is ESM (`"type": "module"`)
+- No external auth or payment integrations

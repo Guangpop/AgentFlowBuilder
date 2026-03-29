@@ -1,6 +1,6 @@
-import { WorkflowResponse, NodeType } from '../../types';
-import { Language } from '../../locales';
-import { getPrompts } from '../../prompts';
+import { WorkflowResponse, WorkflowNode, Edge, NodeType } from './types.js';
+import { Language } from './prompts/index.js';
+import { getPrompts } from './prompts/index.js';
 
 /**
  * Convert string to safe ID format

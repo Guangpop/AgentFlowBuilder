@@ -1,6 +1,7 @@
-import { promptsZhTW, PromptStrings } from './zh-TW';
-import { promptsEn } from './en';
-import { Language } from '../locales';
+import { promptsZhTW, PromptStrings } from './zh-TW.js';
+import { promptsEn } from './en.js';
+
+export type Language = 'zh-TW' | 'en';
 
 const prompts: Record<Language, PromptStrings> = {
   'zh-TW': promptsZhTW,

@@ -1,5 +1,5 @@
 // English AI Prompts
-import { PromptStrings } from './zh-TW';
+import { PromptStrings } from './zh-TW.js';
 
 export const promptsEn: PromptStrings = {
   // Schema descriptions (for JSON Schema)
