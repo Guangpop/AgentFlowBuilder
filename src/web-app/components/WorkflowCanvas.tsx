@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Workflow, WorkflowNode, NodeType } from '../types';
-import { NODE_COLORS, NODE_ICONS, getNodeColors } from '../constants';
+import { NODE_COLORS, NODE_ICONS, getNodeColors, NODE_CATEGORIES } from '../constants';
 import { Layers, Plus, Trash2, MousePointer, ArrowRight, Zap } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -62,6 +62,27 @@ const WorkflowCanvas: React.FC<Props> = ({
     };
     return nameMap[type];
   };
+  // Helper to get node tooltip description
+  const getNodeDesc = (type: NodeType): string => {
+    const descMap: Record<NodeType, string> = {
+      [NodeType.UserInput]: (t as any).nodeDescUserInput || '',
+      [NodeType.AgentReasoning]: (t as any).nodeDescAgentReasoning || '',
+      [NodeType.Condition]: (t as any).nodeDescCondition || '',
+      [NodeType.AgentQuestion]: (t as any).nodeDescAgentQuestion || '',
+      [NodeType.UserResponse]: (t as any).nodeDescUserResponse || '',
+      [NodeType.AgentAction]: (t as any).nodeDescAgentAction || '',
+      [NodeType.ScriptExecution]: (t as any).nodeDescScriptExecution || '',
+      [NodeType.MCPTool]: (t as any).nodeDescMCPTool || '',
+      [NodeType.AgentSkill]: (t as any).nodeDescAgentSkill || '',
+    };
+    return descMap[type];
+  };
+
+  // Get category label from translations
+  const getCategoryLabel = (labelKey: string): string => {
+    return (t as any)[labelKey] || labelKey;
+  };
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -192,7 +213,7 @@ const WorkflowCanvas: React.FC<Props> = ({
   // Generate grid style based on theme
   const gridStyle = {
     backgroundImage: `radial-gradient(circle, ${theme.canvasGrid} 1px, transparent 1px)`,
-    backgroundSize: '20px 20px',
+    backgroundSize: '24px 24px',
   };
 
   return (
@@ -341,34 +362,44 @@ const WorkflowCanvas: React.FC<Props> = ({
       </div>
 
       {!readonly && !hideToolbar && (
-        <div className={`toolbar absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 ${theme.bgTertiary} ${theme.blur} border ${theme.borderColor} p-2 ${theme.borderRadiusLg} ${theme.shadow} z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar transition-colors duration-500`}>
-          <div className="flex items-center gap-1 px-1 shrink-0">
-            {(Object.keys(NODE_ICONS) as NodeType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => {
-                  const rect = canvasRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    const centerX = (rect.width / 2 - offset.x) / scale;
-                    const centerY = (rect.height / 2 - offset.y) / scale;
-                    const jitter = () => (Math.random() - 0.5) * 60;
-                    onAddNode(type, { x: centerX + jitter(), y: centerY + jitter() });
-                  } else {
-                    onAddNode(type, { x: 400, y: 300 });
-                  }
-                }}
-                title={t.addNodeTooltip(getNodeDisplayName(type))}
-                className={`p-2 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-1 min-w-[72px] group shrink-0`}
-              >
-                <div className={`p-1.5 rounded-lg transition-all ${getNodeColors(themeId)[type].bg} group-hover:scale-110`}>
-                  {NODE_ICONS[type]}
-                </div>
-                <span className={`text-[9px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
-                  {getNodeShortName(type)}
+        <div className={`toolbar absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 ${isLightTheme ? 'bg-white/95 border-stone-200 shadow-lg shadow-stone-200/40' : `${theme.bgTertiary} ${theme.blur} border-${theme.borderColor.replace('border-', '')}`} border p-3 rounded-2xl z-40 overflow-visible max-w-[90vw] overflow-x-auto no-scrollbar transition-colors duration-500`}>
+          {NODE_CATEGORIES.map((cat, catIdx) => (
+            <React.Fragment key={cat.labelKey}>
+              {catIdx > 0 && <div className={`w-px h-8 ${isLightTheme ? 'bg-stone-300/40' : 'bg-white/10'} shrink-0`} />}
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <span className={`text-[9px] font-bold uppercase tracking-wider ${theme.textMuted}`}>
+                  {getCategoryLabel(cat.labelKey)}
                 </span>
-              </button>
-            ))}
-          </div>
+                <div className="flex items-center gap-1">
+                  {cat.types.map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        const rect = canvasRef.current?.getBoundingClientRect();
+                        if (rect) {
+                          const centerX = (rect.width / 2 - offset.x) / scale;
+                          const centerY = (rect.height / 2 - offset.y) / scale;
+                          const jitter = () => (Math.random() - 0.5) * 60;
+                          onAddNode(type, { x: centerX + jitter(), y: centerY + jitter() });
+                        } else {
+                          onAddNode(type, { x: 400, y: 300 });
+                        }
+                      }}
+                      title={`${getNodeDisplayName(type)}\n${getNodeDesc(type)}`}
+                      className={`p-2 ${theme.bgCardHover} rounded-xl ${theme.textSecondary} hover:${theme.textPrimary} transition-all duration-200 flex flex-col items-center gap-1 min-w-[56px] group shrink-0 cursor-pointer`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${getNodeColors(themeId)[type].bg} ${getNodeColors(themeId)[type].icon} group-hover:shadow-md`}>
+                        {NODE_ICONS[type]}
+                      </div>
+                      <span className={`text-[10px] font-medium opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap transition-opacity duration-200`}>
+                        {getNodeShortName(type)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       )}
 
@@ -399,25 +430,47 @@ const WorkflowCanvas: React.FC<Props> = ({
 
       {!workflow.nodes.length && (
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-8 pointer-events-none`}>
-          <div className={`p-6 ${theme.borderRadiusXl} ${theme.bgCard} border ${theme.borderColor} ${theme.shadow}`}>
-            <Layers size={48} className={`${theme.textMuted} opacity-40`} />
+          <div className="text-center space-y-3">
+            <h2 className={`text-2xl font-bold tracking-tight ${isLightTheme ? 'text-stone-600' : theme.textPrimary}`}>
+              {(t as any).welcomeTitle || t.workspaceReady}
+            </h2>
+            <p className={`text-base ${theme.textMuted} max-w-md leading-relaxed`}>
+              {(t as any).welcomeSubtitle || t.workspaceHint}
+            </p>
           </div>
-          <div className="text-center space-y-2">
-            <p className={`text-xl font-bold tracking-tight ${theme.textPrimary} opacity-70`}>{t.workspaceReady}</p>
-            <p className={`text-sm ${theme.textMuted} max-w-md leading-relaxed`}>{t.workspaceHint}</p>
-          </div>
-          <div className={`flex items-center gap-6 mt-2`}>
+          <div className={`flex items-center gap-6`}>
             {[
-              { icon: <MousePointer size={18} />, label: t.emptyStepAddNode || '從工具列加入節點' },
-              { icon: <ArrowRight size={18} />, label: t.emptyStepConnect || '連接節點建立流程' },
-              { icon: <Zap size={18} />, label: t.emptyStepGenerate || '產生 Skill / Command' },
+              { num: '1', icon: <MousePointer size={20} />, label: (t as any).welcomeStep1 || t.emptyStepAddNode, desc: (t as any).welcomeStep1Desc || '' },
+              { num: '2', icon: <ArrowRight size={20} />, label: (t as any).welcomeStep2 || t.emptyStepConnect, desc: (t as any).welcomeStep2Desc || '' },
+              { num: '3', icon: <Zap size={20} />, label: (t as any).welcomeStep3 || t.emptyStepGenerate, desc: (t as any).welcomeStep3Desc || '' },
             ].map((step, i) => (
-              <div key={i} className={`flex flex-col items-center gap-2 px-4 py-3 ${theme.bgCard} border ${theme.borderColor} ${theme.borderRadiusLg} ${theme.shadow}`}>
-                <div className={`p-2 ${theme.bgTertiary} rounded-xl ${theme.textSecondary}`}>{step.icon}</div>
-                <span className={`text-xs font-medium ${theme.textSecondary} text-center max-w-[100px]`}>{step.label}</span>
+              <div key={i} className={`flex flex-col items-center gap-3 px-6 py-5 ${isLightTheme ? 'bg-white border-stone-200 shadow-md shadow-stone-200/50' : `${theme.bgCard} border-${theme.borderColor.replace('border-', '')}`} border rounded-2xl w-[180px]`}>
+                <div className={`w-7 h-7 rounded-full ${isLightTheme ? 'bg-teal-600' : 'bg-blue-600'} text-white text-xs font-bold flex items-center justify-center`}>
+                  {step.num}
+                </div>
+                <div className={`${isLightTheme ? 'text-stone-500' : theme.textSecondary}`}>{step.icon}</div>
+                <span className={`text-sm font-semibold ${theme.textPrimary} text-center`}>{step.label}</span>
+                {step.desc && <span className={`text-[10px] ${theme.textMuted} text-center leading-relaxed`}>{step.desc}</span>}
               </div>
             ))}
           </div>
+          <button
+            onClick={() => {
+              const rect = canvasRef.current?.getBoundingClientRect();
+              if (rect) {
+                const centerX = (rect.width / 2 - offset.x) / scale;
+                const centerY = (rect.height / 2 - offset.y) / scale;
+                onAddNode(NodeType.UserInput, { x: centerX - 120, y: centerY - 60 });
+              }
+            }}
+            className={`pointer-events-auto px-6 py-3 font-semibold rounded-xl transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] ${
+              isLightTheme
+                ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-teal-600/20'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
+            }`}
+          >
+            {(t as any).quickStart || 'Quick Start'}
+          </button>
         </div>
       )}
     </div>

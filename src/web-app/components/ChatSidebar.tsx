@@ -107,12 +107,14 @@ const ChatSidebar: React.FC<Props> = ({
   const truncate = (text: string, max: number) =>
     text.length > max ? text.slice(0, max) + '...' : text;
 
+  const isLight = themeId === 'warm' || themeId === 'minimal';
+
   return (
-    <div className={`w-[280px] flex flex-col border-r ${theme.sidebarBorder} ${theme.sidebarBg} shadow-[4px_0_20px_rgba(0,0,0,0.3)] z-10 transition-colors duration-500`}>
+    <div className={`w-[280px] flex flex-col border-r ${theme.sidebarBorder} ${theme.sidebarBg} ${isLight ? 'shadow-[4px_0_20px_rgba(0,0,0,0.05)]' : 'shadow-[4px_0_20px_rgba(0,0,0,0.3)]'} z-10 transition-colors duration-500`}>
       {/* Header */}
       <div className={`px-4 py-3 border-b ${theme.borderColorLight}`}>
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-blue-600 rounded-lg shadow-md shadow-blue-900/30">
+          <div className="p-2 bg-gradient-to-br from-amber-400 to-teal-500 rounded-xl shadow-md">
             <Sparkles size={16} className="text-white" />
           </div>
           <div>
@@ -123,34 +125,36 @@ const ChatSidebar: React.FC<Props> = ({
       </div>
 
       {/* Action buttons */}
-      <div className={`px-3 py-2 border-b ${theme.borderColorLight} space-y-1.5`}>
+      <div className={`px-3 py-2.5 border-b ${theme.borderColorLight} space-y-2`}>
+        <button
+          onClick={onNew}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold ${theme.accentBg} ${theme.accentBgHover} text-white rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-md`}
+        >
+          <Plus size={16} />
+          New
+        </button>
         <div className="flex gap-2">
-          <button
-            onClick={onNew}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
-          >
-            <Plus size={13} />
-            New
-          </button>
           <button
             onClick={onSave}
             className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
               hasUnsavedChanges
-                ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
-            } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-blue-500' : theme.borderColor} transition-all`}
+                ? 'bg-amber-500 hover:bg-amber-400 text-white ring-2 ring-amber-400/50'
+                : isLight
+                  ? 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
+                  : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
+            } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-amber-400' : theme.borderColor} transition-all duration-200 cursor-pointer`}
           >
             <Save size={13} />
             Save{hasUnsavedChanges ? ' *' : ''}
           </button>
+          <button
+            onClick={handleImportJson}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${isLight ? 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200' : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`} ${theme.borderRadius} border ${theme.borderColor} transition-all duration-200 cursor-pointer`}
+          >
+            <Upload size={13} />
+            Import
+          </button>
         </div>
-        <button
-          onClick={handleImportJson}
-          className={`w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
-        >
-          <Upload size={13} />
-          Import JSON
-        </button>
       </div>
 
       {/* Workflow list header */}
@@ -186,33 +190,38 @@ const ChatSidebar: React.FC<Props> = ({
               <div
                 key={wf.name}
                 onClick={() => onLoad(wf.name)}
-                className={`group cursor-pointer p-2.5 ${theme.borderRadius} border transition-all ${
+                className={`group cursor-pointer p-2.5 ${theme.borderRadius} border-l-4 border transition-all duration-200 ${
                   isActive
-                    ? `${(themeId === 'minimal' || themeId === 'warm') ? 'bg-blue-50 border-blue-300' : 'bg-blue-900/20 border-blue-500/40'}`
-                    : `${theme.bgCard} ${theme.borderColor} ${theme.bgCardHover}`
+                    ? isLight ? 'bg-teal-50 border-teal-400 border-l-teal-500' : 'bg-teal-900/20 border-teal-500/40 border-l-teal-400'
+                    : `${theme.bgCard} ${theme.borderColor} border-l-transparent ${theme.bgCardHover}`
                 }`}
               >
                 <div className="flex items-start justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <FileText size={12} className={isActive ? 'text-blue-400 shrink-0' : `${theme.textMuted} shrink-0`} />
-                    <span className={`text-xs font-medium truncate ${isActive ? ((themeId === 'minimal' || themeId === 'warm') ? 'text-blue-900' : 'text-blue-200') : theme.textPrimary}`}>
+                    <FileText size={12} className={isActive ? 'text-teal-500 shrink-0' : `${theme.textMuted} shrink-0`} />
+                    <span className={`text-xs font-medium truncate ${isActive ? (isLight ? 'text-teal-800' : 'text-teal-200') : theme.textPrimary}`}>
                       {wf.name}
                     </span>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(wf.name);
-                    }}
-                    className={`shrink-0 p-0.5 ${theme.borderRadius} transition-all opacity-0 group-hover:opacity-100 ${
-                      deleteConfirm === wf.name
-                        ? 'text-red-400 bg-red-900/30 opacity-100'
-                        : `${theme.textMuted} hover:text-red-400`
-                    }`}
-                    title={deleteConfirm === wf.name ? 'Click again to confirm' : 'Delete'}
-                  >
-                    <Trash2 size={11} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isLight ? 'bg-stone-200 text-stone-600' : 'bg-slate-700 text-slate-400'}`}>
+                      {wf.nodeCount}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(wf.name);
+                      }}
+                      className={`p-0.5 ${theme.borderRadius} transition-all opacity-0 group-hover:opacity-100 cursor-pointer ${
+                        deleteConfirm === wf.name
+                          ? 'text-red-400 bg-red-900/30 opacity-100'
+                          : `${theme.textMuted} hover:text-red-400`
+                      }`}
+                      title={deleteConfirm === wf.name ? 'Click again to confirm' : 'Delete'}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
                 </div>
                 {wf.description && (
                   <p className={`text-[10px] ${theme.textMuted} mt-1 leading-relaxed`}>
@@ -220,8 +229,6 @@ const ChatSidebar: React.FC<Props> = ({
                   </p>
                 )}
                 <div className={`flex items-center gap-2 mt-1.5 text-[9px] ${theme.textMuted}`}>
-                  <span>{wf.nodeCount} nodes</span>
-                  <span className="opacity-50">|</span>
                   <Clock size={8} className="inline" />
                   <span>{formatDate(wf.modified)}</span>
                 </div>

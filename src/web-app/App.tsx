@@ -9,8 +9,10 @@ import ChatSidebar from './components/ChatSidebar';
 import SettingsPanel from './components/SettingsPanel';
 import InstructionsTab from './components/InstructionsTab';
 import MermaidPreview from './components/MermaidPreview';
-import { Settings, Copy, Download, Check, Code, Eye } from 'lucide-react';
+import { Settings, Copy, Download, Check, Code, Eye, LayoutGrid, Sparkles, FileCode, FileText, Braces } from 'lucide-react';
 import type { LocaleStrings } from './locales';
+import { ToastProvider, useToast } from './contexts/ToastContext';
+import WelcomeModal, { useWelcomeModal } from './components/WelcomeModal';
 
 const defaultWorkflow: Workflow = {
   name: 'New Workflow',
@@ -41,8 +43,10 @@ function rebuildEdges(nodes: WorkflowNode[], t: LocaleStrings): Edge[] {
   return edges;
 }
 
-const App: React.FC = () => {
+const AppInner: React.FC = () => {
   const { theme, themeId, t } = useTheme();
+  const { showToast } = useToast();
+  const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeModal();
 
   const [workflow, setWorkflow] = useState<Workflow>(defaultWorkflow);
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
@@ -212,11 +216,13 @@ const App: React.FC = () => {
         setCurrentWorkflowName(name);
         setHasUnsavedChanges(false);
         setRefreshKey(prev => prev + 1);
+        showToast((t as any).savedToast || 'Workflow saved', 'success');
       }
     } catch (err) {
       console.error('Failed to save workflow:', err);
+      showToast('Save failed', 'error');
     }
-  }, [currentWorkflowName, workflow]);
+  }, [currentWorkflowName, workflow, showToast, t]);
 
   const handleLoad = useCallback(async (name: string) => {
     try {
@@ -274,7 +280,8 @@ const App: React.FC = () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, []);
+    showToast((t as any).copiedToast || 'Copied to clipboard', 'success');
+  }, [showToast, t]);
 
   // ─── Tab content ───
 
@@ -381,45 +388,99 @@ const App: React.FC = () => {
 
   // ─── Layout ───
 
-  const tabs: { key: typeof activeTab; label: string }[] = [
-    { key: 'editor', label: t.tabCanvas },
-    { key: 'instructions', label: t.tabInstructions },
-    { key: 'mermaid', label: t.tabMermaid },
-    { key: 'markdown', label: t.tabMarkdown },
-    { key: 'json', label: t.tabJson },
+  const mainTabs: { key: typeof activeTab; label: string; icon: React.ReactNode }[] = [
+    { key: 'editor', label: t.tabCanvas, icon: <LayoutGrid size={14} /> },
+    { key: 'instructions', label: t.tabInstructions, icon: <Sparkles size={14} /> },
   ];
+
+  const exportTabs: { key: typeof activeTab; label: string; icon: React.ReactNode }[] = [
+    { key: 'mermaid', label: t.tabMermaid, icon: <FileCode size={12} /> },
+    { key: 'markdown', label: t.tabMarkdown, icon: <FileText size={12} /> },
+    { key: 'json', label: t.tabJson, icon: <Braces size={12} /> },
+  ];
+
+  const isLightTheme = themeId === 'warm' || themeId === 'minimal';
 
   return (
     <div className={`h-screen flex flex-col ${theme.bgPrimary} transition-colors duration-500`}>
       {/* Tab bar */}
-      <div className={`flex items-center justify-between px-2 border-b ${theme.borderColorLight} ${theme.sidebarBg}`}>
-        <div className="flex">
-          {tabs.map(tab => (
+      <div className={`flex items-center justify-between px-3 py-1.5 border-b ${theme.borderColorLight} ${theme.sidebarBg}`}>
+        {/* Left: Logo + Workflow name */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-teal-500 rounded-xl flex items-center justify-center shadow-sm">
+              <Sparkles size={14} className="text-white" />
+            </div>
+            <span className={`text-sm font-bold ${theme.textPrimary} hidden sm:block`}>AgentFlow</span>
+          </div>
+          {currentWorkflowName && (
+            <div className="flex items-center gap-1.5">
+              <span className={`text-xs ${theme.textMuted}`}>/</span>
+              <span className={`text-xs font-medium ${theme.textSecondary} font-mono`}>
+                {currentWorkflowName}
+              </span>
+              {hasUnsavedChanges && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Unsaved changes" />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Center: Main tabs + Export tabs */}
+        <div className="flex items-center gap-1">
+          {/* Main tabs */}
+          {mainTabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-xs font-medium transition-all border-b-2 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${theme.borderRadius} transition-all duration-200 cursor-pointer ${
                 activeTab === tab.key
-                  ? `${theme.textPrimary} border-blue-500`
-                  : `${theme.textMuted} border-transparent hover:${theme.textSecondary}`
+                  ? tab.key === 'instructions'
+                    ? `${theme.accentBg} text-white shadow-md`
+                    : isLightTheme
+                      ? 'bg-stone-200/80 ' + theme.textPrimary
+                      : 'bg-white/10 ' + theme.textPrimary
+                  : `${theme.textMuted} hover:${theme.textSecondary} ${theme.bgCardHover}`
               }`}
             >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+
+          {/* Separator */}
+          <div className={`w-px h-5 ${isLightTheme ? 'bg-stone-300' : 'bg-white/10'} mx-1`} />
+
+          {/* Export label */}
+          <span className={`text-[9px] font-bold uppercase tracking-wider ${theme.textMuted} mr-0.5`}>{t.exportTabs}</span>
+
+          {/* Export tabs */}
+          {exportTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1 px-2 py-1 text-xs font-medium ${theme.borderRadius} transition-all duration-200 cursor-pointer ${
+                activeTab === tab.key
+                  ? isLightTheme
+                    ? 'bg-stone-200/80 ' + theme.textPrimary
+                    : 'bg-white/10 ' + theme.textPrimary
+                  : `${theme.textMuted} hover:${theme.textSecondary} ${theme.bgCardHover}`
+              }`}
+            >
+              {tab.icon}
               {tab.label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 pr-2">
-          {currentWorkflowName && (
-            <span className={`text-[10px] ${theme.textMuted} font-mono`}>
-              {currentWorkflowName}{hasUnsavedChanges ? ' *' : ''}
-            </span>
-          )}
+
+        {/* Right: Settings */}
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-1.5 ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textMuted} ${theme.borderRadius} transition-all`}
+            className={`p-1.5 ${theme.bgCardHover} ${theme.textMuted} ${theme.borderRadius} transition-all duration-200 cursor-pointer`}
             title={t.settingsTitle}
           >
-            <Settings size={14} />
+            <Settings size={16} />
           </button>
         </div>
       </div>
@@ -464,6 +525,9 @@ const App: React.FC = () => {
         )}
       </div>
 
+      {/* Welcome Modal */}
+      {showWelcome && <WelcomeModal onClose={dismissWelcome} />}
+
       {/* Settings overlay - right side */}
       {showSettings && (
         <div
@@ -478,5 +542,11 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const App: React.FC = () => (
+  <ToastProvider>
+    <AppInner />
+  </ToastProvider>
+);
 
 export default App;

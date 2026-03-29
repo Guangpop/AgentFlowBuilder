@@ -280,6 +280,60 @@ Format Requirements:
   noWorkflows: 'No Workflows Yet',
   noWorkflowsHint: 'Use New to create, or Import JSON to load a file',
 
+  // Tab bar
+  exportTabs: 'Export',
+
+  // Node categories (toolbar)
+  categoryUser: 'User',
+  categoryAgent: 'AI Agent',
+  categorySystem: 'System',
+
+  // Empty state + onboarding
+  welcomeTitle: 'Welcome to AgentFlow Builder',
+  welcomeSubtitle: 'Design AI Agent workflows with ease',
+  welcomeStep1: 'Add Nodes',
+  welcomeStep1Desc: 'Drag node components from the toolbar',
+  welcomeStep2: 'Connect Flow',
+  welcomeStep2Desc: 'Connect node outputs to next inputs',
+  welcomeStep3: 'Generate Skills',
+  welcomeStep3Desc: 'Convert to AI-executable Skills in one click',
+  quickStart: 'Quick Start',
+  goToCanvas: 'Go to Canvas',
+  editDescription: 'Click to edit description...',
+  getStarted: 'Get Started',
+  loadExample: 'Load Example',
+  skip: 'Skip',
+
+  // Toast
+  savedToast: 'Workflow saved',
+  copiedToast: 'Copied to clipboard',
+  nodeAddedToast: 'Node added',
+  deletedToast: 'Deleted',
+  connectedToast: 'Connection created',
+
+  // Instructions wizard steps
+  stepPlatform: 'Select Platform',
+  stepType: 'Select Type',
+  stepGenerate: 'Generate',
+  noWorkflowForInstructions: 'Build a workflow first, then generate instructions',
+
+  // Properties panel
+  dangerZone: 'Danger Zone',
+  descriptionSection: 'Description',
+  settingsSection: 'Settings',
+  portsSection: 'Ports',
+
+  // Node descriptions for tooltips
+  nodeDescUserInput: 'Receive initial user input',
+  nodeDescAgentReasoning: 'AI analysis and decision making',
+  nodeDescCondition: 'Branch based on conditions',
+  nodeDescAgentQuestion: 'AI asks user for clarification',
+  nodeDescUserResponse: 'User provides additional info',
+  nodeDescAgentAction: 'AI performs specific tasks',
+  nodeDescScriptExecution: 'Execute custom script code',
+  nodeDescMCPTool: 'Call external MCP tool service',
+  nodeDescAgentSkill: 'Invoke defined Agent skills',
+
   // Theme names and descriptions
   themeWarmName: 'Warm Soft',
   themeWarmDesc: 'Warm and friendly, intuitive design',

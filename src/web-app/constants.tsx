@@ -46,13 +46,20 @@ export function getNodeColors(themeId: string): Record<NodeType, { bg: string; b
 }
 
 export const NODE_ICONS: Record<NodeType, React.ReactNode> = {
-  [NodeType.UserInput]: <User size={20} />,
-  [NodeType.AgentReasoning]: <Brain size={20} />,
-  [NodeType.Condition]: <GitBranch size={20} />,
-  [NodeType.AgentQuestion]: <HelpCircle size={20} />,
-  [NodeType.UserResponse]: <MessageSquare size={20} />,
-  [NodeType.AgentAction]: <Play size={20} />,
-  [NodeType.ScriptExecution]: <Terminal size={20} />,
-  [NodeType.MCPTool]: <Wrench size={20} />,
-  [NodeType.AgentSkill]: <Cpu size={20} />,
+  [NodeType.UserInput]: <User size={22} />,
+  [NodeType.AgentReasoning]: <Brain size={22} />,
+  [NodeType.Condition]: <GitBranch size={22} />,
+  [NodeType.AgentQuestion]: <HelpCircle size={22} />,
+  [NodeType.UserResponse]: <MessageSquare size={22} />,
+  [NodeType.AgentAction]: <Play size={22} />,
+  [NodeType.ScriptExecution]: <Terminal size={22} />,
+  [NodeType.MCPTool]: <Wrench size={22} />,
+  [NodeType.AgentSkill]: <Cpu size={22} />,
 };
+
+// Toolbar categories — group node types for better discoverability
+export const NODE_CATEGORIES: { labelKey: string; types: NodeType[] }[] = [
+  { labelKey: 'categoryUser', types: [NodeType.UserInput, NodeType.UserResponse] },
+  { labelKey: 'categoryAgent', types: [NodeType.AgentReasoning, NodeType.AgentQuestion, NodeType.AgentAction] },
+  { labelKey: 'categorySystem', types: [NodeType.Condition, NodeType.ScriptExecution, NodeType.MCPTool, NodeType.AgentSkill] },
+];

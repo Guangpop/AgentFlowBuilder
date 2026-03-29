@@ -50,6 +50,14 @@ export interface ThemeTokens {
   // Canvas
   canvasBg: string;
   canvasGrid: string;
+
+  // Accent（強調色系統）
+  accentColor: string;
+  accentBg: string;
+  accentBgHover: string;
+  accentBgLight: string;
+  accentBorder: string;
+  accentRing: string;
 }
 
 export const themes: Record<ThemeId, ThemeTokens> = {
@@ -91,7 +99,14 @@ export const themes: Record<ThemeId, ThemeTokens> = {
     footerBg: 'bg-stone-50',
 
     canvasBg: 'bg-stone-100/80',
-    canvasGrid: 'rgba(168, 162, 158, 0.25)',
+    canvasGrid: 'rgba(168, 162, 158, 0.12)',
+
+    accentColor: 'text-teal-600',
+    accentBg: 'bg-teal-600',
+    accentBgHover: 'hover:bg-teal-500',
+    accentBgLight: 'bg-teal-50',
+    accentBorder: 'border-teal-300',
+    accentRing: 'ring-teal-400/30',
   },
 
   techDark: {
@@ -133,6 +148,13 @@ export const themes: Record<ThemeId, ThemeTokens> = {
 
     canvasBg: 'bg-slate-900',
     canvasGrid: 'rgba(51, 65, 85, 0.5)',
+
+    accentColor: 'text-blue-500',
+    accentBg: 'bg-blue-600',
+    accentBgHover: 'hover:bg-blue-500',
+    accentBgLight: 'bg-blue-500/10',
+    accentBorder: 'border-blue-500',
+    accentRing: 'ring-blue-400/30',
   },
 
   glassmorphism: {
@@ -176,6 +198,13 @@ export const themes: Record<ThemeId, ThemeTokens> = {
 
     canvasBg: 'bg-black/20 backdrop-blur-xl',
     canvasGrid: 'rgba(255, 255, 255, 0.03)',
+
+    accentColor: 'text-violet-400',
+    accentBg: 'bg-violet-600',
+    accentBgHover: 'hover:bg-violet-500',
+    accentBgLight: 'bg-violet-500/10',
+    accentBorder: 'border-violet-400/30',
+    accentRing: 'ring-violet-400/30',
   },
 
   minimal: {
@@ -217,6 +246,13 @@ export const themes: Record<ThemeId, ThemeTokens> = {
 
     canvasBg: 'bg-slate-50',
     canvasGrid: 'rgba(148, 163, 184, 0.3)',
+
+    accentColor: 'text-slate-700',
+    accentBg: 'bg-slate-800',
+    accentBgHover: 'hover:bg-slate-700',
+    accentBgLight: 'bg-slate-100',
+    accentBorder: 'border-slate-300',
+    accentRing: 'ring-slate-400/30',
   },
 };
 

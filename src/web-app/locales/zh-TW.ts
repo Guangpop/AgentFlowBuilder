@@ -278,6 +278,60 @@ export const zhTW = {
   noWorkflows: '還沒有 Workflow',
   noWorkflowsHint: '使用上方 New 建立新流程，或 Import JSON 匯入',
 
+  // Tab bar
+  exportTabs: '匯出',
+
+  // Node categories (toolbar)
+  categoryUser: '使用者互動',
+  categoryAgent: 'AI 代理',
+  categorySystem: '系統工具',
+
+  // Empty state + onboarding
+  welcomeTitle: '歡迎使用 AgentFlow Builder',
+  welcomeSubtitle: '輕鬆設計 AI Agent 工作流程',
+  welcomeStep1: '加入節點',
+  welcomeStep1Desc: '從工具列拖入各種節點元件',
+  welcomeStep2: '連接流程',
+  welcomeStep2Desc: '將節點的輸出連接到下一個輸入',
+  welcomeStep3: '產生指令集',
+  welcomeStep3Desc: '一鍵轉換為 AI 可執行的 Skill',
+  quickStart: '快速開始',
+  goToCanvas: '前往畫布',
+  editDescription: '點擊編輯描述...',
+  getStarted: '開始使用',
+  loadExample: '載入範例',
+  skip: '跳過',
+
+  // Toast
+  savedToast: '工作流已儲存',
+  copiedToast: '已複製到剪貼簿',
+  nodeAddedToast: '已加入節點',
+  deletedToast: '已刪除',
+  connectedToast: '已建立連接',
+
+  // Instructions wizard steps
+  stepPlatform: '選擇平台',
+  stepType: '選擇類型',
+  stepGenerate: '產生指令',
+  noWorkflowForInstructions: '先建立工作流程，再產生指令集',
+
+  // Properties panel
+  dangerZone: '危險操作',
+  descriptionSection: '功能描述',
+  settingsSection: '設定',
+  portsSection: '端口',
+
+  // Node descriptions for tooltips
+  nodeDescUserInput: '接收使用者的初始輸入',
+  nodeDescAgentReasoning: 'AI 分析推理與決策',
+  nodeDescCondition: '根據條件走不同路徑',
+  nodeDescAgentQuestion: 'AI 向使用者提問釐清',
+  nodeDescUserResponse: '使用者回覆補充資訊',
+  nodeDescAgentAction: 'AI 執行具體任務動作',
+  nodeDescScriptExecution: '執行自訂腳本程式碼',
+  nodeDescMCPTool: '調用外部 MCP 工具服務',
+  nodeDescAgentSkill: '調用已定義的 Agent 技能',
+
   // Theme names and descriptions
   themeWarmName: '溫暖柔和',
   themeWarmDesc: '溫暖舒適，友善直覺',

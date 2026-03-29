@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WorkflowNode, NodeType } from '../types';
 import { NODE_ICONS, getNodeColors } from '../constants';
-import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle } from 'lucide-react';
+import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
@@ -18,6 +18,9 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
   const { theme, themeId, t } = useTheme();
   const [nodeIdError, setNodeIdError] = useState<string | null>(null);
   const [pendingNodeId, setPendingNodeId] = useState<string>('');
+  const [portsOpen, setPortsOpen] = useState(false);
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const isLight = themeId === 'warm' || themeId === 'minimal';
 
   // Sync pendingNodeId with node.node_id when node changes
   useEffect(() => {
@@ -72,13 +75,13 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
   };
 
   return (
-    <div className={`w-[300px] border-l ${theme.sidebarBorder} ${theme.sidebarBg} ${theme.blur} flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-30 overflow-hidden animate-in slide-in-from-right duration-300 transition-colors duration-500`}>
+    <div className={`w-[340px] border-l ${theme.sidebarBorder} ${theme.sidebarBg} ${theme.blur} flex flex-col ${isLight ? 'shadow-[-10px_0_30px_rgba(0,0,0,0.08)]' : 'shadow-[-10px_0_30px_rgba(0,0,0,0.5)]'} z-30 overflow-hidden animate-in slide-in-from-right duration-300 transition-colors duration-500`}>
       <div className={`px-4 py-3 border-b ${theme.borderColorLight} flex items-center justify-between ${theme.bgSecondary}`}>
         <h2 className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest flex items-center gap-2`}>
-          <Settings size={14} className="text-blue-500" />
+          <Settings size={14} className={theme.accentColor} />
           {t.propertiesPanel}
         </h2>
-        <button onClick={onClose} className={`p-1.5 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textMuted} hover:${theme.textPrimary} transition-all`}>
+        <button onClick={onClose} className={`p-1.5 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textMuted} hover:${theme.textPrimary} transition-all cursor-pointer`}>
           <X size={18} />
         </button>
       </div>
@@ -88,26 +91,25 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
         <div className="space-y-4">
           <div className={`p-4 rounded-xl border shadow-lg transition-all duration-500 ${style.bg} ${style.border}`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-white/10 rounded-lg shrink-0">
+              <div className={`p-2.5 rounded-xl shrink-0 ${isLight ? 'bg-black/[0.05]' : 'bg-white/10'} ${style.icon}`}>
                 {NODE_ICONS[node.node_type]}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold uppercase tracking-wider text-white leading-none mb-0.5">
+                <span className={`text-sm font-bold uppercase tracking-wider leading-none mb-0.5 ${isLight ? 'text-stone-700' : 'text-white'}`}>
                   {getNodeDisplayName(node.node_type)}
                 </span>
-                <span className="text-[9px] text-white/40 font-mono tracking-wider">MODULE</span>
+                <span className={`text-[9px] font-mono tracking-wider ${isLight ? 'text-stone-400' : 'text-white/40'}`}>MODULE</span>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Node ID</label>
+              <label className={`text-[9px] font-bold uppercase tracking-wider ${isLight ? 'text-stone-400' : 'text-white/30'}`}>Node ID</label>
               <input
                 value={pendingNodeId}
                 onChange={(e) => {
                   const newId = e.target.value;
                   setPendingNodeId(newId);
 
-                  // Check for duplicate (exclude current node's original ID)
                   const otherNodeIds = allNodeIds.filter(id => id !== node.node_id);
                   if (otherNodeIds.includes(newId)) {
                     setNodeIdError(t.nodeIdDuplicate);
@@ -117,9 +119,11 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                   }
                 }}
                 placeholder={t.nodeIdPlaceholder}
-                className={`w-full bg-white/5 rounded-lg px-3 py-2 text-sm font-bold text-white border ${
-                  nodeIdError ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 focus:border-blue-500/50'
-                } focus:bg-white/10 focus:outline-none transition-all`}
+                className={`w-full rounded-lg px-3 py-2 text-sm font-bold border focus:outline-none transition-all ${
+                  isLight
+                    ? `bg-white/60 text-stone-700 ${nodeIdError ? 'border-rose-300 focus:border-rose-500' : 'border-stone-200 focus:border-teal-500'}`
+                    : `bg-white/5 text-white ${nodeIdError ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 focus:border-blue-500/50'} focus:bg-white/10`
+                }`}
               />
               {nodeIdError && (
                 <div className="flex items-center gap-1.5 text-rose-400 text-[10px] font-medium mt-1">
@@ -144,7 +148,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                   }
                 }}
                 maxLength={MAX_DESCRIPTION_LENGTH}
-                className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none h-24 leading-relaxed`}
+                className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 ${isLight ? 'focus:ring-teal-400/20' : 'focus:ring-blue-500/20'} resize-none h-32 leading-relaxed`}
                 placeholder={t.descriptionHint}
               />
               <div className={`absolute bottom-2 right-2 text-xs ${
@@ -264,6 +268,19 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
           </div>
         )}
 
+        {/* Ports Section — Collapsible */}
+        <div className={`space-y-3 pt-3 border-t ${theme.borderColorLight}`}>
+          <button
+            onClick={() => setPortsOpen(!portsOpen)}
+            className={`flex items-center gap-2 w-full text-left cursor-pointer`}
+          >
+            {portsOpen ? <ChevronDown size={14} className={theme.textMuted} /> : <ChevronRight size={14} className={theme.textMuted} />}
+            <span className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
+              {(t as any).portsSection || 'Ports'}
+            </span>
+          </button>
+        </div>
+        <div className={`overflow-hidden transition-all duration-300 ${portsOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
         {/* Input Ports Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -333,16 +350,29 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
             )}
           </div>
         </div>
-      </div>
+        </div>{/* end collapsible ports */}
 
-      <div className={`p-4 border-t ${theme.borderColorLight} ${theme.bgSecondary}`}>
-        <button
-          onClick={() => onDelete(node.node_id)}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-rose-50 hover:bg-rose-100 border-rose-200' : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20'} text-rose-500 ${theme.borderRadius} transition-all border font-bold text-xs uppercase tracking-wider active:scale-98`}
-        >
-          <Trash2 size={14} />
-          {t.removeNode}
-        </button>
+        {/* Danger Zone — Collapsible */}
+        <div className={`space-y-3 pt-3 border-t ${theme.borderColorLight}`}>
+          <button
+            onClick={() => setDangerOpen(!dangerOpen)}
+            className={`flex items-center gap-2 w-full text-left cursor-pointer`}
+          >
+            {dangerOpen ? <ChevronDown size={14} className="text-rose-400" /> : <ChevronRight size={14} className="text-rose-400" />}
+            <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">
+              {(t as any).dangerZone || 'Danger Zone'}
+            </span>
+          </button>
+          <div className={`overflow-hidden transition-all duration-300 ${dangerOpen ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <button
+              onClick={() => onDelete(node.node_id)}
+              className={`w-full flex items-center justify-center gap-2 py-2.5 ${isLight ? 'bg-rose-50 hover:bg-rose-100 border-rose-200' : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20'} text-rose-500 ${theme.borderRadius} transition-all duration-200 border font-bold text-xs uppercase tracking-wider cursor-pointer active:scale-[0.97]`}
+            >
+              <Trash2 size={14} />
+              {t.removeNode}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
