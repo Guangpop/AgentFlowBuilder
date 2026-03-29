@@ -172,8 +172,12 @@ const ChatSidebar: React.FC<Props> = ({
             <Loader2 size={16} className="animate-spin" />
           </div>
         ) : workflows.length === 0 ? (
-          <div className={`text-center py-8 text-xs ${theme.textMuted}`}>
-            No saved workflows
+          <div className={`flex flex-col items-center justify-center py-10 gap-3 ${theme.textMuted}`}>
+            <FileText size={28} className="opacity-30" />
+            <p className="text-xs font-medium opacity-60">{t.noWorkflows || '還沒有 Workflow'}</p>
+            <p className="text-[10px] opacity-40 text-center px-4 leading-relaxed">
+              {t.noWorkflowsHint || '使用上方 New 建立新流程，或 Import JSON 匯入'}
+            </p>
           </div>
         ) : (
           workflows.map((wf) => {
@@ -184,14 +188,14 @@ const ChatSidebar: React.FC<Props> = ({
                 onClick={() => onLoad(wf.name)}
                 className={`group cursor-pointer p-2.5 ${theme.borderRadius} border transition-all ${
                   isActive
-                    ? `${themeId === 'minimal' ? 'bg-blue-50 border-blue-300' : 'bg-blue-900/20 border-blue-500/40'}`
+                    ? `${(themeId === 'minimal' || themeId === 'warm') ? 'bg-blue-50 border-blue-300' : 'bg-blue-900/20 border-blue-500/40'}`
                     : `${theme.bgCard} ${theme.borderColor} ${theme.bgCardHover}`
                 }`}
               >
                 <div className="flex items-start justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <FileText size={12} className={isActive ? 'text-blue-400 shrink-0' : `${theme.textMuted} shrink-0`} />
-                    <span className={`text-xs font-medium truncate ${isActive ? (themeId === 'minimal' ? 'text-blue-900' : 'text-blue-200') : theme.textPrimary}`}>
+                    <span className={`text-xs font-medium truncate ${isActive ? ((themeId === 'minimal' || themeId === 'warm') ? 'text-blue-900' : 'text-blue-200') : theme.textPrimary}`}>
                       {wf.name}
                     </span>
                   </div>

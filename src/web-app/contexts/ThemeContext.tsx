@@ -22,7 +22,7 @@ interface ThemeContextType {
 }
 
 const defaultSettings: Settings = {
-  theme: 'techDark',
+  theme: 'warm',
   language: detectBrowserLanguage(),
 };
 

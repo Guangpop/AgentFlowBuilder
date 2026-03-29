@@ -466,8 +466,11 @@ const App: React.FC = () => {
 
       {/* Settings overlay - right side */}
       {showSettings && (
-        <div className="fixed inset-0 z-40 flex justify-end" onClick={() => setShowSettings(false)}>
-          <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-40 flex justify-end bg-black/20 backdrop-blur-[2px]"
+          onClick={() => setShowSettings(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="h-full">
             <SettingsPanel onClose={() => setShowSettings(false)} />
           </div>
         </div>

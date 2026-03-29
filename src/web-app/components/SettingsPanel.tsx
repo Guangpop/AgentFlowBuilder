@@ -27,7 +27,7 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
   };
 
   return (
-    <div className={`w-[300px] h-screen border-l ${theme.sidebarBorder} ${theme.sidebarBg} flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden`}>
+    <div className={`w-[300px] h-screen border-l ${theme.sidebarBorder} ${theme.sidebarBg} flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.15)] z-50 overflow-hidden`}>
       {/* Header */}
       <div className={`px-4 py-3 border-b ${theme.borderColorLight} flex items-center justify-between ${theme.bgSecondary}`}>
         <h2 className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest flex items-center gap-2`}>

@@ -17,6 +17,12 @@ const ThemePreview: React.FC<{ themeId: ThemeId }> = ({ themeId }) => {
     card: string;
     accent: string;
   }> = {
+    warm: {
+      bg: 'bg-amber-50',
+      sidebar: 'bg-white',
+      card: 'bg-white border-stone-300',
+      accent: 'bg-teal-500',
+    },
     techDark: {
       bg: 'bg-slate-900',
       sidebar: 'bg-slate-800',
@@ -70,6 +76,7 @@ const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({ themeId, isSelected
   // Get theme name and description from translations
   const getThemeInfo = (id: ThemeId): { name: string; description: string } => {
     const themeNames: Record<ThemeId, { name: string; description: string }> = {
+      warm: { name: (t as any).themeWarmName || 'Warm Soft', description: (t as any).themeWarmDesc || 'Warm and friendly' },
       techDark: { name: t.themeTechDarkName, description: t.themeTechDarkDesc },
       glassmorphism: { name: t.themeGlassmorphismName, description: t.themeGlassmorphismDesc },
       minimal: { name: t.themeMinimalName, description: t.themeMinimalDesc },

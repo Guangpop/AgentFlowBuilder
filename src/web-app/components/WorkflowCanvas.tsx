@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Workflow, WorkflowNode, NodeType } from '../types';
-import { NODE_COLORS, NODE_ICONS } from '../constants';
-import { Layers, Plus, Trash2 } from 'lucide-react';
+import { NODE_COLORS, NODE_ICONS, getNodeColors } from '../constants';
+import { Layers, Plus, Trash2, MousePointer, ArrowRight, Zap } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
@@ -187,6 +187,8 @@ const WorkflowCanvas: React.FC<Props> = ({
     }
   };
 
+  const isLightTheme = themeId === 'warm' || themeId === 'minimal';
+
   // Generate grid style based on theme
   const gridStyle = {
     backgroundImage: `radial-gradient(circle, ${theme.canvasGrid} 1px, transparent 1px)`,
@@ -211,7 +213,7 @@ const WorkflowCanvas: React.FC<Props> = ({
         <svg className="absolute top-0 left-0 w-[10000px] h-[10000px] pointer-events-none overflow-visible">
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+              <polygon points="0 0, 10 3.5, 0 7" fill={isLightTheme ? "#a8a29e" : "#64748b"} />
             </marker>
             <marker id="arrowhead-hover" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
@@ -239,7 +241,7 @@ const WorkflowCanvas: React.FC<Props> = ({
                 <path 
                   d={path} 
                   fill="none" 
-                  stroke={isHovered ? "#ef4444" : "#475569"} 
+                  stroke={isHovered ? "#ef4444" : (isLightTheme ? "#a8a29e" : "#475569")}
                   strokeWidth={isHovered ? "6" : "4"} 
                   markerEnd={isHovered ? "url(#arrowhead-hover)" : "url(#arrowhead)"}
                   className="transition-all duration-200"
@@ -267,33 +269,35 @@ const WorkflowCanvas: React.FC<Props> = ({
         </svg>
 
         {workflow.nodes.map(node => {
-          const style = NODE_COLORS[node.node_type];
+          const nodeColors = getNodeColors(themeId);
+          const style = nodeColors[node.node_type];
           const isSelected = selectedNodeId === node.node_id;
+          const isLight = themeId === 'warm' || themeId === 'minimal';
 
           return (
             <div
               key={node.node_id}
               onClick={(e) => { e.stopPropagation(); onNodeClick(node); }}
-              className={`workflow-node absolute w-[240px] min-h-[120px] p-0 rounded-2xl border cursor-default shadow-xl transition-all duration-300 ${style.bg} ${style.border} ${isSelected ? 'ring-4 ring-white/10 scale-[1.03] z-20' : 'hover:scale-[1.01] z-10'}`}
+              className={`workflow-node absolute w-[240px] min-h-[120px] p-0 rounded-2xl border cursor-default transition-all duration-300 ${style.bg} ${style.border} ${isLight ? 'shadow-md shadow-stone-200/60' : 'shadow-xl'} ${isSelected ? (isLight ? 'ring-4 ring-stone-300/40 scale-[1.03] z-20' : 'ring-4 ring-white/10 scale-[1.03] z-20') : 'hover:scale-[1.01] z-10'}`}
               style={{ left: node.position.x, top: node.position.y }}
             >
               <div
                 onMouseDown={(e) => handleNodeDragStart(e, node.node_id)}
-                className={`node-header flex items-center gap-3 px-4 py-3 bg-white/5 rounded-t-[14px] border-b border-white/5 ${readonly ? '' : 'cursor-grab active:cursor-grabbing'}`}
+                className={`node-header flex items-center gap-3 px-4 py-3 ${isLight ? 'bg-black/[0.03]' : 'bg-white/5'} rounded-t-[14px] border-b ${isLight ? 'border-black/5' : 'border-white/5'} ${readonly ? '' : 'cursor-grab active:cursor-grabbing'}`}
               >
-                <div className={`p-2 rounded-lg bg-white/10 shrink-0 ${style.icon}`}>
+                <div className={`p-2 rounded-lg ${isLight ? 'bg-black/[0.05]' : 'bg-white/10'} shrink-0 ${style.icon}`}>
                   {NODE_ICONS[node.node_type]}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-xs font-bold uppercase tracking-wider text-white leading-tight">
+                  <span className={`text-xs font-bold uppercase tracking-wider leading-tight ${isLight ? 'text-stone-700' : 'text-white'}`}>
                     {getNodeDisplayName(node.node_type)}
                   </span>
-                  <span className="text-[9px] font-mono text-slate-500 opacity-50 truncate">{node.node_id}</span>
+                  <span className={`text-[9px] font-mono truncate ${isLight ? 'text-stone-400' : 'text-slate-500 opacity-50'}`}>{node.node_id}</span>
                 </div>
               </div>
 
               <div className="px-4 py-3">
-                <p className="text-sm text-white/90 leading-relaxed line-clamp-3">
+                <p className={`text-sm leading-relaxed line-clamp-3 ${isLight ? 'text-stone-600' : 'text-white/90'}`}>
                   {node.description}
                 </p>
               </div>
@@ -305,10 +309,10 @@ const WorkflowCanvas: React.FC<Props> = ({
                     onMouseDown={(e) => handlePortMouseDown(e, node.node_id, idx, 'in')}
                     onMouseEnter={() => setHoveredPort({ nodeId: node.node_id, portIdx: idx, type: 'in' })}
                     onMouseLeave={() => setHoveredPort(null)}
-                    className={`port w-6 h-6 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'in' ? 'border-blue-400 scale-125 bg-blue-900 shadow-[0_0_15px_rgba(96,165,250,0.7)]' : 'border-slate-500 hover:border-blue-400'}`}
+                    className={`port w-6 h-6 rounded-full border-2 transition-all cursor-pointer group relative flex items-center justify-center ${isLight ? 'bg-white' : 'bg-slate-800'} ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'in' ? (isLight ? 'border-blue-400 scale-125 bg-blue-50 shadow-md' : 'border-blue-400 scale-125 bg-blue-900 shadow-[0_0_15px_rgba(96,165,250,0.7)]') : (isLight ? 'border-stone-300 hover:border-blue-400' : 'border-slate-500 hover:border-blue-400')}`}
                   >
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400 group-hover:bg-blue-300" />
-                    <span className="absolute left-8 top-1/2 -translate-y-1/2 text-[10px] text-slate-200 font-medium bg-slate-900/95 px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border border-slate-700">
+                    <div className={`w-2.5 h-2.5 rounded-full ${isLight ? 'bg-stone-300 group-hover:bg-blue-400' : 'bg-slate-400 group-hover:bg-blue-300'}`} />
+                    <span className={`absolute left-8 top-1/2 -translate-y-1/2 text-[10px] font-medium px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border ${isLight ? 'text-stone-700 bg-white border-stone-200' : 'text-slate-200 bg-slate-900/95 border-slate-700'}`}>
                       {input}
                     </span>
                   </div>
@@ -322,10 +326,10 @@ const WorkflowCanvas: React.FC<Props> = ({
                     onMouseDown={(e) => handlePortMouseDown(e, node.node_id, idx, 'out')}
                     onMouseEnter={() => setHoveredPort({ nodeId: node.node_id, portIdx: idx, type: 'out' })}
                     onMouseLeave={() => setHoveredPort(null)}
-                    className={`port w-6 h-6 rounded-full bg-slate-800 border-2 transition-all cursor-pointer group relative flex items-center justify-center ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'out' ? 'border-emerald-400 scale-125 bg-emerald-900 shadow-[0_0_15px_rgba(52,211,153,0.7)]' : 'border-slate-500 hover:border-emerald-400'}`}
+                    className={`port w-6 h-6 rounded-full border-2 transition-all cursor-pointer group relative flex items-center justify-center ${isLight ? 'bg-white' : 'bg-slate-800'} ${hoveredPort?.nodeId === node.node_id && hoveredPort?.portIdx === idx && hoveredPort?.type === 'out' ? (isLight ? 'border-emerald-400 scale-125 bg-emerald-50 shadow-md' : 'border-emerald-400 scale-125 bg-emerald-900 shadow-[0_0_15px_rgba(52,211,153,0.7)]') : (isLight ? 'border-stone-300 hover:border-emerald-400' : 'border-slate-500 hover:border-emerald-400')}`}
                   >
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400 group-hover:bg-emerald-300" />
-                    <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[10px] text-emerald-300 font-medium bg-slate-900/95 px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border border-emerald-900/40">
+                    <div className={`w-2.5 h-2.5 rounded-full ${isLight ? 'bg-stone-300 group-hover:bg-emerald-400' : 'bg-slate-400 group-hover:bg-emerald-300'}`} />
+                    <span className={`absolute right-8 top-1/2 -translate-y-1/2 text-[10px] font-medium px-2 py-1 rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 border ${isLight ? 'text-emerald-700 bg-white border-stone-200' : 'text-emerald-300 bg-slate-900/95 border-emerald-900/40'}`}>
                       {output}
                     </span>
                   </div>
@@ -356,7 +360,7 @@ const WorkflowCanvas: React.FC<Props> = ({
                 title={t.addNodeTooltip(getNodeDisplayName(type))}
                 className={`p-2 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-1 min-w-[72px] group shrink-0`}
               >
-                <div className={`p-1.5 rounded-lg transition-all ${NODE_COLORS[type].bg} group-hover:scale-110`}>
+                <div className={`p-1.5 rounded-lg transition-all ${getNodeColors(themeId)[type].bg} group-hover:scale-110`}>
                   {NODE_ICONS[type]}
                 </div>
                 <span className={`text-[9px] font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 text-center leading-none whitespace-nowrap`}>
@@ -394,13 +398,25 @@ const WorkflowCanvas: React.FC<Props> = ({
       `}</style>
 
       {!workflow.nodes.length && (
-        <div className={`absolute inset-0 flex flex-col items-center justify-center ${theme.textMuted} gap-6 pointer-events-none`}>
-          <div className={`p-8 rounded-full ${theme.bgCard} border ${theme.borderColorLight} animate-pulse`}>
-            <Layers size={64} className="opacity-10" />
+        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-8 pointer-events-none`}>
+          <div className={`p-6 ${theme.borderRadiusXl} ${theme.bgCard} border ${theme.borderColor} ${theme.shadow}`}>
+            <Layers size={48} className={`${theme.textMuted} opacity-40`} />
           </div>
           <div className="text-center space-y-2">
-            <p className="text-xl font-bold tracking-tight opacity-40">{t.workspaceReady}</p>
-            <p className="text-sm opacity-20 max-w-sm leading-relaxed">{t.workspaceHint}</p>
+            <p className={`text-xl font-bold tracking-tight ${theme.textPrimary} opacity-70`}>{t.workspaceReady}</p>
+            <p className={`text-sm ${theme.textMuted} max-w-md leading-relaxed`}>{t.workspaceHint}</p>
+          </div>
+          <div className={`flex items-center gap-6 mt-2`}>
+            {[
+              { icon: <MousePointer size={18} />, label: t.emptyStepAddNode || '從工具列加入節點' },
+              { icon: <ArrowRight size={18} />, label: t.emptyStepConnect || '連接節點建立流程' },
+              { icon: <Zap size={18} />, label: t.emptyStepGenerate || '產生 Skill / Command' },
+            ].map((step, i) => (
+              <div key={i} className={`flex flex-col items-center gap-2 px-4 py-3 ${theme.bgCard} border ${theme.borderColor} ${theme.borderRadiusLg} ${theme.shadow}`}>
+                <div className={`p-2 ${theme.bgTertiary} rounded-xl ${theme.textSecondary}`}>{step.icon}</div>
+                <span className={`text-xs font-medium ${theme.textSecondary} text-center max-w-[100px]`}>{step.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-export type ThemeId = 'techDark' | 'glassmorphism' | 'minimal';
+export type ThemeId = 'warm' | 'techDark' | 'glassmorphism' | 'minimal';
 
 export interface ThemeTokens {
   id: ThemeId;
@@ -53,6 +53,47 @@ export interface ThemeTokens {
 }
 
 export const themes: Record<ThemeId, ThemeTokens> = {
+  warm: {
+    id: 'warm',
+    name: '溫暖柔和',
+    description: '溫暖舒適，友善直覺',
+
+    bgPrimary: 'bg-amber-50/80',
+    bgSecondary: 'bg-stone-50',
+    bgTertiary: 'bg-stone-100',
+    bgCard: 'bg-white',
+    bgCardHover: 'hover:bg-stone-50',
+    bgInput: 'bg-white',
+
+    borderColor: 'border-stone-200',
+    borderColorLight: 'border-stone-100',
+    borderRadius: 'rounded-xl',
+    borderRadiusLg: 'rounded-2xl',
+    borderRadiusXl: 'rounded-3xl',
+
+    textPrimary: 'text-stone-800',
+    textSecondary: 'text-stone-600',
+    textMuted: 'text-stone-400',
+    textInverse: 'text-white',
+
+    shadow: 'shadow-sm shadow-stone-200/60',
+    shadowLg: 'shadow-md shadow-stone-200/60',
+    shadowXl: 'shadow-lg shadow-stone-300/40',
+    blur: '',
+
+    nodeBorderWidth: 'border',
+    nodeHeaderBg: 'bg-stone-50',
+
+    sidebarBg: 'bg-white/90',
+    sidebarBorder: 'border-stone-200',
+
+    headerBg: 'bg-white/80 backdrop-blur-sm',
+    footerBg: 'bg-stone-50',
+
+    canvasBg: 'bg-stone-100/80',
+    canvasGrid: 'rgba(168, 162, 158, 0.25)',
+  },
+
   techDark: {
     id: 'techDark',
     name: '科技深色',
@@ -179,6 +220,6 @@ export const themes: Record<ThemeId, ThemeTokens> = {
   },
 };
 
-export const themeOrder: ThemeId[] = ['techDark', 'glassmorphism', 'minimal'];
+export const themeOrder: ThemeId[] = ['warm', 'techDark', 'glassmorphism', 'minimal'];
 
 export const getTheme = (id: ThemeId): ThemeTokens => themes[id];

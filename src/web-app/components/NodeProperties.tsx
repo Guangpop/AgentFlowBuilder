@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WorkflowNode, NodeType } from '../types';
-import { NODE_COLORS, NODE_ICONS } from '../constants';
+import { NODE_ICONS, getNodeColors } from '../constants';
 import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -45,7 +45,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
 
   if (!node || Object.keys(node).length === 0) return null;
 
-  const style = NODE_COLORS[node.node_type];
+  const style = getNodeColors(themeId)[node.node_type];
 
   const updatePort = (type: 'inputs' | 'outputs', index: number, value: string) => {
     const ports = [...node[type]];
@@ -186,7 +186,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                       className={`w-full ${theme.bgPrimary} border ${theme.borderColor} ${theme.borderRadius} p-2.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-blue-500 h-28 resize-none leading-relaxed`}
                    />
                 </div>
-                <p className={`text-[9px] ${themeId === 'minimal' ? 'text-orange-600 bg-orange-50 border-orange-200' : 'text-orange-400/70 bg-orange-900/10 border-orange-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
+                <p className={`text-[9px] ${(themeId === 'minimal' || themeId === 'warm') ? 'text-orange-600 bg-orange-50 border-orange-200' : 'text-orange-400/70 bg-orange-900/10 border-orange-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
                     <Info size={10} className="shrink-0 mt-0.5" />
                     {t.scriptHint}
                 </p>
@@ -210,7 +210,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                       className={`w-full ${theme.bgInput} border ${theme.borderColor} ${theme.borderRadius} px-2.5 py-1.5 text-xs text-pink-200 font-mono focus:outline-none focus:border-pink-500 transition-all placeholder:${theme.textMuted}`}
                    />
                 </div>
-                <p className={`text-[9px] ${themeId === 'minimal' ? 'text-pink-600 bg-pink-50 border-pink-200' : 'text-pink-400/60 bg-pink-900/10 border-pink-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
+                <p className={`text-[9px] ${(themeId === 'minimal' || themeId === 'warm') ? 'text-pink-600 bg-pink-50 border-pink-200' : 'text-pink-400/60 bg-pink-900/10 border-pink-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
                     <Info size={10} className="shrink-0 mt-0.5" />
                     {t.mcpHint}
                 </p>
@@ -256,7 +256,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                    </div>
                 </div>
 
-                <p className={`text-[9px] ${themeId === 'minimal' ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-400/60 bg-amber-900/10 border-amber-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
+                <p className={`text-[9px] ${(themeId === 'minimal' || themeId === 'warm') ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-400/60 bg-amber-900/10 border-amber-500/10'} flex items-start gap-1.5 p-2 ${theme.borderRadius} border`}>
                     <Info size={10} className="shrink-0 mt-0.5" />
                     {t.skillHint}
                 </p>
@@ -271,7 +271,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
               <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
               {t.inputPorts}
             </label>
-            <button onClick={() => addPort('inputs')} className={`flex items-center gap-1 px-2 py-1 ${themeId === 'minimal' ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' : 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20'} text-blue-400 ${theme.borderRadius} text-[10px] font-bold transition-all border active:scale-95`}>
+            <button onClick={() => addPort('inputs')} className={`flex items-center gap-1 px-2 py-1 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' : 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20'} text-blue-400 ${theme.borderRadius} text-[10px] font-bold transition-all border active:scale-95`}>
               <Plus size={12} />
               {t.add}
             </button>
@@ -306,7 +306,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               {t.outputPorts}
             </label>
-            <button onClick={() => addPort('outputs')} className={`flex items-center gap-1 px-2 py-1 ${themeId === 'minimal' ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20'} text-emerald-400 ${theme.borderRadius} text-[10px] font-bold transition-all border active:scale-95`}>
+            <button onClick={() => addPort('outputs')} className={`flex items-center gap-1 px-2 py-1 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20'} text-emerald-400 ${theme.borderRadius} text-[10px] font-bold transition-all border active:scale-95`}>
               <Plus size={12} />
               {t.add}
             </button>
@@ -338,7 +338,7 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
       <div className={`p-4 border-t ${theme.borderColorLight} ${theme.bgSecondary}`}>
         <button
           onClick={() => onDelete(node.node_id)}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 ${themeId === 'minimal' ? 'bg-rose-50 hover:bg-rose-100 border-rose-200' : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20'} text-rose-500 ${theme.borderRadius} transition-all border font-bold text-xs uppercase tracking-wider active:scale-98`}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-rose-50 hover:bg-rose-100 border-rose-200' : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20'} text-rose-500 ${theme.borderRadius} transition-all border font-bold text-xs uppercase tracking-wider active:scale-98`}
         >
           <Trash2 size={14} />
           {t.removeNode}

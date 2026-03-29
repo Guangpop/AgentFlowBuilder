@@ -200,7 +200,7 @@ Output this generated Prompt in professional, rigorous language that is easily u
                 onClick={() => setSelectedIDE(key)}
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium ${theme.borderRadius} border transition-all ${
                   selectedIDE === key
-                    ? `border-blue-500 ${themeId === 'minimal' ? 'bg-blue-50 text-blue-900' : 'bg-blue-900/20 text-blue-200'} ring-2 ring-blue-500/20`
+                    ? `border-blue-500 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-blue-50 text-blue-900' : 'bg-blue-900/20 text-blue-200'} ring-2 ring-blue-500/20`
                     : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover} ${theme.textPrimary}`
                 }`}
               >
@@ -221,7 +221,7 @@ Output this generated Prompt in professional, rigorous language that is easily u
                 onClick={() => setSelectedOutputType(type)}
                 className={`flex-1 px-3 py-2 text-xs font-medium ${theme.borderRadius} border transition-all ${
                   selectedOutputType === type
-                    ? `border-emerald-500 ${themeId === 'minimal' ? 'bg-emerald-50 text-emerald-900' : 'bg-emerald-900/20 text-emerald-200'} ring-2 ring-emerald-500/20`
+                    ? `border-emerald-500 ${(themeId === 'minimal' || themeId === 'warm') ? 'bg-emerald-50 text-emerald-900' : 'bg-emerald-900/20 text-emerald-200'} ring-2 ring-emerald-500/20`
                     : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover} ${theme.textPrimary}`
                 }`}
               >

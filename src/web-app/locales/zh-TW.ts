@@ -268,10 +268,19 @@ export const zhTW = {
   addNodeTooltip: (nodeName: string) => `新增 ${nodeName}`,
 
   // Empty canvas
-  workspaceReady: 'WORKSPACE READY',
-  workspaceHint: '在左側輸入工作流構想，引擎將即時生成畫布',
+  workspaceReady: '開始建立你的 Workflow',
+  workspaceHint: '從上方工具列拖入節點，或從左側匯入 JSON 檔案',
+  emptyStepAddNode: '加入節點',
+  emptyStepConnect: '連接流程',
+  emptyStepGenerate: '產生指令集',
+
+  // Sidebar empty state
+  noWorkflows: '還沒有 Workflow',
+  noWorkflowsHint: '使用上方 New 建立新流程，或 Import JSON 匯入',
 
   // Theme names and descriptions
+  themeWarmName: '溫暖柔和',
+  themeWarmDesc: '溫暖舒適，友善直覺',
   themeTechDarkName: '科技深色',
   themeTechDarkDesc: '專業科技風格，銳利邊角',
   themeGlassmorphismName: '玻璃擬態',

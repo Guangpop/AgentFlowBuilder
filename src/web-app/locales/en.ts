@@ -270,10 +270,19 @@ Format Requirements:
   addNodeTooltip: (nodeName: string) => `Add ${nodeName}`,
 
   // Empty canvas
-  workspaceReady: 'WORKSPACE READY',
-  workspaceHint: 'Enter your workflow idea on the left, the engine will generate the canvas in real-time',
+  workspaceReady: 'Build Your Workflow',
+  workspaceHint: 'Add nodes from the toolbar above, or import a JSON file from the sidebar',
+  emptyStepAddNode: 'Add Nodes',
+  emptyStepConnect: 'Connect Flow',
+  emptyStepGenerate: 'Generate Skills',
+
+  // Sidebar empty state
+  noWorkflows: 'No Workflows Yet',
+  noWorkflowsHint: 'Use New to create, or Import JSON to load a file',
 
   // Theme names and descriptions
+  themeWarmName: 'Warm Soft',
+  themeWarmDesc: 'Warm and friendly, intuitive design',
   themeTechDarkName: 'Tech Dark',
   themeTechDarkDesc: 'Professional tech style with sharp edges',
   themeGlassmorphismName: 'Glassmorphism',
