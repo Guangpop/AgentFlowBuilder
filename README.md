@@ -1,52 +1,109 @@
-# agentflow-mcp
+# AgentFlowBuilder
 
-MCP Server for AI agent workflow generation with a local visual editor.
+> Design AI agent workflows visually. Generate executable skills and commands for Claude Code, Cursor, and Antigravity — no coding required.
 
-The MCP tools return **prompt templates and JSON schemas**; your AI assistant (Claude) does the reasoning. Workflows sync to disk as JSON files and can be edited visually through the built-in web UI.
+<!-- TODO: Replace with actual screenshot of the web UI showing a connected workflow -->
+![AgentFlowBuilder Screenshot](docs/images/hero-banner.png)
+
+AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams into production-ready AI agent instructions. You design the flow, your AI assistant writes the code.
+
+**Zero API cost.** The server makes no LLM calls — Claude does all the reasoning using your existing subscription.
+
+## Why AgentFlowBuilder?
+
+| Pain Point | How AgentFlowBuilder Solves It |
+|---|---|
+| Writing complex agent prompts is error-prone | Visual node editor — drag, connect, done |
+| Agent instructions get long and context decays | Hierarchical Disclosure breaks work into micro-tasks |
+| Sharing workflows across IDEs requires rewriting | Export to Claude Code, Cursor, or Antigravity format in one click |
+| Hosting AI tools costs money | Runs 100% locally as an MCP Server — zero server cost, zero API keys |
+| Text-based workflows are hard to review | Mermaid diagrams + Markdown docs generated automatically |
+
+<!-- TODO: Replace with side-by-side comparison — left: workflow canvas, right: generated SKILL.md -->
+![Workflow to Skill](docs/images/workflow-to-skill.png)
+
+## Quick Start
+
+### Add to Claude Code (recommended)
+
+```bash
+claude mcp add agentflow -- npx agentflow-mcp
+```
+
+Then ask Claude:
+
+```
+"Help me build a customer support agent workflow"
+"Generate a code review workflow with feedback loops"
+"Export my workflow as Claude Code skills"
+```
+
+### Visual Editor
+
+```bash
+npx agentflow-mcp serve
+```
+
+<!-- TODO: Replace with GIF or screenshot showing: drag node → connect → Instructions tab → Generate -->
+![Editor Demo](docs/images/editor-demo.gif)
+
+Three steps to your first agent skill:
+
+1. **Add nodes** — drag from the categorized toolbar (User / Agent / System)
+2. **Connect the flow** — draw edges between nodes to define execution order
+3. **Generate instructions** — choose your IDE, click Generate, copy the output
+
+## Use Cases
+
+### Customer Support Agent
+Design a flow: User Input → AI Reasoning → Condition (sentiment check) → Agent Action (resolve) or Agent Question (escalate). Generate a skill that handles tickets end-to-end.
+
+### Code Review Pipeline
+Build a multi-step reviewer: Script Execution (run linter) → Agent Reasoning (analyze results) → Condition (pass/fail) → Agent Action (approve or request changes). Export as a Claude Code command.
+
+### Research & Summarization
+Chain together: User Input (topic) → MCP Tool (web search) → Agent Reasoning (synthesize) → Agent Action (write report). Works with any MCP-compatible search tool.
+
+### Sales Lead Qualification
+Route incoming leads: User Input → Agent Question (gather info) → Condition (qualified?) → Agent Skill (CRM update) or Agent Action (follow-up email).
+
+### Onboarding Automation
+Guide new users step-by-step: User Input → Agent Question (role?) → Condition (department routing) → Agent Action (provision accounts) → Agent Skill (send welcome kit).
 
 ## Features
 
-- **9 MCP tools** for end-to-end workflow generation, validation, and export
-- **Local web UI** — React canvas editor with pan/zoom, node dragging, and connection drawing
-- **File system sync** — MCP tools and web UI share a `./workflows/` directory with real-time SSE updates
-- **9 node types** — UserInput, AgentReasoning, Condition, AgentQuestion, UserResponse, AgentAction, ScriptExecution, MCPTool, AgentSkill
-- **Export formats** — JSON, Markdown, Mermaid diagram
-- **No API keys needed** — the server itself makes zero LLM calls
+- **9 node types** — cover every agent pattern from simple Q&A to complex branching logic
+- **Visual canvas editor** — pan, zoom, drag-to-connect with real-time preview
+- **Multi-IDE export** — generate Skills, Commands, or Workflows for Claude Code, Cursor, and Antigravity
+- **MCP Server** — 9 tools accessible from any MCP-compatible AI assistant
+- **File system sync** — web UI and MCP tools share `./workflows/` with live SSE updates
+- **Mermaid + Markdown** — auto-generated diagrams and documentation
+- **Fully local** — no cloud, no accounts, no API keys
 
-## Installation
+## Node Types
 
-```bash
-# Add to Claude Code (recommended)
-claude mcp add agentflow -- npx agentflow-mcp
+| Category | Node | Purpose |
+|----------|------|---------|
+| **User** | User Input | Entry point — receives user request |
+| | User Response | Collects follow-up information |
+| **Agent** | Agent Reasoning | AI logic and decision-making |
+| | Agent Question | AI asks clarifying questions |
+| | Agent Action | Executes a task |
+| **System** | Condition | True/False branching |
+| | Script Execution | Run Python, Shell, or Node.js |
+| | MCP Tool | Call external MCP tools |
+| | Agent Skill | Invoke reusable agent skills |
 
-# Or install globally
-npm install -g agentflow-mcp
-```
+## Export Formats
 
-## Usage
-
-### MCP Tools (via Claude Code)
-
-Once added as an MCP server, you can ask Claude things like:
-
-```
-"幫我生成一個客服 agent 的 workflow"
-"列出所有已存的 workflows"
-"把 customer_service workflow 匯出成 mermaid 圖"
-"幫我把 news_fetcher workflow 生成 agent instructions"
-```
-
-### Web UI
-
-```bash
-# Start the visual editor (opens browser automatically)
-npx agentflow-mcp serve
-
-# Custom port
-npx agentflow-mcp serve --port 8080
-```
-
-The web UI reads and writes to the same `./workflows/` directory used by the MCP tools. Changes made in either place are synced in real time.
+| Format | Use For |
+|--------|---------|
+| **Skills** (.md) | Reusable agent capabilities with YAML frontmatter |
+| **Commands** (.md) | Slash commands triggered by user input |
+| **Workflows** (.md) | Step-by-step execution plans |
+| **JSON** | Raw workflow data for backup or sharing |
+| **Markdown** | System design documentation |
+| **Mermaid** | Visual flow diagrams |
 
 ## MCP Tools Reference
 
@@ -66,19 +123,12 @@ The web UI reads and writes to the same `./workflows/` directory used by the MCP
 
 ```
 src/
-├── shared/       # Pure logic — types, postProcess, export, validation, prompts, schema
-├── mcp/          # MCP Server (stdio transport via @modelcontextprotocol/sdk)
-├── web/          # Express server for local web UI + SSE file watching
-├── web-app/      # React 19 + Vite visual canvas editor
-└── cli.ts        # CLI entry point (mcp default, serve subcommand)
+├── shared/       # Types, validation, export, prompts, schema
+├── mcp/          # MCP Server (stdio transport)
+├── web/          # Express server + SSE file watching
+├── web-app/      # React 19 + Vite visual editor
+└── cli.ts        # CLI entry (mcp default, serve subcommand)
 ```
-
-**Key concepts:**
-
-- Edges are rebuilt from each node's `next` array (single source of truth)
-- Condition nodes always have exactly 2 outputs (True/False branches)
-- Node IDs are auto-slugified to lowercase with underscores
-- Workflows are stored as plain JSON files on disk
 
 ## Development
 
@@ -87,13 +137,14 @@ git clone https://github.com/Guangpop/AgentFlowBuilder.git
 cd AgentFlowBuilder
 npm install
 
-npm run build           # Build everything
-npm run build:server    # TypeScript compilation only
-npm run build:web       # Vite build only
-
-npm run dev:mcp         # Dev mode MCP server
-npm run dev:web         # Dev mode web UI
+npm run build          # Build everything
+npm run dev:mcp        # Dev MCP server
+npm run dev:web        # Dev web UI (with HMR)
 ```
+
+## Contributing
+
+Contributions welcome! Please open an issue first to discuss what you'd like to change.
 
 ## License
 
