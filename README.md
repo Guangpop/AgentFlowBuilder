@@ -1,6 +1,6 @@
 # agentflow-mcp
 
-MCP Server for AI agent workflow generation with a local visual editor. Zero LLM calls, zero server cost — runs entirely on your machine.
+MCP Server for AI agent workflow generation with a local visual editor.
 
 The MCP tools return **prompt templates and JSON schemas**; your AI assistant (Claude) does the reasoning. Workflows sync to disk as JSON files and can be edited visually through the built-in web UI.
 
