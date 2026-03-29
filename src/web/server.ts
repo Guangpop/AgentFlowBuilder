@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import chokidar from 'chokidar';
+import { FileManager } from '../mcp/fileManager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,50 +11,26 @@ export function startWebServer(port: number = 3000) {
   const app = express();
   app.use(express.json());
 
-  const workflowDir = path.join(process.cwd(), 'workflows');
-
-  // Ensure workflows directory exists
-  if (!fs.existsSync(workflowDir)) {
-    fs.mkdirSync(workflowDir, { recursive: true });
-  }
+  const fm = new FileManager();
+  fm.ensureDir();
 
   // API: List workflows
-  app.get('/api/list', (req, res) => {
-    const files = fs.readdirSync(workflowDir).filter(f => f.endsWith('.json'));
-    const workflows = files.map(file => {
-      const filePath = path.join(workflowDir, file);
-      const stats = fs.statSync(filePath);
-      try {
-        const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        return {
-          name: path.basename(file, '.json'),
-          path: filePath,
-          modified: stats.mtime.toISOString(),
-          nodeCount: Array.isArray(data.nodes) ? data.nodes.length : 0,
-          description: data.description || '',
-        };
-      } catch {
-        return {
-          name: path.basename(file, '.json'),
-          path: filePath,
-          modified: stats.mtime.toISOString(),
-          nodeCount: 0,
-          description: '(invalid JSON)',
-        };
-      }
-    });
-    res.json(workflows);
+  app.get('/api/list', (_req, res) => {
+    try {
+      res.json(fm.list());
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to list workflows' });
+    }
   });
 
   // API: Load workflow
   app.get('/api/load/:name', (req, res) => {
-    const safeName = req.params.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = path.join(workflowDir, `${safeName}.json`);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: `Workflow "${req.params.name}" not found` });
+    try {
+      const result = fm.load(req.params.name);
+      res.json(result);
+    } catch (err) {
+      res.status(404).json({ error: `Workflow "${req.params.name}" not found` });
     }
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    res.json({ workflow: data, path: filePath });
   });
 
   // API: Save workflow
@@ -62,18 +39,18 @@ export function startWebServer(port: number = 3000) {
     if (!name || !workflow) {
       return res.status(400).json({ error: 'name and workflow are required' });
     }
-    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = path.join(workflowDir, `${safeName}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(workflow, null, 2), 'utf-8');
-    res.json({ path: filePath, success: true });
+    try {
+      const filePath = fm.save(name, workflow);
+      res.json({ path: filePath, success: true });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to save workflow' });
+    }
   });
 
   // API: Delete workflow
   app.delete('/api/delete/:name', (req, res) => {
-    const safeName = req.params.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = path.join(workflowDir, `${safeName}.json`);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const deleted = fm.delete(req.params.name);
+    if (deleted) {
       res.json({ success: true });
     } else {
       res.status(404).json({ error: 'Workflow not found' });
@@ -86,7 +63,7 @@ export function startWebServer(port: number = 3000) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const watcher = chokidar.watch(workflowDir, {
+    const watcher = chokidar.watch(fm.getDir(), {
       ignoreInitial: true,
       depth: 0,
     });
@@ -107,15 +84,16 @@ export function startWebServer(port: number = 3000) {
   const webAppDir = path.resolve(__dirname, '../web-app');
   if (fs.existsSync(webAppDir)) {
     app.use(express.static(webAppDir));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(webAppDir, 'index.html'));
     });
   }
 
   app.listen(port, () => {
     console.log(`AgentFlow Builder running at http://localhost:${port}`);
-    console.log(`Workflows directory: ${workflowDir}`);
-    // Try to open browser
-    import('open').then(({ default: open }) => open(`http://localhost:${port}`)).catch(() => {});
+    console.log(`Workflows directory: ${fm.getDir()}`);
+    import('open').then(({ default: open }) => open(`http://localhost:${port}`)).catch(() => {
+      console.log('Could not open browser automatically. Please open the URL manually.');
+    });
   });
 }
