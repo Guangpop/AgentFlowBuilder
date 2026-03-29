@@ -9,7 +9,7 @@ interface Props {
   onNodeClick: (node: WorkflowNode) => void;
   onNodeMove: (nodeId: string, position: { x: number, y: number }) => void;
   onConnect: (sourceId: string, targetId: string, sourceIdx: number, targetIdx: number) => void;
-  onAddNode: (type: NodeType) => void;
+  onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDeleteEdge: (edgeId: string) => void;
   selectedNodeId: string | null;
   readonly?: boolean;
@@ -342,7 +342,17 @@ const WorkflowCanvas: React.FC<Props> = ({
             {(Object.keys(NODE_ICONS) as NodeType[]).map((type) => (
               <button
                 key={type}
-                onClick={() => onAddNode(type)}
+                onClick={() => {
+                  const rect = canvasRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    const centerX = (rect.width / 2 - offset.x) / scale;
+                    const centerY = (rect.height / 2 - offset.y) / scale;
+                    const jitter = () => (Math.random() - 0.5) * 60;
+                    onAddNode(type, { x: centerX + jitter(), y: centerY + jitter() });
+                  } else {
+                    onAddNode(type, { x: 400, y: 300 });
+                  }
+                }}
                 title={t.addNodeTooltip(getNodeDisplayName(type))}
                 className={`p-2 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textSecondary} hover:${theme.textPrimary} transition-all flex flex-col items-center gap-1 min-w-[72px] group shrink-0`}
               >

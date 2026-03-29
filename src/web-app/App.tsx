@@ -103,7 +103,7 @@ const App: React.FC = () => {
     }));
   }, [updateWorkflow]);
 
-  const handleAddNode = useCallback((type: NodeType) => {
+  const handleAddNode = useCallback((type: NodeType, position: { x: number; y: number }) => {
     const newNode: WorkflowNode = {
       node_id: `${type.toLowerCase()}_${Date.now()}`,
       node_type: type,
@@ -111,7 +111,7 @@ const App: React.FC = () => {
       inputs: ['input'],
       outputs: type === NodeType.Condition ? ['true_output', 'false_output'] : ['output'],
       next: [],
-      position: { x: 200 + Math.random() * 200, y: 200 + Math.random() * 200 },
+      position,
     };
     updateWorkflow(prev => {
       const nodes = [...prev.nodes, newNode];
@@ -238,6 +238,21 @@ const App: React.FC = () => {
     setSelectedNode(null);
     setActiveTab('editor');
   }, []);
+
+  const handleImportWorkflow = useCallback((workflowData: any, name: string) => {
+    const imported: Workflow = {
+      name: workflowData.name || name,
+      description: workflowData.description || '',
+      nodes: workflowData.nodes || [],
+      edges: [],
+    };
+    imported.edges = rebuildEdges(imported.nodes, t);
+    setWorkflow(imported);
+    setCurrentWorkflowName(name);
+    setHasUnsavedChanges(true);
+    setSelectedNode(null);
+    setActiveTab('editor');
+  }, [t]);
 
   // ─── Export helpers ───
 
@@ -377,6 +392,7 @@ const App: React.FC = () => {
           onLoad={handleLoad}
           onNew={handleNew}
           onSave={handleSave}
+          onImportWorkflow={handleImportWorkflow}
           hasUnsavedChanges={hasUnsavedChanges}
           refreshKey={refreshKey}
         />
@@ -408,9 +424,13 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Settings overlay */}
+      {/* Settings overlay - right side */}
       {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} />
+        <div className="fixed inset-0 z-40 flex justify-end" onClick={() => setShowSettings(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <SettingsPanel onClose={() => setShowSettings(false)} />
+          </div>
+        </div>
       )}
     </div>
   );

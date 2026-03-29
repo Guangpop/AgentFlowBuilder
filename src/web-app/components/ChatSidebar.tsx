@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sparkles, Plus, Save, Trash2, FileText, Clock, Loader2 } from 'lucide-react';
+import { Sparkles, Plus, Save, Trash2, FileText, Clock, Loader2, RefreshCw, Upload } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface WorkflowListItem {
@@ -15,6 +15,7 @@ interface Props {
   onLoad: (name: string) => void;
   onNew: () => void;
   onSave: () => void;
+  onImportWorkflow: (workflow: any, name: string) => void;
   hasUnsavedChanges: boolean;
   refreshKey: number;
 }
@@ -24,6 +25,7 @@ const ChatSidebar: React.FC<Props> = ({
   onLoad,
   onNew,
   onSave,
+  onImportWorkflow,
   hasUnsavedChanges,
   refreshKey,
 }) => {
@@ -81,6 +83,27 @@ const ChatSidebar: React.FC<Props> = ({
     }
   };
 
+  const handleImportJson = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const name = file.name.replace(/\.json$/, '');
+        // Support both { nodes, edges, ... } and { workflow: { ... } } formats
+        const workflow = data.workflow || data;
+        onImportWorkflow(workflow, name);
+      } catch (err) {
+        console.error('Failed to import JSON:', err);
+      }
+    };
+    input.click();
+  };
+
   const truncate = (text: string, max: number) =>
     text.length > max ? text.slice(0, max) + '...' : text;
 
@@ -100,24 +123,45 @@ const ChatSidebar: React.FC<Props> = ({
       </div>
 
       {/* Action buttons */}
-      <div className={`px-3 py-2 border-b ${theme.borderColorLight} flex gap-2`}>
+      <div className={`px-3 py-2 border-b ${theme.borderColorLight} space-y-1.5`}>
+        <div className="flex gap-2">
+          <button
+            onClick={onNew}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+          >
+            <Plus size={13} />
+            New
+          </button>
+          <button
+            onClick={onSave}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
+              hasUnsavedChanges
+                ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
+            } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-blue-500' : theme.borderColor} transition-all`}
+          >
+            <Save size={13} />
+            Save{hasUnsavedChanges ? ' *' : ''}
+          </button>
+        </div>
         <button
-          onClick={onNew}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+          onClick={handleImportJson}
+          className={`w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
         >
-          <Plus size={13} />
-          New
+          <Upload size={13} />
+          Import JSON
         </button>
+      </div>
+
+      {/* Workflow list header */}
+      <div className={`px-3 py-2 border-b ${theme.borderColorLight} flex items-center justify-between`}>
+        <span className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>Workflows</span>
         <button
-          onClick={onSave}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
-            hasUnsavedChanges
-              ? 'bg-blue-600 hover:bg-blue-500 text-white'
-              : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
-          } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-blue-500' : theme.borderColor} transition-all`}
+          onClick={fetchWorkflows}
+          className={`p-1 ${theme.bgCardHover} ${theme.borderRadius} ${theme.textMuted} transition-all`}
+          title="Refresh list"
         >
-          <Save size={13} />
-          Save{hasUnsavedChanges ? ' *' : ''}
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 

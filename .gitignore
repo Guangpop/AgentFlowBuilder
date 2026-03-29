@@ -37,3 +37,4 @@ docs/*
 .vercel
 supabase/
 docs/
+.claude/
