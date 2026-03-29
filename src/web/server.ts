@@ -7,7 +7,7 @@ import { FileManager } from '../mcp/fileManager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function startWebServer(port: number = 3000) {
+export async function startWebServer(port: number = 3000, dev: boolean = false) {
   const app = express();
   app.use(express.json());
 
@@ -80,13 +80,23 @@ export function startWebServer(port: number = 3000) {
     });
   });
 
-  // Serve static web app
-  const webAppDir = path.resolve(__dirname, '../web-app');
-  if (fs.existsSync(webAppDir)) {
-    app.use(express.static(webAppDir));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(webAppDir, 'index.html'));
+  // Serve web app
+  if (dev) {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      root: path.resolve(__dirname, '../../src/web-app'),
+      server: { middlewareMode: true },
+      appType: 'spa',
     });
+    app.use(vite.middlewares);
+  } else {
+    const webAppDir = path.resolve(__dirname, '../web-app');
+    if (fs.existsSync(webAppDir)) {
+      app.use(express.static(webAppDir));
+      app.get('*', (_req, res) => {
+        res.sendFile(path.join(webAppDir, 'index.html'));
+      });
+    }
   }
 
   app.listen(port, () => {

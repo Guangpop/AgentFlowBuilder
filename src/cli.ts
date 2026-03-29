@@ -14,8 +14,9 @@ const command = args[0];
 if (command === 'serve') {
   // Start web server (will implement later)
   const port = getArgValue(args, '--port') || '3000';
-  console.log(`Starting web UI on http://localhost:${port}`);
-  import('./web/server.js').then(m => m.startWebServer(parseInt(port))).catch(err => {
+  const isDev = args.includes('--dev');
+  console.log(`Starting web UI on http://localhost:${port}${isDev ? ' (dev mode)' : ''}`);
+  import('./web/server.js').then(m => m.startWebServer(parseInt(port), isDev)).catch(err => {
     console.error('Failed to start web server:', err.message);
     console.error('The web server module may not be built yet.');
     process.exit(1);
