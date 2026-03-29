@@ -7,7 +7,9 @@ import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
 import ChatSidebar from './components/ChatSidebar';
 import SettingsPanel from './components/SettingsPanel';
-import { Settings, Copy, Download, Check } from 'lucide-react';
+import InstructionsTab from './components/InstructionsTab';
+import MermaidPreview from './components/MermaidPreview';
+import { Settings, Copy, Download, Check, Code, Eye } from 'lucide-react';
 import type { LocaleStrings } from './locales';
 
 const defaultWorkflow: Workflow = {
@@ -46,10 +48,11 @@ const App: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'editor' | 'mermaid' | 'markdown' | 'json'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
   const [showSettings, setShowSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showMermaidCode, setShowMermaidCode] = useState(false);
 
   const sseRef = useRef<EventSource | null>(null);
 
@@ -287,17 +290,53 @@ const App: React.FC = () => {
 
   const renderTabContent = () => {
     if (activeTab === 'editor') return null; // Canvas is rendered separately
+    if (activeTab === 'instructions') {
+      return <InstructionsTab workflow={workflow} workflowName={currentWorkflowName} />;
+    }
 
+    // Mermaid tab: visual diagram + code toggle
+    if (activeTab === 'mermaid') {
+      const mermaidCode = generateMermaid(workflow);
+      return (
+        <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
+          <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.borderColorLight}`}>
+            <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{t.mermaidDslDef}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowMermaidCode(!showMermaidCode)}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+              >
+                {showMermaidCode ? <Eye size={12} /> : <Code size={12} />}
+                {showMermaidCode ? 'Diagram' : 'Code'}
+              </button>
+              <button
+                onClick={() => handleCopy(mermaidCode)}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? t.copied : 'Copy Mermaid'}
+              </button>
+            </div>
+          </div>
+          {showMermaidCode ? (
+            <pre className={`flex-1 overflow-auto p-4 text-xs ${theme.textSecondary} font-mono leading-relaxed whitespace-pre-wrap`}>
+              {mermaidCode}
+            </pre>
+          ) : (
+            <div className="flex-1 overflow-auto">
+              <MermaidPreview code={mermaidCode} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Markdown / JSON tabs
     let content = '';
     let title = '';
     let copyLabel = '';
 
     switch (activeTab) {
-      case 'mermaid':
-        content = generateMermaid(workflow);
-        title = t.mermaidDslDef;
-        copyLabel = 'Copy Mermaid';
-        break;
       case 'markdown':
         content = generateMarkdown(workflow, markdownLabels);
         title = t.systemDesignDoc;
@@ -344,6 +383,7 @@ const App: React.FC = () => {
 
   const tabs: { key: typeof activeTab; label: string }[] = [
     { key: 'editor', label: t.tabCanvas },
+    { key: 'instructions', label: t.tabInstructions },
     { key: 'mermaid', label: t.tabMermaid },
     { key: 'markdown', label: t.tabMarkdown },
     { key: 'json', label: t.tabJson },

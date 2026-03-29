@@ -2,24 +2,62 @@ import { Workflow, WorkflowNode, Edge, NodeType } from './types.js';
 
 export function generateMermaid(workflow: Workflow): string {
   let content = "graph TD\n";
-  content += "  classDef UserInput fill:#1e3a8a,stroke:#3b82f6,color:#fff\n";
-  content += "  classDef Reasoning fill:#4c1d95,stroke:#8b5cf6,color:#fff\n";
-  content += "  classDef Condition fill:#7c2d12,stroke:#f97316,color:#fff\n";
-  content += "  classDef Action fill:#064e3b,stroke:#10b981,color:#fff\n";
+  // All 9 node types with distinct, warm colors
+  content += "  classDef UserInput fill:#3b82f6,stroke:#2563eb,color:#fff,rx:8\n";
+  content += "  classDef AgentReasoning fill:#8b5cf6,stroke:#7c3aed,color:#fff,rx:8\n";
+  content += "  classDef Condition fill:#f59e0b,stroke:#d97706,color:#fff,rx:8\n";
+  content += "  classDef AgentQuestion fill:#06b6d4,stroke:#0891b2,color:#fff,rx:8\n";
+  content += "  classDef UserResponse fill:#14b8a6,stroke:#0d9488,color:#fff,rx:8\n";
+  content += "  classDef AgentAction fill:#10b981,stroke:#059669,color:#fff,rx:8\n";
+  content += "  classDef ScriptExecution fill:#f97316,stroke:#ea580c,color:#fff,rx:8\n";
+  content += "  classDef MCPTool fill:#ec4899,stroke:#db2777,color:#fff,rx:8\n";
+  content += "  classDef AgentSkill fill:#a855f7,stroke:#9333ea,color:#fff,rx:8\n";
+
+  const nodeIds = new Set(workflow.nodes.map(n => n.node_id));
 
   workflow.nodes.forEach(node => {
     const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
-    const cleanName = node.node_id.replace(/[\[\]"()]/g, '');
-    const cleanType = node.node_type.replace(/[\[\]"()]/g, '');
-    content += `  ${safeId}["${cleanName} (${cleanType})"]\n`;
+    const label = node.description
+      ? `${node.node_id}\\n${node.description.slice(0, 40)}${node.description.length > 40 ? '...' : ''}`
+      : node.node_id;
 
-    if (node.node_type === NodeType.UserInput) content += `  class ${safeId} UserInput\n`;
-    else if (node.node_type === NodeType.AgentReasoning) content += `  class ${safeId} Reasoning\n`;
-    else if (node.node_type === NodeType.Condition) content += `  class ${safeId} Condition\n`;
-    else if (node.node_type === NodeType.AgentAction) content += `  class ${safeId} Action\n`;
+    // Use different shapes per node type
+    switch (node.node_type) {
+      case NodeType.UserInput:
+        content += `  ${safeId}(["\`${label}\`"])\n`; // Stadium shape
+        break;
+      case NodeType.Condition:
+        content += `  ${safeId}{{"\`${label}\`"}}\n`; // Hexagon
+        break;
+      case NodeType.ScriptExecution:
+        content += `  ${safeId}[/"\`${label}\`"/]\n`; // Parallelogram
+        break;
+      default:
+        content += `  ${safeId}["\`${label}\`"]\n`; // Rectangle
+    }
+
+    content += `  class ${safeId} ${node.node_type}\n`;
   });
 
-  workflow.edges.forEach(edge => {
+  // Use edges if available, otherwise rebuild from node.next
+  const edges = workflow.edges.length > 0
+    ? workflow.edges
+    : workflow.nodes.flatMap(node =>
+        node.next
+          .filter(targetId => nodeIds.has(targetId))
+          .map((targetId, index) => ({
+            id: `e-${node.node_id}-${targetId}`,
+            source: node.node_id,
+            target: targetId,
+            sourcePortIndex: index,
+            targetPortIndex: 0,
+            label: node.node_type === NodeType.Condition
+              ? (index === 0 ? 'True' : 'False')
+              : '',
+          }))
+      );
+
+  edges.forEach(edge => {
     const s = edge.source.replace(/[^a-zA-Z0-9]/g, '_');
     const t = edge.target.replace(/[^a-zA-Z0-9]/g, '_');
     if (edge.label) {
