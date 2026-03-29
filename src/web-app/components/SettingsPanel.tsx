@@ -1,9 +1,8 @@
 import React from 'react';
-import { X, Settings, RotateCcw, Palette, Globe, Check, Cpu } from 'lucide-react';
-import { useTheme, Language, AIProviderType } from '../contexts/ThemeContext';
+import { X, Settings, RotateCcw, Palette, Globe, Check } from 'lucide-react';
+import { useTheme, Language } from '../contexts/ThemeContext';
 import { ThemeId, themeOrder } from '../styles/themes';
 import { languages } from '../locales';
-import { AI_PROVIDERS } from '../services/ai';
 import ThemePreviewCard from './ThemePreviewCard';
 
 interface Props {
@@ -11,7 +10,7 @@ interface Props {
 }
 
 const SettingsPanel: React.FC<Props> = ({ onClose }) => {
-  const { theme, themeId, setThemeId, language, setLanguage, aiProvider, setAiProvider, t, resetSettings } = useTheme();
+  const { theme, themeId, setThemeId, language, setLanguage, t, resetSettings } = useTheme();
 
   const handleThemeChange = (id: ThemeId) => {
     setThemeId(id);
@@ -19,10 +18,6 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
-  };
-
-  const handleProviderChange = (provider: AIProviderType) => {
-    setAiProvider(provider);
   };
 
   const handleReset = () => {
@@ -79,53 +74,6 @@ const SettingsPanel: React.FC<Props> = ({ onClose }) => {
                 )}
               </button>
             ))}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className={`border-t ${theme.borderColorLight}`} />
-
-        {/* AI Provider Section */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Cpu size={14} className="text-violet-400" />
-            <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>
-              {t.aiProviderLabel}
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2">
-            {(Object.keys(AI_PROVIDERS) as AIProviderType[]).map((provider) => {
-              const isDisabled = provider === 'gemini';
-              return (
-                <button
-                  key={provider}
-                  onClick={() => !isDisabled && handleProviderChange(provider)}
-                  disabled={isDisabled}
-                  className={`relative p-3 ${theme.borderRadius} border transition-all text-left ${
-                    isDisabled
-                      ? 'opacity-50 cursor-not-allowed bg-slate-800/50'
-                      : aiProvider === provider
-                        ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20'
-                        : `${theme.borderColor} ${theme.bgCard} ${theme.bgCardHover}`
-                  }`}
-                >
-                  <span className={`text-xs font-bold ${theme.textPrimary}`}>
-                    {AI_PROVIDERS[provider].name}
-                  </span>
-                  {isDisabled && (
-                    <span className="ml-2 text-[10px] text-amber-400 font-medium">
-                      {t.comingSoon}
-                    </span>
-                  )}
-                  {!isDisabled && aiProvider === provider && (
-                    <div className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
-                      <Check size={10} className="text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
           </div>
         </div>
 
