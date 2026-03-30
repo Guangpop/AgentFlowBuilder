@@ -37,4 +37,4 @@ docs/*
 .vercel
 supabase/
 docs/
-.claude/
+.claude/settings.local.json

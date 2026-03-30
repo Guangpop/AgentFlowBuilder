@@ -30,7 +30,12 @@ export const promptsZhTW = {
 約束：
 - 請使用繁體中文。
 - 節點 ID 嚴禁包含空格。
-- 務必確保 edges 陣列包含所有連線數據。`,
+- 務必確保 edges 陣列包含所有連線數據。
+
+技能發佈：
+- 工作流可以轉換為 SKILL.md 格式並發佈到 ~/.claude/skills/，供跨專案使用。
+- 使用 'convert_to_skill' 工具產生草稿，然後執行品質門檻迴圈（評分 → 改善 → 優化描述 → 發佈）。
+- 品質門檻要求 80/100 分以上（6 支柱評分標準）。最多自動迭代 3 次，無需詢問使用者。`,
 
   workflowUserPrompt: (userPrompt: string) => `使用者需求：
 "${userPrompt}"`,

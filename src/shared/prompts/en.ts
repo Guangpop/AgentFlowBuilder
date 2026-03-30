@@ -31,7 +31,12 @@ Node Guidelines:
 Constraints:
 - Use English for all content.
 - Node IDs must not contain spaces.
-- Ensure the edges array contains all connection data.`,
+- Ensure the edges array contains all connection data.
+
+Skill Publishing:
+- Workflows can be converted to SKILL.md format and published to ~/.claude/skills/ for cross-project discovery.
+- Use the 'convert_to_skill' tool to generate a draft, then run the quality gate loop (grade → improve → optimize description → publish).
+- The quality gate requires a score of 80/100 or higher (6-pillar rubric). Auto-iterate up to 3 times without asking the user.`,
 
   workflowUserPrompt: (userPrompt: string) => `User Requirements:
 "${userPrompt}"`,

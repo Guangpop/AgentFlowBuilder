@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Workflow } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
-import { Copy, Check, Layers, Shield, RotateCcw, FileText, LayoutGrid } from 'lucide-react';
+import { Copy, Check, Layers, Shield, RotateCcw, FileText, LayoutGrid, AlertTriangle, X } from 'lucide-react';
 
 type IDEType = 'claude' | 'antigravity' | 'cursor';
 type OutputType = 'skills' | 'commands' | 'workflows';
@@ -55,6 +55,7 @@ const InstructionsTab: React.FC<Props> = ({ workflow, workflowName }) => {
   const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
   const [selectedOutputType, setSelectedOutputType] = useState<OutputType>('skills');
   const [copied, setCopied] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const isLight = themeId === 'warm' || themeId === 'minimal';
 
@@ -102,7 +103,27 @@ Generate a Prompt that includes:
 4. **State Management & Feedback Loops**: Clearly explain how to handle "Loop Back" logic.
 5. **Context Protocol**: Instruct the Agent on how to clean up unnecessary history.
 
-Output this generated Prompt in professional, rigorous language that is easily understood by other AI Agents.`;
+Output this generated Prompt in professional, rigorous language that is easily understood by other AI Agents.
+
+---
+
+## Skill Quality Gate (MANDATORY)
+
+After generating the skill/command file, you MUST use the following skills to ensure quality. Do NOT skip this step. Do NOT ask the user for confirmation during the loop.
+
+### Required Skills (located in the AgentFlow Builder project)
+
+- **skill-grader** at \`.claude/skills/skill-grader/\` — Read its SKILL.md and references/scoring-rubric.md for the complete 6-pillar 100-point evaluation process.
+- **skill-creator** at \`.claude/skills/skill-creator/\` — Read its SKILL.md for skill creation best practices, improvement patterns, and description optimization (scripts/improve_description.py).
+
+### Quality Gate Loop
+
+1. **Grade**: Use the skill-grader skill to evaluate the generated SKILL.md. Follow its complete process: scope compliance pre-check, score all 6 pillars, assess PDA tier.
+2. **Pass threshold**: Score must be >= 80/100 (Grade B).
+3. **If below 80**: Use the skill-creator skill for improvement guidance. Apply targeted improvements, then re-grade. Repeat up to 3 times.
+4. **Optimize description**: After passing (or after 3 iterations), use the skill-creator's description optimization process to improve trigger accuracy — include both English and Traditional Chinese trigger phrases.
+5. **Save**: Write the final SKILL.md to the target file path. If you have access to the AgentFlow Builder MCP server, call \`publish_skill\` to also save to ~/.claude/skills/ for cross-project discovery.
+6. **Report**: Tell the user the final score and grade.`;
   }, [workflow, hasNodes]);
 
   const fullPrompt = prefix + instructionPrompt;
@@ -111,6 +132,7 @@ Output this generated Prompt in professional, rigorous language that is easily u
     await navigator.clipboard.writeText(fullPrompt);
     setCopied(true);
     showToast((t as any).copiedToast || 'Copied to clipboard', 'success');
+    setShowModal(true);
     setTimeout(() => setCopied(false), 3000);
   };
 
@@ -247,10 +269,7 @@ Output this generated Prompt in professional, rigorous language that is easily u
             <Check size={20} className="text-teal-500 shrink-0" />
             <div className="flex-1">
               <div className={`text-sm font-semibold ${isLight ? 'text-teal-800' : 'text-teal-200'}`}>
-                {(t as any).promptCopiedTitle || 'Prompt copied to clipboard'}
-              </div>
-              <div className={`text-xs ${theme.textMuted} mt-0.5`}>
-                {(t as any).promptCopiedHint || `Paste into your AI tool and it will generate the file at ${filePath}`}
+                {(t as any).promptCopiedTitle || (language === 'zh-TW' ? 'Prompt 已複製到剪貼簿' : 'Prompt copied to clipboard')}
               </div>
             </div>
           </div>
@@ -276,6 +295,102 @@ Output this generated Prompt in professional, rigorous language that is easily u
           ))}
         </div>
       </div>
+
+      {/* Quality Gate Modal — shown after copy */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className={`relative w-full max-w-md rounded-3xl border-2 shadow-2xl ${
+              isLight
+                ? 'bg-white border-amber-300'
+                : 'bg-slate-900 border-amber-500/40'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className={`absolute top-4 right-4 p-1 rounded-lg transition-colors cursor-pointer ${
+                isLight ? 'hover:bg-stone-100 text-stone-400' : 'hover:bg-slate-800 text-slate-500'
+              }`}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="p-6 space-y-4">
+              {/* Icon + Title */}
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-2xl ${isLight ? 'bg-amber-100' : 'bg-amber-900/30'}`}>
+                  <AlertTriangle size={24} className={isLight ? 'text-amber-600' : 'text-amber-400'} />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-bold ${theme.textPrimary}`}>
+                    {language === 'zh-TW' ? 'Prompt 已複製！' : 'Prompt Copied!'}
+                  </h3>
+                  <p className={`text-xs ${theme.textMuted}`}>
+                    {language === 'zh-TW' ? '請注意以下執行步驟' : 'Please follow these steps'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className={`space-y-3 p-4 rounded-2xl ${isLight ? 'bg-amber-50' : 'bg-amber-900/10'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isLight ? 'bg-amber-200 text-amber-800' : 'bg-amber-800/50 text-amber-300'
+                  }`}>1</div>
+                  <p className={`text-sm ${theme.textPrimary}`}>
+                    {language === 'zh-TW'
+                      ? <>切換到 <span className="font-mono font-bold">AgentFlow Builder</span> 專案目錄</>
+                      : <>Switch to the <span className="font-mono font-bold">AgentFlow Builder</span> project directory</>
+                    }
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isLight ? 'bg-amber-200 text-amber-800' : 'bg-amber-800/50 text-amber-300'
+                  }`}>2</div>
+                  <p className={`text-sm ${theme.textPrimary}`}>
+                    {language === 'zh-TW'
+                      ? '將 Prompt 貼上到 AI 工具（Claude Code、Cursor、Codex 等）'
+                      : 'Paste the prompt into your AI tool (Claude Code, Cursor, Codex, etc.)'}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isLight ? 'bg-amber-200 text-amber-800' : 'bg-amber-800/50 text-amber-300'
+                  }`}>3</div>
+                  <p className={`text-sm ${theme.textPrimary}`}>
+                    {language === 'zh-TW'
+                      ? 'AI 會自動產出 Skill → 評分 → 迭代改善 → 發佈至全域目錄'
+                      : 'AI will auto-generate Skill → Grade → Iterate → Publish to global directory'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Why */}
+              <p className={`text-xs ${theme.textMuted} leading-relaxed`}>
+                {language === 'zh-TW'
+                  ? '此 Prompt 需要 AgentFlow MCP Server 的工具支援（convert_to_skill、get_skill_quality_gate、publish_skill），只有在本專案目錄下才能使用。'
+                  : 'This prompt requires AgentFlow MCP Server tools (convert_to_skill, get_skill_quality_gate, publish_skill), which are only available in this project directory.'}
+              </p>
+
+              {/* OK Button */}
+              <button
+                onClick={() => setShowModal(false)}
+                className={`w-full py-3 text-sm font-bold rounded-xl transition-all cursor-pointer ${
+                  isLight
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                    : 'bg-amber-600 hover:bg-amber-500 text-white'
+                }`}
+              >
+                {language === 'zh-TW' ? '我知道了' : 'Got it'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
