@@ -47,7 +47,7 @@ Then ask Claude:
 ### 3. Visual Editor
 
 ```bash
-node dist/cli.js serve
+npm start
 ```
 
 Three steps to your first agent skill:

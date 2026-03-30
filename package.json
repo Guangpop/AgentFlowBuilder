@@ -16,6 +16,7 @@
     "build:server": "tsc -p tsconfig.json",
     "build:web": "vite build",
     "dev:mcp": "tsx src/cli.ts",
+    "start": "node dist/cli.js serve",
     "dev:web": "tsx src/cli.ts serve --dev",
     "prepublishOnly": "npm run build"
   },
