@@ -17,8 +17,9 @@ AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams i
 | Sharing workflows across IDEs requires rewriting | Export to Claude Code, Cursor, or Antigravity format in one click |
 | Hosting AI tools costs money | Runs 100% locally as an MCP Server — zero server cost, zero API keys |
 | Text-based workflows are hard to review | Mermaid diagrams + Markdown docs generated automatically |
+| Generated skills are inconsistent quality | Built-in quality gate: auto-grades, iterates, and publishes only when score ≥ 80/100 |
 
-**Example:** Design a workflow on the canvas → switch to the Instructions tab → select your IDE (Claude Code, Cursor, or Antigravity) → choose output type (Skills, Commands, or Workflows) → click Copy SOP Prompt → paste into your AI tool to generate the file.
+**Example:** Design a workflow on the canvas → switch to the Instructions tab → select your IDE (Claude Code, Cursor, or Antigravity) → choose output type (Skills, Commands, or Workflows) → click Copy SOP Prompt → paste into your AI tool in the AgentFlow Builder project → AI auto-generates, grades, improves, and publishes the skill.
 
 ## Quick Start
 
@@ -78,7 +79,8 @@ Guide new users step-by-step: User Input → Agent Question (role?) → Conditio
 - **9 node types** — cover every agent pattern from simple Q&A to complex branching logic
 - **Visual canvas editor** — pan, zoom, drag-to-connect with real-time preview
 - **Multi-IDE export** — generate Skills, Commands, or Workflows for Claude Code, Cursor, and Antigravity
-- **MCP Server** — 9 tools accessible from any MCP-compatible AI assistant
+- **Skill quality gate** — auto-grades skills against a 6-pillar rubric, iterates until ≥ 80/100, and publishes to `~/.claude/skills/` for cross-project discovery
+- **MCP Server** — 12 tools accessible from any MCP-compatible AI assistant
 - **File system sync** — web UI and MCP tools share `./workflows/` with live SSE updates
 - **Mermaid + Markdown** — auto-generated diagrams and documentation
 - **Fully local** — no cloud, no accounts, no API keys
@@ -108,12 +110,31 @@ Guide new users step-by-step: User Input → Agent Question (role?) → Conditio
 | **Markdown** | System design documentation |
 | **Mermaid** | Visual flow diagrams |
 
+## Skill Quality Gate
+
+Generated skills are automatically graded and improved before publishing. The quality gate uses two bundled skills:
+
+- **skill-grader** (`.claude/skills/skill-grader/`) — 6-pillar 100-point scoring rubric: Progressive Disclosure Architecture, Ease of Use, Spec Compliance, Writing Style, Utility, and Modifiers
+- **skill-creator** (`.claude/skills/skill-creator/`) — skill creation best practices, improvement patterns, and description optimization
+
+**How it works:**
+
+1. AI generates a SKILL.md draft from your workflow via `convert_to_skill`
+2. AI grades the draft using skill-grader (reading `references/scoring-rubric.md`)
+3. If score < 80, AI improves the skill using skill-creator guidance, then re-grades (up to 3 iterations)
+4. AI optimizes the description for trigger accuracy (EN + ZH trigger phrases)
+5. AI publishes the final skill to `~/.claude/skills/{name}/` — discoverable by Claude Code in any project
+
+**Via MCP:** The quality gate runs automatically when you ask your AI tool to generate a skill.
+
+**Via Web UI:** Click "Copy Prompt" in the Instructions tab → paste into your AI tool **in the AgentFlow Builder project directory** → AI executes the full quality loop.
+
 ## MCP Tools Reference
 
 | Tool | Description |
 |------|-------------|
 | `get_node_types` | Available node types and their schemas |
-| `get_generation_guide` | Prompt template + JSON schema for workflow generation |
+| `get_generation_guide` | Prompt template + JSON schema for workflow generation (includes quality gate instructions) |
 | `validate_workflow` | Structural validation of a workflow |
 | `post_process_workflow` | ID cleanup, auto-layout, edge rebuilding |
 | `save_workflow` | Save workflow to `./workflows/` |
@@ -121,16 +142,26 @@ Guide new users step-by-step: User Input → Agent Question (role?) → Conditio
 | `list_workflows` | List all saved workflows |
 | `export_workflow` | Export as JSON, Markdown, or Mermaid |
 | `get_instruction_template` | Prompt template for generating agent instructions |
+| `convert_to_skill` | Convert a workflow to SKILL.md draft with quality gate instructions |
+| `get_skill_quality_gate` | Get grading, improvement, or description optimization prompts |
+| `publish_skill` | Publish a quality-verified skill to `~/.claude/skills/` |
 
 ## Architecture
 
 ```
 src/
-├── shared/       # Types, validation, export, prompts, schema
-├── mcp/          # MCP Server (stdio transport)
-├── web/          # Express server + SSE file watching
-├── web-app/      # React 19 + Vite visual editor
-└── cli.ts        # CLI entry (mcp default, serve subcommand)
+├── shared/            # Types, validation, export, prompts, schema
+│   ├── skillConverter.ts    # Workflow → SKILL.md conversion
+│   ├── skillGrading.ts      # Quality gate prompts (references local skills)
+│   └── skillPublisher.ts    # Publish to ~/.claude/skills/
+├── mcp/               # MCP Server (stdio transport, 12 tools)
+├── web/               # Express server + SSE file watching
+├── web-app/           # React 19 + Vite visual editor
+└── cli.ts             # CLI entry (mcp default, serve subcommand)
+
+.claude/skills/
+├── skill-grader/      # 6-pillar scoring rubric + references
+└── skill-creator/     # Skill creation patterns + description optimizer scripts
 ```
 
 ## Development
