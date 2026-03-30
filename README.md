@@ -18,14 +18,22 @@ AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams i
 | Hosting AI tools costs money | Runs 100% locally as an MCP Server — zero server cost, zero API keys |
 | Text-based workflows are hard to review | Mermaid diagrams + Markdown docs generated automatically |
 
-**Example:** Design a workflow on the canvas → switch to the Instructions tab → select your IDE (Claude Code, Cursor, or Antigravity) → choose output type (Skills, Commands, or Workflows) → click Generate → copy the result into your project.
+**Example:** Design a workflow on the canvas → switch to the Instructions tab → select your IDE (Claude Code, Cursor, or Antigravity) → choose output type (Skills, Commands, or Workflows) → click Copy SOP Prompt → paste into your AI tool to generate the file.
 
 ## Quick Start
 
-### Add to Claude Code (recommended)
+### 1. Clone and install
 
 ```bash
-claude mcp add agentflow -- npx agentflow-mcp
+git clone https://github.com/Guangpop/AgentFlowBuilder.git
+cd AgentFlowBuilder
+npm install && npm run build
+```
+
+### 2. Add to Claude Code as MCP Server
+
+```bash
+claude mcp add agentflow -- node /path/to/AgentFlowBuilder/dist/cli.js
 ```
 
 Then ask Claude:
@@ -36,17 +44,17 @@ Then ask Claude:
 "Export my workflow as Claude Code skills"
 ```
 
-### Visual Editor
+### 3. Visual Editor
 
 ```bash
-npx agentflow-mcp serve
+node dist/cli.js serve
 ```
 
 Three steps to your first agent skill:
 
 1. **Add nodes** — drag from the categorized toolbar (User / Agent / System)
 2. **Connect the flow** — draw edges between nodes to define execution order
-3. **Generate instructions** — choose your IDE, click Generate, copy the output
+3. **Copy SOP prompt** — choose your IDE, click Copy, paste into your AI tool
 
 ## Use Cases
 
