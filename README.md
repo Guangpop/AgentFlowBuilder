@@ -2,8 +2,7 @@
 
 > Design AI agent workflows visually. Generate executable skills and commands for Claude Code, Cursor, and Antigravity — no coding required.
 
-<!-- TODO: Replace with actual screenshot of the web UI showing a connected workflow -->
-![AgentFlowBuilder Screenshot](docs/images/hero-banner.png)
+![AgentFlowBuilder Screenshot](images/hero-banner.png)
 
 AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams into production-ready AI agent instructions. You design the flow, your AI assistant writes the code.
 
@@ -19,8 +18,7 @@ AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams i
 | Hosting AI tools costs money | Runs 100% locally as an MCP Server — zero server cost, zero API keys |
 | Text-based workflows are hard to review | Mermaid diagrams + Markdown docs generated automatically |
 
-<!-- TODO: Replace with side-by-side comparison — left: workflow canvas, right: generated SKILL.md -->
-![Workflow to Skill](docs/images/workflow-to-skill.png)
+**Example:** Design a workflow on the canvas → switch to the Instructions tab → select your IDE (Claude Code, Cursor, or Antigravity) → choose output type (Skills, Commands, or Workflows) → click Generate → copy the result into your project.
 
 ## Quick Start
 
@@ -43,9 +41,6 @@ Then ask Claude:
 ```bash
 npx agentflow-mcp serve
 ```
-
-<!-- TODO: Replace with GIF or screenshot showing: drag node → connect → Instructions tab → Generate -->
-![Editor Demo](docs/images/editor-demo.gif)
 
 Three steps to your first agent skill:
 
