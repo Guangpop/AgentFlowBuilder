@@ -110,8 +110,11 @@ export const en: LocaleStrings = {
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: 'Usage Suggestion',
   generatedPrompt: 'GENERATED MASTER SYSTEM PROMPT',
-  copyPrompt: 'Copy Prompt',
+  copyPrompt: 'Copy SOP Prompt',
   copied: 'Copied',
+  copyPromptHint: 'Paste this prompt into Claude Code, Cursor, or Codex to generate your skill/command file',
+  promptCopiedTitle: 'Prompt copied to clipboard',
+  promptCopiedHint: 'Paste into your AI tool and it will generate the file automatically',
 
   // IDE & Output Type Selectors
   ideLabel: 'IDE',

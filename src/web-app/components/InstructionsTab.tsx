@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Workflow } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
-import { Zap, Copy, Check, Layers, Shield, RotateCcw, Sparkles, Loader2, FileText, AlertCircle, LayoutGrid, ChevronRight } from 'lucide-react';
+import { Copy, Check, Layers, Shield, RotateCcw, FileText, LayoutGrid } from 'lucide-react';
 
 type IDEType = 'claude' | 'antigravity' | 'cursor';
 type OutputType = 'skills' | 'commands' | 'workflows';
@@ -54,9 +54,7 @@ const InstructionsTab: React.FC<Props> = ({ workflow, workflowName }) => {
 
   const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
   const [selectedOutputType, setSelectedOutputType] = useState<OutputType>('skills');
-  const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<{ content: string; filePath: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const isLight = themeId === 'warm' || themeId === 'minimal';
 
@@ -68,8 +66,7 @@ const InstructionsTab: React.FC<Props> = ({ workflow, workflowName }) => {
   }, [selectedIDE]);
 
   useEffect(() => {
-    setResult(null);
-    setError(null);
+    setCopied(false);
   }, [selectedIDE, selectedOutputType]);
 
   const prefix = (t as any)[getPrefixKey(selectedIDE, selectedOutputType)] || '';
@@ -112,53 +109,15 @@ Output this generated Prompt in professional, rigorous language that is easily u
 
   const handleCopyPrompt = async () => {
     await navigator.clipboard.writeText(fullPrompt);
+    setCopied(true);
     showToast((t as any).copiedToast || 'Copied to clipboard', 'success');
-  };
-
-  const handleGenerate = async () => {
-    if (!hasNodes) return;
-    setGenerating(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const res = await fetch('/api/generate-instructions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workflow,
-          language,
-          ide: selectedIDE,
-          outputType: selectedOutputType,
-          workflowName: name,
-          prefix,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setResult({ content: data.content, filePath: data.filePath });
-        showToast('Instructions generated', 'success');
-      } else {
-        setError(data.error || 'Generation failed');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleCopyResult = async () => {
-    if (!result) return;
-    await navigator.clipboard.writeText(result.content);
-    showToast((t as any).copiedFull || 'Full prompt copied', 'success');
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const availableOutputTypes = getAvailableOutputTypes(selectedIDE);
 
   // Determine wizard step
-  const currentStep = result ? 3 : 1;
+  const currentStep = copied ? 3 : 1;
 
   const steps = [
     { num: 1, label: (t as any).stepPlatform || 'Select Platform' },
@@ -262,68 +221,38 @@ Output this generated Prompt in professional, rigorous language that is easily u
           {filePath}
         </div>
 
-        {/* Generate CTA + Copy */}
+        {/* Copy Prompt CTA */}
         <div className="flex flex-col items-center gap-3">
           <button
-            onClick={handleGenerate}
-            disabled={generating}
+            onClick={handleCopyPrompt}
             className={`w-full py-4 px-8 text-base font-bold rounded-2xl transition-all duration-200 cursor-pointer ${
-              generating
-                ? 'bg-teal-800/50 text-teal-300 cursor-wait'
+              copied
+                ? isLight ? 'bg-teal-100 text-teal-700 border-2 border-teal-300' : 'bg-teal-900/30 text-teal-300 border-2 border-teal-500/30'
                 : `${theme.accentBg} ${theme.accentBgHover} text-white shadow-lg shadow-teal-600/20 active:scale-[0.97]`
             }`}
           >
-            {generating ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 size={18} className="animate-spin" />
-                {t.generatingInstructions}
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                <Zap size={18} />
-                {result ? t.regenerateInstructions : t.generateInstructions}
-              </span>
-            )}
+            <span className="flex items-center justify-center gap-2">
+              {copied ? <Check size={18} /> : <Copy size={18} />}
+              {copied ? (t.copied || 'Copied') : (t.copyPrompt || 'Copy Prompt')}
+            </span>
           </button>
-          <button
-            onClick={handleCopyPrompt}
-            className={`text-sm ${theme.textMuted} hover:${theme.accentColor} underline underline-offset-4 transition-colors cursor-pointer`}
-          >
-            {t.copyPrompt}
-          </button>
+          <p className={`text-xs ${theme.textMuted} text-center leading-relaxed`}>
+            {(t as any).copyPromptHint || 'Paste this prompt into Claude Code, Cursor, or Codex to generate your skill/command'}
+          </p>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className={`p-4 rounded-2xl ${isLight ? 'bg-rose-50 border-rose-200' : 'bg-red-900/20 border-red-500/30'} border text-sm`}>
-            <div className={`font-medium mb-1 ${isLight ? 'text-rose-700' : 'text-red-300'}`}>Generation Failed</div>
-            <div className={`${isLight ? 'text-rose-600' : 'text-red-400'} opacity-80`}>{error}</div>
-            <div className={`mt-2 opacity-60 text-xs ${isLight ? 'text-rose-500' : 'text-red-400'}`}>
-              Tip: Use "Copy Prompt" and paste into your AI tool manually.
-            </div>
-          </div>
-        )}
-
-        {/* Result */}
-        {result && (
-          <div className="space-y-3">
-            <div className={`flex items-center gap-3 p-4 ${isLight ? 'bg-teal-50 border-teal-200' : 'bg-teal-900/20 border-teal-500/30'} border rounded-2xl`}>
-              <Check size={20} className="text-teal-500 shrink-0" />
-              <div className="flex-1">
-                <div className={`text-sm font-semibold ${isLight ? 'text-teal-800' : 'text-teal-200'}`}>Generated successfully</div>
-                <div className={`text-xs font-mono ${theme.textMuted} mt-0.5`}>{result.filePath}</div>
+        {/* Copied success */}
+        {copied && (
+          <div className={`flex items-center gap-3 p-4 ${isLight ? 'bg-teal-50 border-teal-200' : 'bg-teal-900/20 border-teal-500/30'} border rounded-2xl`}>
+            <Check size={20} className="text-teal-500 shrink-0" />
+            <div className="flex-1">
+              <div className={`text-sm font-semibold ${isLight ? 'text-teal-800' : 'text-teal-200'}`}>
+                {(t as any).promptCopiedTitle || 'Prompt copied to clipboard'}
               </div>
-              <button
-                onClick={handleCopyResult}
-                className={`px-3 py-1.5 text-xs font-medium ${theme.accentBg} text-white rounded-lg transition-all cursor-pointer hover:opacity-90`}
-              >
-                <Copy size={12} className="inline mr-1" />
-                Copy
-              </button>
+              <div className={`text-xs ${theme.textMuted} mt-0.5`}>
+                {(t as any).promptCopiedHint || `Paste into your AI tool and it will generate the file at ${filePath}`}
+              </div>
             </div>
-            <pre className={`p-4 ${isLight ? 'bg-stone-50 border-stone-200' : `${theme.bgTertiary} ${theme.borderColor}`} rounded-xl border text-xs ${theme.textSecondary} font-mono overflow-auto max-h-[400px] whitespace-pre-wrap leading-relaxed`}>
-              {result.content}
-            </pre>
           </div>
         )}
 

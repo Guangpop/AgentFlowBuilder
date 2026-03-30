@@ -108,8 +108,11 @@ export const zhTW = {
   readyToEncode: 'Ready to encode your workflow into agent intelligence',
   usageSuggestion: '使用建議',
   generatedPrompt: 'GENERATED MASTER SYSTEM PROMPT',
-  copyPrompt: 'Copy Prompt',
-  copied: 'Copied',
+  copyPrompt: '複製 SOP Prompt',
+  copied: '已複製',
+  copyPromptHint: '將 Prompt 貼入 Claude Code、Cursor 或 Codex，即可產生對應的 Skill / Command 檔案',
+  promptCopiedTitle: 'Prompt 已複製到剪貼簿',
+  promptCopiedHint: '貼入 AI 工具後，它會自動產生檔案',
 
   // IDE & Output Type Selectors
   ideLabel: 'IDE',
