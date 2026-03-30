@@ -26,9 +26,6 @@ export const zhTW = {
   promptPlaceholder: '描述您的工作流需求...',
   generatingMessage: '正在規劃節點邏輯...',
   poweredBy: 'Powered by Gemini 3 Flash',
-  pricingTitle: '使用計費說明',
-  pricingWorkflow: '• 生成工作流：$0.99 USD/次',
-  pricingSop: '• 生成 SOP 指令集：$0.49 USD/節點',
 
   // Quick tags
   tagCustomerSupport: '客戶支持',
@@ -236,8 +233,6 @@ export const zhTW = {
   alertInvalidJson: '無效的工作流 JSON 檔案結構。',
   alertImportFailed: '導入失敗，請確保選擇的是正確的 JSON 檔案。',
   alertApiKeyMissing: '請設定 GEMINI_API_KEY 環境變數',
-  alertInsufficientBalance: (required: number, balance: number) => `餘額不足。需要 $${required.toFixed(2)}，目前餘額 $${balance.toFixed(2)}`,
-  alertNotAuthenticated: '請先登入以繼續',
 
   // Validation
   nodeIdDuplicate: '此 Node ID 已存在，請使用其他名稱。',
@@ -344,42 +339,6 @@ export const zhTW = {
   themeGlassmorphismDesc: '毛玻璃效果，柔和漸層',
   themeMinimalName: '極簡白',
   themeMinimalDesc: '清爽簡潔，專注內容',
-
-  // Account Modal
-  accountTitle: '帳戶',
-  accountCurrentBalance: '目前餘額',
-  accountTopup: '儲值',
-  accountTopupHint: '選擇金額透過 PayPal 儲值',
-  accountTotalSpent: '總消費',
-  accountTransactions: '交易次數',
-  accountRecentTransactions: '最近交易',
-  accountNoTransactions: '尚無交易記錄',
-  accountLogout: '登出',
-  accountMemberSince: '加入於',
-  accountLoginRequired: '請先登入以繼續',
-  accountTopupError: '儲值處理失敗，請重試。',
-
-  // Payment Modal
-  paymentConfirmTitle: '確認付款',
-  paymentInsufficientTitle: '餘額不足',
-  paymentCost: '費用',
-  paymentCurrentBalance: '目前餘額',
-  paymentShortfall: '差額',
-  paymentConfirmButton: '確認付款',
-  paymentProcessing: '處理中...',
-  paymentSelectTopup: '選擇儲值金額',
-  paymentShortfallHint: '還差',
-  paymentShortfallHintMore: '，請選擇儲值金額',
-  paymentSinglePayment: '單次付費',
-  paymentDescription: '服務項目',
-  paymentWorkflowDesc: '生成 Flow',
-  paymentSopDesc: (nodeCount: number) => `生成 SOP (${nodeCount} 節點)`,
-  paymentError: '付款處理失敗，請稍後再試',
-  alertPaymentFailed: '付款失敗，請重試',
-
-  // PayPal Payment
-  accountSecurePayment: '安全加密付款 by PayPal',
-  accountProcessing: '處理中...',
 
   // History Tab
   historyTitle: '歷程瀏覽',

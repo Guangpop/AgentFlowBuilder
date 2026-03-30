@@ -28,9 +28,6 @@ export const en: LocaleStrings = {
   promptPlaceholder: 'Describe your workflow requirements...',
   generatingMessage: 'Planning node logic...',
   poweredBy: 'Powered by Gemini 3 Flash',
-  pricingTitle: 'Pricing Info',
-  pricingWorkflow: '• Workflow Generation: $0.99 USD/time',
-  pricingSop: '• SOP Instructions: $0.49 USD/node',
 
   // Quick tags
   tagCustomerSupport: 'Customer Support',
@@ -238,8 +235,6 @@ Format Requirements:
   alertInvalidJson: 'Invalid workflow JSON file structure.',
   alertImportFailed: 'Import failed, please ensure you selected a valid JSON file.',
   alertApiKeyMissing: 'Please set the GEMINI_API_KEY environment variable',
-  alertInsufficientBalance: (required: number, balance: number) => `Insufficient balance. Required: $${required.toFixed(2)}, Current: $${balance.toFixed(2)}`,
-  alertNotAuthenticated: 'Please log in to continue',
 
   // Validation
   nodeIdDuplicate: 'This Node ID already exists, please use a different name.',
@@ -346,42 +341,6 @@ Format Requirements:
   themeGlassmorphismDesc: 'Frosted glass effect with soft gradients',
   themeMinimalName: 'Minimal Light',
   themeMinimalDesc: 'Clean and simple, content-focused',
-
-  // Account Modal
-  accountTitle: 'Account',
-  accountCurrentBalance: 'Current Balance',
-  accountTopup: 'Top Up',
-  accountTopupHint: 'Select an amount to top up via PayPal',
-  accountTotalSpent: 'Total Spent',
-  accountTransactions: 'Transactions',
-  accountRecentTransactions: 'Recent Transactions',
-  accountNoTransactions: 'No transactions yet',
-  accountLogout: 'Log Out',
-  accountMemberSince: 'Member since',
-  accountLoginRequired: 'Please log in to continue',
-  accountTopupError: 'Failed to process topup. Please try again.',
-
-  // Payment Modal
-  paymentConfirmTitle: 'Confirm Payment',
-  paymentInsufficientTitle: 'Insufficient Balance',
-  paymentCost: 'Cost',
-  paymentCurrentBalance: 'Current Balance',
-  paymentShortfall: 'Shortfall',
-  paymentConfirmButton: 'Confirm Payment',
-  paymentProcessing: 'Processing...',
-  paymentSelectTopup: 'Select Topup Amount',
-  paymentShortfallHint: 'You need',
-  paymentShortfallHintMore: 'more to proceed',
-  paymentSinglePayment: 'Single Payment',
-  paymentDescription: 'Service',
-  paymentWorkflowDesc: 'Generate Flow',
-  paymentSopDesc: (nodeCount: number) => `Generate SOP (${nodeCount} nodes)`,
-  paymentError: 'Payment failed. Please try again.',
-  alertPaymentFailed: 'Payment failed. Please retry.',
-
-  // PayPal Payment
-  accountSecurePayment: 'Secure payment by PayPal',
-  accountProcessing: 'Processing...',
 
   // History Tab
   historyTitle: 'History',
