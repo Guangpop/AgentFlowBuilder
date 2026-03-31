@@ -339,7 +339,3 @@ npm run dev:web        # Dev web UI (with HMR)
 ## Contributing
 
 Contributions welcome! Please open an issue first to discuss what you'd like to change.
-
-## License
-
-MIT

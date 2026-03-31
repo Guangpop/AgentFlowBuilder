@@ -38,3 +38,4 @@ docs/*
 supabase/
 docs/
 .claude/settings.local.json
+.claude/commands/
