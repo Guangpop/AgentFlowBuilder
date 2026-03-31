@@ -59,20 +59,180 @@ Three steps to your first agent skill:
 
 ## Use Cases
 
-### Customer Support Agent
-Design a flow: User Input → AI Reasoning → Condition (sentiment check) → Agent Action (resolve) or Agent Question (escalate). Generate a skill that handles tickets end-to-end.
+From zero-code beginners to advanced engineering teams — here are real examples showing what you say, what gets generated, and how you use it.
 
-### Code Review Pipeline
-Build a multi-step reviewer: Script Execution (run linter) → Agent Reasoning (analyze results) → Condition (pass/fail) → Agent Action (approve or request changes). Export as a Claude Code command.
+---
 
-### Research & Summarization
-Chain together: User Input (topic) → MCP Tool (web search) → Agent Reasoning (synthesize) → Agent Action (write report). Works with any MCP-compatible search tool.
+### Example 1: Customer Support Agent (Beginner — no coding required)
 
-### Sales Lead Qualification
-Route incoming leads: User Input → Agent Question (gather info) → Condition (qualified?) → Agent Skill (CRM update) or Agent Action (follow-up email).
+**What you say to Claude:**
 
-### Onboarding Automation
-Guide new users step-by-step: User Input → Agent Question (role?) → Condition (department routing) → Agent Action (provision accounts) → Agent Skill (send welcome kit).
+```
+"Help me build a customer support workflow"
+```
+
+**What gets generated:**
+
+```
+User Input (customer message)
+  → Agent Reasoning (classify: billing / technical / general)
+    → Condition (is technical?)
+      → True: Agent Action (search knowledge base & draft solution)
+      → False: Agent Action (generate friendly response from FAQ)
+        → Agent Question (ask: "Did this resolve your issue?")
+          → Condition (resolved?)
+            → True: Agent Action (close ticket, send satisfaction survey)
+            → False: Agent Action (escalate to human agent with full context)
+```
+
+**How to use it:**
+
+Export as a **Command** → generates a file like `customer-support.md`. After your AI tool loads it:
+
+```
+/customer-support "I was charged twice for my subscription last month"
+```
+
+The AI agent follows your workflow step-by-step: classifies the issue as billing, searches your FAQ, drafts a response, and asks the customer if it's resolved. No manual prompt writing needed — the workflow IS the prompt.
+
+---
+
+### Example 2: Meeting Notes Summarizer (Intermediate — integrating external tools)
+
+**What you say to Claude:**
+
+```
+"Build a meeting notes workflow. It should read a transcript, extract action items 
+with owners and deadlines, then output a structured summary in Markdown."
+```
+
+**What gets generated:**
+
+```
+User Input (paste transcript or file path)
+  → Agent Reasoning (identify speakers, topics, decisions)
+    → Agent Action (extract action items: task / owner / deadline)
+      → Condition (has unassigned action items?)
+        → True: Agent Question (ask: "Who should own these tasks?")
+          → User Response (assign owners)
+        → False: (continue)
+      → Agent Action (generate Markdown summary with sections:
+          Attendees, Key Decisions, Action Items table, Next Steps)
+        → Script Execution (save summary to ./meeting-notes/{date}.md)
+```
+
+**How to use it:**
+
+Export as a **Skill** → the AI agent can invoke it anytime during a conversation:
+
+```
+"Summarize today's standup" → (paste transcript) → get a structured .md file
+```
+
+The skill is reusable — it works for any meeting type. The Condition node ensures no action item is left without an owner.
+
+---
+
+### Example 3: PR Review Agent (Advanced — multi-source context gathering)
+
+**What you say to Claude:**
+
+```
+"I need a PR review agent workflow. It should:
+- Pull PR diff and file changes from GitHub
+- Fetch the related Jira ticket for context (comments, description, acceptance criteria)
+- Read our team's coding standards and architecture docs
+- Review the code against all this context
+- Post a structured review comment on the PR"
+```
+
+**What gets generated:**
+
+```
+User Input (PR URL or PR number)
+  → MCP Tool [GitHub] (fetch PR diff, changed files, PR description)
+    → Agent Reasoning (extract Jira ticket ID from PR title/branch name)
+      → MCP Tool [Jira] (fetch ticket: description, acceptance criteria, comments)
+        → MCP Tool [GitHub] (read team docs: CODING_STANDARDS.md, ARCHITECTURE.md)
+          → Agent Skill (load relevant domain knowledge based on changed file paths)
+            → Agent Reasoning (review code against:
+                1. Jira acceptance criteria — does the PR fulfill the ticket?
+                2. Coding standards — naming, patterns, error handling
+                3. Architecture docs — does it follow system design?
+                4. Security — SQL injection, XSS, auth checks
+                5. Performance — N+1 queries, unnecessary re-renders)
+              → Condition (critical issues found?)
+                → True: Agent Action (post "Changes Requested" review with:
+                    ## Summary
+                    ## Critical Issues (must fix)
+                    ## Suggestions (nice to have)
+                    ## Checklist vs. Acceptance Criteria)
+                → False: Agent Action (post "Approved" review with:
+                    ## Summary
+                    ## Minor Suggestions
+                    ## Approval note)
+```
+
+**How to use it:**
+
+Export as a **Command** → becomes a one-liner in your daily workflow:
+
+```
+/review-pr 1234
+```
+
+The agent autonomously: pulls the diff from GitHub → finds the Jira ticket → reads your team's coding standards → performs a structured review → posts the result as a PR comment. What used to take 30–60 minutes of context-switching now takes one command.
+
+**Why this works:** The MCP Tool nodes connect to real external services (GitHub, Jira, Bitbucket — any tool with an MCP server). The Agent Skill node loads your team's pre-written knowledge files. The workflow orchestrates everything into a single, repeatable process.
+
+---
+
+### Example 4: Release Changelog Generator (Advanced — multi-step pipeline)
+
+**What you say to Claude:**
+
+```
+"Build a release changelog workflow. Compare two git tags, categorize all commits,
+fetch related Jira tickets for business context, and generate a changelog 
+for both engineering and product teams."
+```
+
+**What gets generated:**
+
+```
+User Input (from_tag, to_tag)
+  → Script Execution (git log --oneline {from_tag}..{to_tag})
+    → Agent Reasoning (categorize commits: feature / fix / refactor / chore)
+      → Agent Reasoning (extract all ticket IDs from commit messages)
+        → MCP Tool [Jira] (batch fetch tickets: title, type, epic, priority)
+          → Agent Reasoning (generate two versions:
+              1. Engineering changelog: commit details, breaking changes, migration steps
+              2. Product changelog: user-facing features, bug fixes, business impact)
+            → Agent Action (write CHANGELOG.md with both sections)
+              → Condition (has breaking changes?)
+                → True: Agent Action (create migration guide in MIGRATION.md)
+                → False: Agent Action (done — output file paths)
+```
+
+**How to use it:**
+
+```
+/release-changelog v2.3.0 v2.4.0
+```
+
+Produces a professional changelog with both engineering and product sections, plus an automatic migration guide if there are breaking changes. Product managers get business context; engineers get technical details — from a single command.
+
+---
+
+### What These Examples Show
+
+| Complexity | You Provide | AgentFlowBuilder Does |
+|---|---|---|
+| **Beginner** | A one-sentence idea | Generates the full workflow, exports as a slash command |
+| **Intermediate** | A feature description with requirements | Builds a reusable skill with branching logic |
+| **Advanced** | Multi-source requirements with integrations | Orchestrates MCP tools, knowledge bases, and conditional logic into one command |
+
+The key insight: **you don't write prompts — you design flows.** The visual editor makes the logic reviewable, shareable, and maintainable. When requirements change, you move nodes instead of rewriting thousands of words of prompt text.
 
 ## Features
 
