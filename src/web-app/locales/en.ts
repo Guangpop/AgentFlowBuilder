@@ -27,7 +27,7 @@ export const en: LocaleStrings = {
   promptInstruction: 'Enter your AI Agent workflow requirements.',
   promptPlaceholder: 'Describe your workflow requirements...',
   generatingMessage: 'Planning node logic...',
-  poweredBy: 'Powered by Gemini 3 Flash',
+  poweredBy: 'Powered by AI',
 
   // Quick tags
   tagCustomerSupport: 'Customer Support',
@@ -234,7 +234,7 @@ Format Requirements:
   alertInstructionsFailed: 'Failed to generate instructions.',
   alertInvalidJson: 'Invalid workflow JSON file structure.',
   alertImportFailed: 'Import failed, please ensure you selected a valid JSON file.',
-  alertApiKeyMissing: 'Please set the GEMINI_API_KEY environment variable',
+  alertApiKeyMissing: 'Please set the required API key environment variable',
 
   // Validation
   nodeIdDuplicate: 'This Node ID already exists, please use a different name.',

@@ -25,7 +25,7 @@ export const zhTW = {
   promptInstruction: '請輸入 AI Agent 工作流需求。',
   promptPlaceholder: '描述您的工作流需求...',
   generatingMessage: '正在規劃節點邏輯...',
-  poweredBy: 'Powered by Gemini 3 Flash',
+  poweredBy: '由 AI 驅動',
 
   // Quick tags
   tagCustomerSupport: '客戶支持',
@@ -232,7 +232,7 @@ export const zhTW = {
   alertInstructionsFailed: '生成指令集失敗。',
   alertInvalidJson: '無效的工作流 JSON 檔案結構。',
   alertImportFailed: '導入失敗，請確保選擇的是正確的 JSON 檔案。',
-  alertApiKeyMissing: '請設定 GEMINI_API_KEY 環境變數',
+  alertApiKeyMissing: '請設定必要的 API Key 環境變數',
 
   // Validation
   nodeIdDuplicate: '此 Node ID 已存在，請使用其他名稱。',
