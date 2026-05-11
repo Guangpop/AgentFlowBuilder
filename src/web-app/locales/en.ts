@@ -52,8 +52,11 @@ export const en: LocaleStrings = {
 
   // Node Properties
   propertiesPanel: 'Properties',
-  functionDescription: 'Description',
-  descriptionHint: 'Describe the component\'s responsibility...',
+  titleLabel: 'Title',
+  titlePlaceholder: 'Short human label',
+  functionDescription: 'Long Description / Prompt',
+  descriptionHint: 'Detailed agent-facing instructions or prompt. Supports multiple paragraphs.',
+  charCountSuffix: 'chars',
   inputPorts: 'Input Ports',
   outputPorts: 'Output Ports',
   noInputPorts: 'No input ports',
@@ -125,6 +128,27 @@ export const en: LocaleStrings = {
   fileLocationLabel: 'File Location',
   copyFullPrompt: 'Copy Full Prompt (incl. SOP below)',
   copiedFull: 'Full Prompt Copied',
+
+  // Platform groups (IDE vs Chat)
+  platformGroupIde: 'IDE',
+  platformGroupIdeHint: 'Requires IDE + MCP setup',
+  platformGroupChat: 'Chat',
+  platformGroupChatHint: 'Just paste into a chatbox',
+
+  // Chat platform card
+  ideChat: 'Chat',
+  chatPlatformDesc: 'ChatGPT · Gemini · Grok · Claude.ai · DeepSeek',
+
+  // Chat mode segmented control
+  modeLabel: 'Execution mode',
+  chatModeStep: 'Step-by-step',
+  chatModeStepDesc: 'Pauses at each stage for confirmation',
+  chatModePlan: 'Plan-then-Execute',
+  chatModePlanDesc: 'Shows the full plan, waits for "GO"',
+
+  // Chat generate region
+  chatHint: 'Paste this prompt into any LLM chat (ChatGPT / Gemini / Grok…)',
+  copyChatPrompt: 'Copy Chat Prompt',
 
   // Prefix Templates
   prefixClaudeSkills: `Based on the following workflow, generate a Claude Code Skill.
@@ -312,6 +336,7 @@ Format Requirements:
   // Instructions wizard steps
   stepPlatform: 'Select Platform',
   stepType: 'Select Type',
+  stepMode: 'Select Mode',
   stepGenerate: 'Generate',
   noWorkflowForInstructions: 'Build a workflow first, then generate instructions',
 

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Workflow } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
-import { Copy, Check, Layers, Shield, RotateCcw, FileText, LayoutGrid, AlertTriangle, X } from 'lucide-react';
+import { Copy, Check, Layers, Shield, RotateCcw, FileText, LayoutGrid, AlertTriangle, X, MessageSquare } from 'lucide-react';
+import { buildChatPrompt, ChatMode } from '@shared/prompts/chatPrompt';
 
-type IDEType = 'claude' | 'antigravity' | 'cursor';
+type Platform = 'claude' | 'antigravity' | 'cursor' | 'chat';
+type IDEPlatform = Exclude<Platform, 'chat'>;
 type OutputType = 'skills' | 'commands' | 'workflows';
 
 interface Props {
@@ -12,18 +14,18 @@ interface Props {
   workflowName: string | null;
 }
 
-const IDE_OPTIONS: { key: IDEType; icon: React.ReactNode; desc: string }[] = [
+const IDE_OPTIONS: { key: IDEPlatform; icon: React.ReactNode; desc: string }[] = [
   { key: 'claude', icon: <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">C</div>, desc: 'Skills & Commands' },
   { key: 'antigravity', icon: <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">A</div>, desc: 'Skills & Workflows' },
   { key: 'cursor', icon: <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold text-sm">C</div>, desc: 'Skills & Commands' },
 ];
 
-function getAvailableOutputTypes(ide: IDEType): OutputType[] {
+function getAvailableOutputTypes(ide: IDEPlatform): OutputType[] {
   if (ide === 'antigravity') return ['skills', 'workflows'];
   return ['skills', 'commands'];
 }
 
-function getFileLocation(ide: IDEType, outputType: OutputType, name: string): string {
+function getFileLocation(ide: IDEPlatform, outputType: OutputType, name: string): string {
   const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
   const map: Record<string, string> = {
     'claude:skills': `.claude/skills/${safeName}/SKILL.md`,
@@ -36,7 +38,7 @@ function getFileLocation(ide: IDEType, outputType: OutputType, name: string): st
   return map[`${ide}:${outputType}`] || '';
 }
 
-function getPrefixKey(ide: IDEType, outputType: OutputType): string {
+function getPrefixKey(ide: IDEPlatform, outputType: OutputType): string {
   const map: Record<string, string> = {
     'claude:skills': 'prefixClaudeSkills',
     'claude:commands': 'prefixClaudeCommands',
@@ -52,31 +54,35 @@ const InstructionsTab: React.FC<Props> = ({ workflow, workflowName }) => {
   const { theme, themeId, t, language } = useTheme();
   const { showToast } = useToast();
 
-  const [selectedIDE, setSelectedIDE] = useState<IDEType>('claude');
+  const [viewMode, setViewMode] = useState<'ide' | 'chat'>('ide');
+  const [selectedIde, setSelectedIde] = useState<IDEPlatform>('claude');
   const [selectedOutputType, setSelectedOutputType] = useState<OutputType>('skills');
+  const [selectedChatMode, setSelectedChatMode] = useState<ChatMode>('step');
   const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const isLight = themeId === 'warm' || themeId === 'minimal';
+  const isChat = viewMode === 'chat';
 
   useEffect(() => {
-    const available = getAvailableOutputTypes(selectedIDE);
+    if (isChat) return;
+    const available = getAvailableOutputTypes(selectedIde);
     if (!available.includes(selectedOutputType)) {
       setSelectedOutputType(available[0]);
     }
-  }, [selectedIDE]);
+  }, [selectedIde, isChat, selectedOutputType]);
 
   useEffect(() => {
     setCopied(false);
-  }, [selectedIDE, selectedOutputType]);
+  }, [viewMode, selectedIde, selectedOutputType, selectedChatMode]);
 
-  const prefix = (t as any)[getPrefixKey(selectedIDE, selectedOutputType)] || '';
   const name = workflowName || workflow.name || 'workflow';
-  const filePath = getFileLocation(selectedIDE, selectedOutputType, name);
   const hasNodes = workflow.nodes.length > 0;
+  const filePath = isChat ? '' : getFileLocation(selectedIde, selectedOutputType, name);
 
+  // IDE-mode prompt (legacy hierarchical instruction)
   const instructionPrompt = useMemo(() => {
-    if (!hasNodes) return '';
+    if (!hasNodes || isChat) return '';
     const cleanWorkflow = {
       name: workflow.name,
       description: workflow.description,
@@ -124,28 +130,26 @@ After generating the skill/command file, you MUST use the following skills to en
 4. **Optimize description**: After passing (or after 3 iterations), use the skill-creator's description optimization process to improve trigger accuracy — include both English and Traditional Chinese trigger phrases.
 5. **Save**: Write the final SKILL.md to the target file path. If you have access to the AgentFlow Builder MCP server, call \`publish_skill\` to also save to ~/.claude/skills/ for cross-project discovery.
 6. **Report**: Tell the user the final score and grade.`;
-  }, [workflow, hasNodes]);
+  }, [workflow, hasNodes, isChat]);
 
-  const fullPrompt = prefix + instructionPrompt;
+  // Chat-mode prompt (self-contained, no MCP)
+  const chatPromptText = useMemo(() => {
+    if (!hasNodes || !isChat) return '';
+    return buildChatPrompt(workflow, selectedChatMode, language);
+  }, [workflow, hasNodes, isChat, selectedChatMode, language]);
+
+  const idePrefix = !isChat ? (t as any)[getPrefixKey(selectedIde, selectedOutputType)] || '' : '';
+  const fullPrompt = isChat ? chatPromptText : idePrefix + instructionPrompt;
 
   const handleCopyPrompt = async () => {
     await navigator.clipboard.writeText(fullPrompt);
     setCopied(true);
     showToast((t as any).copiedToast || 'Copied to clipboard', 'success');
-    setShowModal(true);
+    if (!isChat) setShowModal(true); // Quality-gate hint only for IDE flows
     setTimeout(() => setCopied(false), 3000);
   };
 
-  const availableOutputTypes = getAvailableOutputTypes(selectedIDE);
-
-  // Determine wizard step
-  const currentStep = copied ? 3 : 1;
-
-  const steps = [
-    { num: 1, label: (t as any).stepPlatform || 'Select Platform' },
-    { num: 2, label: (t as any).stepType || 'Select Type' },
-    { num: 3, label: (t as any).stepGenerate || 'Generate' },
-  ];
+  const availableOutputTypes = !isChat ? getAvailableOutputTypes(selectedIde) : [];
 
   if (!hasNodes) {
     return (
@@ -163,85 +167,158 @@ After generating the skill/command file, you MUST use the following skills to en
     );
   }
 
+  const groupLabelClasses = `text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`;
+
   return (
     <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
       <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto w-full">
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2">
-          {steps.map((step, i) => (
-            <React.Fragment key={step.num}>
-              {i > 0 && <div className={`w-8 h-px ${isLight ? 'bg-stone-300' : 'bg-slate-600'}`} />}
-              <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  step.num <= currentStep
-                    ? `${theme.accentBg} text-white`
-                    : isLight ? 'bg-stone-200 text-stone-400' : 'bg-slate-700 text-slate-500'
-                }`}>
-                  {step.num < currentStep ? <Check size={14} /> : step.num}
-                </div>
-                <span className={`text-xs font-medium ${step.num <= currentStep ? theme.textPrimary : theme.textMuted}`}>
-                  {step.label}
-                </span>
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
-
-        {/* IDE Selector — Large Cards */}
-        <div className="space-y-2">
-          <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>{t.ideLabel}</label>
-          <div className="grid grid-cols-3 gap-3">
-            {IDE_OPTIONS.map(({ key, icon, desc }) => (
+        {/* Top-level mode tab: IDE vs Chat */}
+        <div
+          role="tablist"
+          aria-label="Output target"
+          className={`grid grid-cols-2 gap-1 p-1 rounded-2xl ${isLight ? 'bg-stone-100' : 'bg-slate-800/60'}`}
+        >
+          {([
+            {
+              key: 'ide' as const,
+              title: (t as any).platformGroupIde || 'IDE',
+              hint:  (t as any).platformGroupIdeHint || 'Requires IDE + MCP',
+            },
+            {
+              key: 'chat' as const,
+              title: (t as any).platformGroupChat || 'Chat',
+              hint:  (t as any).platformGroupChatHint || 'Just paste into a chatbox',
+            },
+          ]).map(({ key, title, hint }) => {
+            const active = viewMode === key;
+            return (
               <button
                 key={key}
-                onClick={() => setSelectedIDE(key)}
-                className={`p-5 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${
-                  selectedIDE === key
+                role="tab"
+                aria-selected={active}
+                onClick={() => setViewMode(key)}
+                className={`px-5 py-3 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                  active
                     ? isLight
-                      ? 'border-teal-500 bg-teal-50 shadow-md'
-                      : 'border-teal-400 bg-teal-900/20 shadow-md'
-                    : isLight
-                      ? 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
-                      : `border-slate-700 ${theme.bgCard} hover:border-slate-500`
+                      ? 'bg-white shadow-sm'
+                      : 'bg-slate-700 shadow-sm'
+                    : `bg-transparent hover:${isLight ? 'bg-white/50' : 'bg-slate-700/40'}`
                 }`}
               >
-                <div className="mb-3">{icon}</div>
-                <div className={`text-base font-bold ${theme.textPrimary}`}>
-                  {(t as any)[`ide${key.charAt(0).toUpperCase() + key.slice(1)}${key === 'claude' ? 'Code' : ''}`] || key}
-                </div>
-                <div className={`text-xs ${theme.textMuted} mt-0.5`}>{desc}</div>
+                <div className={`text-sm font-bold ${active ? theme.textPrimary : theme.textMuted}`}>{title}</div>
+                <div className={`text-[11px] mt-0.5 ${active ? theme.textSecondary : theme.textMuted}`}>{hint}</div>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Output Type — Pill Segmented Control */}
-        <div className="space-y-2">
-          <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>{t.outputTypeLabel}</label>
-          <div className={`inline-flex ${isLight ? 'bg-stone-100' : 'bg-slate-800'} rounded-xl p-1 gap-1`}>
-            {availableOutputTypes.map((type) => (
-              <button
-                key={type}
-                onClick={() => setSelectedOutputType(type)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                  selectedOutputType === type
-                    ? isLight
-                      ? 'bg-white text-stone-800 shadow-sm'
-                      : 'bg-slate-700 text-white shadow-sm'
-                    : `${theme.textMuted} hover:${theme.textSecondary}`
-                }`}
-              >
-                {(t as any)[`outputType${type.charAt(0).toUpperCase() + type.slice(1)}`] || type}
-              </button>
-            ))}
+        {/* IDE-mode: pick IDE (3 cards) */}
+        {!isChat && (
+          <div className="space-y-2">
+            <label className={groupLabelClasses}>{t.ideLabel}</label>
+            <div className="grid grid-cols-3 gap-3">
+              {IDE_OPTIONS.map(({ key, icon, desc }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedIde(key)}
+                  className={`p-5 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${
+                    selectedIde === key
+                      ? isLight
+                        ? 'border-teal-500 bg-teal-50 shadow-md'
+                        : 'border-teal-400 bg-teal-900/20 shadow-md'
+                      : isLight
+                        ? 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
+                        : `border-slate-700 ${theme.bgCard} hover:border-slate-500`
+                  }`}
+                >
+                  <div className="mb-3">{icon}</div>
+                  <div className={`text-base font-bold ${theme.textPrimary}`}>
+                    {(t as any)[`ide${key.charAt(0).toUpperCase() + key.slice(1)}${key === 'claude' ? 'Code' : ''}`] || key}
+                  </div>
+                  <div className={`text-xs ${theme.textMuted} mt-0.5`}>{desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* File Location */}
-        <div className={`flex items-center gap-2 px-3 py-2 ${isLight ? 'bg-stone-50 border-stone-200' : `${theme.bgTertiary} ${theme.borderColor}`} rounded-xl border font-mono text-xs ${theme.textMuted}`}>
-          <FileText size={12} />
-          {filePath}
-        </div>
+        {/* Chat-mode: target list (informational, single card) */}
+        {isChat && (
+          <div className={`p-5 rounded-2xl border ${theme.borderColor} ${theme.bgCard} flex items-center gap-4`}>
+            <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-xl flex items-center justify-center text-white">
+              <MessageSquare size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className={`text-sm font-bold ${theme.textPrimary}`}>
+                {(t as any).chatPlatformDesc || 'ChatGPT · Gemini · Grok · Claude.ai · DeepSeek'}
+              </div>
+              <div className={`text-xs ${theme.textMuted} mt-0.5`}>
+                {(t as any).platformGroupChatHint || 'Just paste into a chatbox'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Output Type (IDE) or Chat Mode (Chat) */}
+        {isChat ? (
+          <div className="space-y-2">
+            <label className={groupLabelClasses}>{(t as any).modeLabel || 'Execution mode'}</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(['step', 'plan'] as ChatMode[]).map((mode) => {
+                const active = selectedChatMode === mode;
+                const title = mode === 'step' ? ((t as any).chatModeStep || 'Step-by-step') : ((t as any).chatModePlan || 'Plan-then-Execute');
+                const desc  = mode === 'step' ? ((t as any).chatModeStepDesc || 'Pauses at each stage') : ((t as any).chatModePlanDesc || 'Shows plan, waits for GO');
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setSelectedChatMode(mode)}
+                    className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${
+                      active
+                        ? isLight
+                          ? 'border-teal-500 bg-teal-50 shadow-md'
+                          : 'border-teal-400 bg-teal-900/20 shadow-md'
+                        : isLight
+                          ? 'border-stone-200 bg-white hover:border-stone-300'
+                          : `border-slate-700 ${theme.bgCard} hover:border-slate-500`
+                    }`}
+                  >
+                    <div className={`text-sm font-bold ${theme.textPrimary}`}>{title}</div>
+                    <div className={`text-xs ${theme.textMuted} mt-1 leading-relaxed`}>{desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className={groupLabelClasses}>{t.outputTypeLabel}</label>
+            <div className={`inline-flex ${isLight ? 'bg-stone-100' : 'bg-slate-800'} rounded-xl p-1 gap-1`}>
+              {availableOutputTypes.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedOutputType(type)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+                    selectedOutputType === type
+                      ? isLight
+                        ? 'bg-white text-stone-800 shadow-sm'
+                        : 'bg-slate-700 text-white shadow-sm'
+                      : `${theme.textMuted} hover:${theme.textSecondary}`
+                  }`}
+                >
+                  {(t as any)[`outputType${type.charAt(0).toUpperCase() + type.slice(1)}`] || type}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* File Location — IDE only */}
+        {!isChat && (
+          <div className={`flex items-center gap-2 px-3 py-2 ${isLight ? 'bg-stone-50 border-stone-200' : `${theme.bgTertiary} ${theme.borderColor}`} rounded-xl border font-mono text-xs ${theme.textMuted}`}>
+            <FileText size={12} />
+            {filePath}
+          </div>
+        )}
 
         {/* Copy Prompt CTA */}
         <div className="flex flex-col items-center gap-3">
@@ -255,21 +332,28 @@ After generating the skill/command file, you MUST use the following skills to en
           >
             <span className="flex items-center justify-center gap-2">
               {copied ? <Check size={18} /> : <Copy size={18} />}
-              {copied ? (t.copied || 'Copied') : (t.copyPrompt || 'Copy Prompt')}
+              {copied
+                ? (t.copied || 'Copied')
+                : (isChat ? ((t as any).copyChatPrompt || 'Copy Chat Prompt') : (t.copyPrompt || 'Copy Prompt'))}
             </span>
           </button>
           <p className={`text-xs ${theme.textMuted} text-center leading-relaxed`}>
-            {(t as any).copyPromptHint || 'Paste this prompt into Claude Code, Cursor, or Codex to generate your skill/command'}
+            {isChat
+              ? ((t as any).chatHint || 'Paste this prompt into any LLM chat')
+              : ((t as any).copyPromptHint || 'Paste this prompt into Claude Code, Cursor, or Codex to generate your skill/command')}
           </p>
         </div>
 
-        {/* Copied success */}
-        {copied && (
+        {/* Copied success (Chat) — no quality-gate modal, just a small banner */}
+        {copied && isChat && (
           <div className={`flex items-center gap-3 p-4 ${isLight ? 'bg-teal-50 border-teal-200' : 'bg-teal-900/20 border-teal-500/30'} border rounded-2xl`}>
             <Check size={20} className="text-teal-500 shrink-0" />
             <div className="flex-1">
               <div className={`text-sm font-semibold ${isLight ? 'text-teal-800' : 'text-teal-200'}`}>
                 {(t as any).promptCopiedTitle || (language === 'zh-TW' ? 'Prompt 已複製到剪貼簿' : 'Prompt copied to clipboard')}
+              </div>
+              <div className={`text-xs ${theme.textMuted} mt-1`}>
+                {(t as any).chatHint || 'Paste this prompt into any LLM chat'}
               </div>
             </div>
           </div>
@@ -296,8 +380,8 @@ After generating the skill/command file, you MUST use the following skills to en
         </div>
       </div>
 
-      {/* Quality Gate Modal — shown after copy */}
-      {showModal && (
+      {/* Quality Gate Modal — only for IDE flows */}
+      {showModal && !isChat && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div

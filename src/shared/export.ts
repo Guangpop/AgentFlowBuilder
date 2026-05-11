@@ -1,5 +1,28 @@
 import { Workflow, WorkflowNode, Edge, NodeType } from './types.js';
 
+/**
+ * Sanitize free-text for use inside a Mermaid markdown-string label
+ * (the `["` ... `"]` form). Mermaid's lexer breaks on:
+ *  - backticks (close the markdown-string early)
+ *  - double quotes (close the outer string literal)
+ *  - raw newlines (\n is added explicitly elsewhere; embedded ones break parsing)
+ *  - certain bracket combos that could be mistaken for shape syntax
+ *
+ * This is intentionally output-boundary sanitization — node descriptions
+ * are markdown by design, so we don't strip markdown elsewhere; only here
+ * where the syntax host is Mermaid.
+ */
+export function sanitizeMermaidLabel(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/`/g, "'")              // backtick → apostrophe
+    .replace(/"/g, '”')         // straight double-quote → right curly quote
+    .replace(/\r\n|\r|\n/g, ' ')     // any line break → space
+    .replace(/[\[\]{}]/g, ' ')       // bracket chars that confuse Mermaid shape syntax
+    .replace(/\s+/g, ' ')            // collapse runs of whitespace
+    .trim();
+}
+
 export function generateMermaid(workflow: Workflow): string {
   let content = "graph TD\n";
   // All 9 node types with distinct, warm colors
@@ -17,8 +40,10 @@ export function generateMermaid(workflow: Workflow): string {
 
   workflow.nodes.forEach(node => {
     const safeId = node.node_id.replace(/[^a-zA-Z0-9]/g, '_');
-    const label = node.description
-      ? `${node.node_id}\\n${node.description.slice(0, 40)}${node.description.length > 40 ? '...' : ''}`
+    const cleanDesc = sanitizeMermaidLabel(node.description || '');
+    const truncatedDesc = cleanDesc.length > 40 ? `${cleanDesc.slice(0, 40)}...` : cleanDesc;
+    const label = truncatedDesc
+      ? `${node.node_id}\\n${truncatedDesc}`
       : node.node_id;
 
     // Use different shapes per node type
@@ -86,7 +111,22 @@ export function generateMarkdown(workflow: Workflow, labels: MarkdownLabels): st
     md += `### ${node.node_id} (${node.node_type})\n- **${labels.functionDescLabel}**: ${node.description}\n- **${labels.inputEndpoints}**: ${node.inputs.join(', ') || labels.none}\n- **${labels.outputEndpoints}**: ${node.outputs.join(', ') || labels.none}\n\n`;
   });
   md += `## ${labels.flowTopology}\n\n`;
-  workflow.edges.forEach(edge => {
+  // Derive edges from node.next when workflow.edges is empty (post-MD load).
+  const edges: Edge[] = workflow.edges.length > 0
+    ? workflow.edges
+    : workflow.nodes.flatMap(node =>
+        node.next.map((targetId, index) => ({
+          id: `e-${node.node_id}-${targetId}`,
+          source: node.node_id,
+          target: targetId,
+          sourcePortIndex: index,
+          targetPortIndex: 0,
+          label: node.node_type === NodeType.Condition
+            ? (index === 0 ? 'True' : 'False')
+            : '',
+        }))
+      );
+  edges.forEach(edge => {
     md += `- ${edge.source} -> ${edge.target}${edge.label ? ` (${edge.label})` : ""}\n`;
   });
   return md;

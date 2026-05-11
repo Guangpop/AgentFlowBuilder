@@ -50,8 +50,11 @@ export const zhTW = {
 
   // Node Properties
   propertiesPanel: '屬性面板',
-  functionDescription: '功能描述',
-  descriptionHint: '說明此元件的職責...',
+  titleLabel: '標題',
+  titlePlaceholder: '簡短的人類可讀標籤',
+  functionDescription: '長文描述 / Prompt',
+  descriptionHint: '給 agent 看的詳細指令或 prompt，支援多段。',
+  charCountSuffix: '字',
   inputPorts: '輸入端口',
   outputPorts: '輸出端口',
   noInputPorts: '無輸入端口',
@@ -123,6 +126,27 @@ export const zhTW = {
   fileLocationLabel: '檔案位置',
   copyFullPrompt: '複製完整 Prompt（含下方 SOP）',
   copiedFull: '已複製完整 Prompt',
+
+  // Platform groups (IDE vs Chat)
+  platformGroupIde: 'IDE',
+  platformGroupIdeHint: '需要 IDE + MCP 環境',
+  platformGroupChat: 'Chat',
+  platformGroupChatHint: '直接複製到聊天框使用',
+
+  // Chat platform card
+  ideChat: 'Chat',
+  chatPlatformDesc: 'ChatGPT · Gemini · Grok · Claude.ai · DeepSeek',
+
+  // Chat mode segmented control
+  modeLabel: '執行模式',
+  chatModeStep: '逐步互動',
+  chatModeStepDesc: '每階段暫停確認',
+  chatModePlan: '先計畫再執行',
+  chatModePlanDesc: '攤開全貌、等待 GO',
+
+  // Chat generate region
+  chatHint: '把這段 Prompt 貼進任何 LLM 聊天框（ChatGPT / Gemini / Grok…）',
+  copyChatPrompt: '複製 Chat Prompt',
 
   // Prefix Templates
   prefixClaudeSkills: `請根據以下工作流程，產生一個 Claude Code Skill。
@@ -310,6 +334,7 @@ export const zhTW = {
   // Instructions wizard steps
   stepPlatform: '選擇平台',
   stepType: '選擇類型',
+  stepMode: '選擇模式',
   stepGenerate: '產生指令',
   noWorkflowForInstructions: '先建立工作流程，再產生指令集',
 
