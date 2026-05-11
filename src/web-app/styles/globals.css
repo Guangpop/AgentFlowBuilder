@@ -5,3 +5,35 @@
 body {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
+
+/* Viewer Walk-mode Mermaid node states */
+.mermaid-walk .node:not(.walked-current):not(.walked-visited):not(.walked-faded) { opacity: 1; }
+.mermaid-walk .node.walked-faded { opacity: 0.35; transition: opacity 200ms ease; }
+.mermaid-walk .node.walked-visited { opacity: 0.85; transition: opacity 200ms ease; }
+.mermaid-walk .node.walked-visited > rect,
+.mermaid-walk .node.walked-visited > polygon,
+.mermaid-walk .node.walked-visited > circle,
+.mermaid-walk .node.walked-visited > ellipse {
+  stroke-width: 2px;
+  filter: saturate(0.8);
+}
+.mermaid-walk .node.walked-current { opacity: 1; transition: opacity 200ms ease; }
+.mermaid-walk .node.walked-current > rect,
+.mermaid-walk .node.walked-current > polygon,
+.mermaid-walk .node.walked-current > circle,
+.mermaid-walk .node.walked-current > ellipse {
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 6px currentColor) saturate(1.2);
+}
+@keyframes walked-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px currentColor) saturate(1.1); }
+  50% { filter: drop-shadow(0 0 10px currentColor) saturate(1.3); }
+}
+.mermaid-walk .node.walked-current > rect,
+.mermaid-walk .node.walked-current > polygon {
+  animation: walked-pulse 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-walk .node.walked-current > rect,
+  .mermaid-walk .node.walked-current > polygon { animation: none; }
+}

@@ -18,12 +18,13 @@ export interface NodePosition {
 export interface WorkflowNode {
   node_id: string;
   node_type: NodeType;
-  description: string;
+  title?: string; // Short human label shown in canvas / Mermaid; lives in MD frontmatter
+  description: string; // Long-form prose body; lives in MD `## Title {#id}` section body
   inputs: string[];
   outputs: string[];
   config?: Record<string, any>;
   position: NodePosition;
-  next: string[]; // This stores targets, maintained for AI logic
+  next: string[]; // Positional at runtime. Condition: [trueTarget, falseTarget]. Serialized as map in MD.
 }
 
 export interface Edge {

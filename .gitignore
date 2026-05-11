@@ -39,3 +39,7 @@ supabase/
 docs/
 .claude/settings.local.json
 .claude/commands/
+.playwright-mcp/
+
+# Workflows: canonical is .md; .json is a build/legacy cache, not committed.
+workflows/*.json

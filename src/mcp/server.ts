@@ -7,6 +7,7 @@ import { WORKFLOW_SCHEMA } from '../shared/schema.js';
 import { validateWorkflow } from '../shared/validation.js';
 import { postProcessWorkflow } from '../shared/postProcess.js';
 import { generateMermaid, generateMarkdown, cleanWorkflowForExport } from '../shared/export.js';
+import { serializeWorkflowMd } from '../shared/workflowMd.js';
 import { getPrompts, Language } from '../shared/prompts/index.js';
 import { FileManager } from './fileManager.js';
 import { workflowToSkillMd } from '../shared/skillConverter.js';
@@ -157,7 +158,7 @@ export function createServer(): McpServer {
   // Tool 5: save_workflow
   server.tool(
     'save_workflow',
-    'Saves a workflow to a JSON file. The name is used as the filename (sanitized). Returns the file path.',
+    'Saves a workflow to a Markdown file (workflows/{name}.md) with YAML frontmatter for structure and prose for per-node long-form content. The .md file is the canonical source; any companion .json is a legacy/cache artifact.',
     {
       name: z.string().describe('Name for the workflow file (will be sanitized for filesystem safety).'),
       workflow: z.record(z.any()).describe('The workflow object to save.'),
@@ -192,9 +193,9 @@ export function createServer(): McpServer {
   // Tool 6: load_workflow
   server.tool(
     'load_workflow',
-    'Loads a workflow from a JSON file by name. Returns the workflow object and file path.',
+    'Loads a workflow by name. Prefers workflows/{name}.md (canonical); falls back to workflows/{name}.json for unmigrated legacy files. Returns the workflow object and file path.',
     {
-      name: z.string().describe('Name of the workflow file to load (without .json extension).'),
+      name: z.string().describe('Name of the workflow file to load (without extension).'),
       directory: z.string().optional().describe('Directory to load from. Defaults to ./workflows/'),
     },
     async ({ name, directory }) => {
@@ -226,7 +227,7 @@ export function createServer(): McpServer {
   // Tool 7: list_workflows
   server.tool(
     'list_workflows',
-    'Lists all workflow JSON files in the workflow directory with metadata (name, path, modified date, node count, description).',
+    'Lists all workflows in the workflow directory (.md primary, .json legacy fallback). Returns metadata (name, path, modified date, node count, description). If both .md and .json exist for the same basename, the .md is preferred.',
     {
       directory: z.string().optional().describe('Directory to list workflows from. Defaults to ./workflows/'),
     },
@@ -259,10 +260,10 @@ export function createServer(): McpServer {
   // Tool 8: export_workflow
   server.tool(
     'export_workflow',
-    'Exports a saved workflow in the specified format: "json" (clean, without positions), "markdown" (documentation), or "mermaid" (diagram).',
+    'Exports a saved workflow in the specified format: "md" (canonical, frontmatter+prose — round-trips to canvas), "json" (legacy clean dump, no positions), "markdown" (documentation-style table), or "mermaid" (diagram).',
     {
       name: z.string().describe('Name of the workflow to export.'),
-      format: z.enum(['json', 'markdown', 'mermaid']).describe('Export format.'),
+      format: z.enum(['md', 'json', 'markdown', 'mermaid']).describe('Export format.'),
       directory: z.string().optional().describe('Directory to load from. Defaults to ./workflows/'),
     },
     async ({ name, format, directory }) => {
@@ -273,6 +274,9 @@ export function createServer(): McpServer {
         let output: string;
 
         switch (format) {
+          case 'md':
+            output = serializeWorkflowMd(workflow);
+            break;
           case 'json':
             output = JSON.stringify(cleanWorkflowForExport(workflow), null, 2);
             break;

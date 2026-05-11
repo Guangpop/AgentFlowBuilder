@@ -11,10 +11,21 @@ export default {
     },
   },
   plugins: [],
+  // Tailwind JIT scans all files in `content` for static class strings.
+  // themes.ts and the per-component palette tables (e.g. ViewerPage CHIP_PALETTE_*) are
+  // all literal strings so JIT picks them up directly — no safelist needed for those.
+  //
+  // The only thing JIT misses is dynamically-composed hover variants like
+  // `hover:${theme.textPrimary}` because the prefix + value are concatenated at runtime.
+  // List every theme-token text-color value paired with the `hover:` / `group-hover:`
+  // variants that actually appear in template literals (verified via grep).
   safelist: [
-    // Dynamic theme classes used in themes.ts
-    { pattern: /bg-(blue|purple|orange|cyan|indigo|emerald|slate|pink|amber)-(800|900)\/(40|80)/ },
-    { pattern: /border-(blue|purple|orange|cyan|indigo|emerald|slate|pink|amber)-500/ },
-    { pattern: /text-(blue|purple|orange|cyan|indigo|emerald|slate|pink|amber)-(300|400)/ },
+    // theme.textPrimary values (used as `hover:${theme.textPrimary}`)
+    'hover:text-stone-800', 'hover:text-white', 'hover:text-slate-900',
+    // theme.textSecondary values (used as `hover:${theme.textSecondary}`)
+    'hover:text-stone-600', 'hover:text-slate-300', 'hover:text-white/70', 'hover:text-slate-600',
+    // theme.accentColor values (used as `group-hover:${theme.accentColor}` in ViewerPage)
+    'group-hover:text-teal-600', 'group-hover:text-blue-500',
+    'group-hover:text-violet-400', 'group-hover:text-slate-700',
   ],
 };

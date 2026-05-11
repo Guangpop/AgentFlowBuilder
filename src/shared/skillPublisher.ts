@@ -1,5 +1,7 @@
 import { Workflow } from './types.js';
 import { SkillGrade, QUALITY_THRESHOLD } from './skillGrading.js';
+import { serializeWorkflowMd } from './workflowMd.js';
+import yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -18,15 +20,15 @@ export interface PublishResult {
   message: string;
 }
 
-function parseFrontmatter(content: string): Record<string, string> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+function parseFrontmatter(content: string): Record<string, any> {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return {};
-  const result: Record<string, string> = {};
-  for (const line of match[1].split('\n')) {
-    const kv = line.match(/^(\w+):\s*(.+)/);
-    if (kv) result[kv[1]] = kv[2].trim();
+  try {
+    const parsed = yaml.load(match[1]);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, any>) : {};
+  } catch {
+    return {};
   }
-  return result;
 }
 
 export function getGlobalSkillsDir(): string {
@@ -65,6 +67,13 @@ export function publishSkill(
   fs.mkdirSync(refsDir, { recursive: true });
 
   fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillMd, 'utf-8');
+  // Canonical workflow reference (frontmatter + prose). Preferred for re-importing the skill back into the canvas.
+  fs.writeFileSync(
+    path.join(refsDir, 'workflow.md'),
+    serializeWorkflowMd(workflow),
+    'utf-8'
+  );
+  // Legacy JSON reference, kept for back-compat with older tools.
   fs.writeFileSync(
     path.join(refsDir, 'workflow.json'),
     JSON.stringify(workflow, null, 2),
@@ -111,13 +120,15 @@ export function listPublishedSkills(): SkillInfo[] {
     const content = fs.readFileSync(skillMdPath, 'utf-8');
     const frontmatter = parseFrontmatter(content);
 
-    if (!frontmatter.tags || !frontmatter.tags.includes('agentflow-generated')) {
-      continue;
-    }
+    const tags = frontmatter.tags;
+    const hasAgentFlowTag = Array.isArray(tags)
+      ? tags.includes('agentflow-generated')
+      : typeof tags === 'string' && tags.includes('agentflow-generated');
+    if (!hasAgentFlowTag) continue;
 
     const info: SkillInfo = {
-      name: frontmatter.name || entry,
-      description: frontmatter.description || '',
+      name: typeof frontmatter.name === 'string' ? frontmatter.name : entry,
+      description: typeof frontmatter.description === 'string' ? frontmatter.description : '',
       path: entryPath,
     };
 

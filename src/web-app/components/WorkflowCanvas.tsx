@@ -219,7 +219,7 @@ const WorkflowCanvas: React.FC<Props> = ({
   return (
     <div
       ref={canvasRef}
-      className={`flex-1 relative ${theme.canvasBg} overflow-hidden select-none transition-colors duration-500 ${readonly ? '' : 'cursor-crosshair'}`}
+      className={`flex-1 relative ${theme.bgPrimary} overflow-hidden select-none transition-colors duration-500 ${readonly ? '' : 'cursor-crosshair'}`}
       style={gridStyle}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
@@ -313,7 +313,9 @@ const WorkflowCanvas: React.FC<Props> = ({
                   <span className={`text-xs font-bold uppercase tracking-wider leading-tight ${isLight ? 'text-stone-700' : 'text-white'}`}>
                     {getNodeDisplayName(node.node_type)}
                   </span>
-                  <span className={`text-[9px] font-mono truncate ${isLight ? 'text-stone-400' : 'text-slate-500 opacity-50'}`}>{node.node_id}</span>
+                  <span className={`text-[11px] font-medium truncate ${isLight ? 'text-stone-600' : 'text-slate-200/80'}`} title={node.node_id}>
+                    {node.title?.trim() || node.node_id}
+                  </span>
                 </div>
               </div>
 

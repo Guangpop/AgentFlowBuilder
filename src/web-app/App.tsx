@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Workflow, WorkflowNode, NodeType, Edge } from './types';
 import { NODE_COLORS } from './constants';
 import { generateMermaid, generateMarkdown, cleanWorkflowForExport } from '@shared/export';
+import { serializeWorkflowMd } from '@shared/workflowMd';
 import { useTheme } from './contexts/ThemeContext';
 import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
@@ -13,6 +14,7 @@ import { Settings, Copy, Download, Check, Code, Eye, LayoutGrid, Sparkles, FileC
 import type { LocaleStrings } from './locales';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import WelcomeModal, { useWelcomeModal } from './components/WelcomeModal';
+import ViewerPage from './components/ViewerPage';
 
 const defaultWorkflow: Workflow = {
   name: 'New Workflow',
@@ -52,6 +54,27 @@ const AppInner: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [viewerName, setViewerName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') === 'view' ? params.get('workflow') : null;
+  });
+
+  const openViewer = useCallback((name: string) => {
+    setViewerName(name);
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', 'view');
+    url.searchParams.set('workflow', name);
+    window.history.pushState({}, '', url);
+  }, []);
+
+  const closeViewer = useCallback(() => {
+    setViewerName(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('mode');
+    url.searchParams.delete('workflow');
+    window.history.pushState({}, '', url);
+  }, []);
   const [activeTab, setActiveTab] = useState<'editor' | 'instructions' | 'mermaid' | 'markdown' | 'json'>('editor');
   const [showSettings, setShowSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -114,6 +137,7 @@ const AppInner: React.FC = () => {
     const newNode: WorkflowNode = {
       node_id: `${type.toLowerCase()}_${Date.now()}`,
       node_type: type,
+      title: '',
       description: '',
       inputs: ['input'],
       outputs: type === NodeType.Condition ? ['true_output', 'false_output'] : ['output'],
@@ -229,7 +253,12 @@ const AppInner: React.FC = () => {
       const res = await fetch(`/api/load/${encodeURIComponent(name)}`);
       if (res.ok) {
         const data = await res.json();
-        setWorkflow(data.workflow);
+        // Server returns edges: [] (derived from node.next at runtime). Rebuild here.
+        const loaded: Workflow = {
+          ...data.workflow,
+          edges: rebuildEdges(data.workflow.nodes, t),
+        };
+        setWorkflow(loaded);
         setCurrentWorkflowName(name);
         setHasUnsavedChanges(false);
         setSelectedNode(null);
@@ -238,7 +267,7 @@ const AppInner: React.FC = () => {
     } catch (err) {
       console.error('Failed to load workflow:', err);
     }
-  }, []);
+  }, [t]);
 
   const handleNew = useCallback(() => {
     setWorkflow({ ...defaultWorkflow });
@@ -272,6 +301,17 @@ const AppInner: React.FC = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${workflow.name || 'workflow'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [workflow]);
+
+  const handleDownloadMd = useCallback(() => {
+    const data = serializeWorkflowMd(workflow);
+    const blob = new Blob([data], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflow.name || 'workflow'}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }, [workflow]);
@@ -369,13 +409,23 @@ const AppInner: React.FC = () => {
               {copied ? t.copied : copyLabel}
             </button>
             {activeTab === 'json' && (
-              <button
-                onClick={handleDownloadJson}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
-              >
-                <Download size={12} />
-                Download
-              </button>
+              <>
+                <button
+                  onClick={handleDownloadJson}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+                >
+                  <Download size={12} />
+                  JSON
+                </button>
+                <button
+                  onClick={handleDownloadMd}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+                  title="Download canonical Markdown (frontmatter + prose)"
+                >
+                  <Download size={12} />
+                  MD
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -400,6 +450,14 @@ const AppInner: React.FC = () => {
   ];
 
   const isLightTheme = themeId === 'warm' || themeId === 'minimal';
+
+  if (viewerName) {
+    return (
+      <div className={`h-screen flex flex-col ${theme.bgPrimary}`}>
+        <ViewerPage workflowName={viewerName} onExit={closeViewer} />
+      </div>
+    );
+  }
 
   return (
     <div className={`h-screen flex flex-col ${theme.bgPrimary} transition-colors duration-500`}>
@@ -473,8 +531,18 @@ const AppInner: React.FC = () => {
           ))}
         </div>
 
-        {/* Right: Settings */}
+        {/* Right: Viewer + Settings */}
         <div className="flex items-center gap-2">
+          {currentWorkflowName && (
+            <button
+              onClick={() => openViewer(currentWorkflowName)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${theme.bgCardHover} ${theme.textMuted} hover:${theme.textPrimary} ${theme.borderRadius} transition-all cursor-pointer`}
+              title="Open in viewer mode (read-only documentation view)"
+            >
+              <Eye size={14} />
+              <span className="hidden md:inline">Viewer</span>
+            </button>
+          )}
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`p-1.5 ${theme.bgCardHover} ${theme.textMuted} ${theme.borderRadius} transition-all duration-200 cursor-pointer`}

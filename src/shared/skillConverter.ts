@@ -93,6 +93,20 @@ export function topologicalSort(nodes: WorkflowNode[]): WorkflowNode[] {
 }
 
 /**
+ * Short human-readable heading for a node — prefers `title` (the new short label),
+ * falls back to a truncated description, then the raw node_id.
+ */
+function nodeHeading(node: WorkflowNode): string {
+  if (node.title && node.title.trim()) return node.title.trim();
+  const desc = (node.description || '').trim();
+  if (desc.length === 0) return node.node_id;
+  // Take the first line and clamp to ~60 chars so we don't dump a multi-paragraph prompt into the heading
+  const firstLine = desc.split(/\r?\n/)[0];
+  if (firstLine.length <= 60) return firstLine;
+  return firstLine.slice(0, 57) + '...';
+}
+
+/**
  * Convert a workflow into a SKILL.md format string.
  * @param nameOverride - Optional ASCII skill name. If omitted, derived from workflow.name.
  */
@@ -139,11 +153,15 @@ export function workflowToSkillMd(workflow: Workflow, lang: 'en' | 'zh-TW' = 'en
 
   sorted.forEach((node, i) => {
     const step = i + 1;
-    lines.push(`## Stage ${step}: ${node.description}`);
+    lines.push(`## Stage ${step}: ${nodeHeading(node)}`);
     lines.push('');
     lines.push(`- **Type:** ${node.node_type}`);
     lines.push(`- **Inputs:** ${node.inputs.length > 0 ? node.inputs.join(', ') : 'none'}`);
     lines.push(`- **Expected Output:** ${node.outputs.length > 0 ? node.outputs.join(', ') : 'none'}`);
+    if (node.description && node.description.trim().length > 0) {
+      lines.push('');
+      lines.push(node.description.trim());
+    }
     lines.push('');
   });
 
@@ -163,7 +181,7 @@ export function workflowToSkillMd(workflow: Workflow, lang: 'en' | 'zh-TW' = 'en
       const config = node.config || {};
 
       if (node.node_type === NodeType.ScriptExecution) {
-        lines.push(`## ${node.description} (ScriptExecution)`);
+        lines.push(`## ${nodeHeading(node)} (ScriptExecution)`);
         lines.push('');
         lines.push(`- **Script Type:** ${config.scriptType || config.script_type || 'unknown'}`);
         if (config.content || config.script) {
@@ -174,19 +192,19 @@ export function workflowToSkillMd(workflow: Workflow, lang: 'en' | 'zh-TW' = 'en
         }
         lines.push('');
       } else if (node.node_type === NodeType.MCPTool) {
-        lines.push(`## ${node.description} (MCPTool)`);
+        lines.push(`## ${nodeHeading(node)} (MCPTool)`);
         lines.push('');
         lines.push(`- **Tool Name:** ${config.toolName || config.tool_name || 'unknown'}`);
         lines.push('');
       } else if (node.node_type === NodeType.AgentSkill) {
         const provider = config.provider || 'unknown';
         const skill = config.skill || config.skillName || 'unknown';
-        lines.push(`## ${node.description} (AgentSkill)`);
+        lines.push(`## ${nodeHeading(node)} (AgentSkill)`);
         lines.push('');
         lines.push(`- **Skill:** ${provider}:${skill}`);
         lines.push('');
       } else if (node.node_type === NodeType.Condition) {
-        lines.push(`## ${node.description} (Condition)`);
+        lines.push(`## ${nodeHeading(node)} (Condition)`);
         lines.push('');
         const trueTarget = node.next[0] || 'end';
         const falseTarget = node.next[1] || 'end';

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { WorkflowNode, NodeType } from '../types';
 import { NODE_ICONS, getNodeColors } from '../constants';
-import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, Trash2, Settings, Plus, Minus, Info, Terminal, Wrench, Cpu, AlertCircle, ChevronDown, ChevronRight, Type } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { titleCase } from '@shared/workflowMd';
 
 interface Props {
   node: WorkflowNode | null;
@@ -12,7 +13,10 @@ interface Props {
   onUpdate: (updates: Partial<WorkflowNode>) => void;
 }
 
-const MAX_DESCRIPTION_LENGTH = 350;
+const TITLE_MAX_LENGTH = 80;
+const TITLE_WARN_LENGTH = 60;
+const MAX_DESCRIPTION_LENGTH = 8000;
+const DESCRIPTION_WARN_LENGTH = 6000;
 
 const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, onUpdate }) => {
   const { theme, themeId, t } = useTheme();
@@ -103,8 +107,9 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
             </div>
 
             <div className="space-y-1.5">
-              <label className={`text-[9px] font-bold uppercase tracking-wider ${isLight ? 'text-stone-400' : 'text-white/30'}`}>Node ID</label>
+              <label htmlFor={`node-id-${node.node_id}`} className={`text-[9px] font-bold uppercase tracking-wider ${isLight ? 'text-stone-400' : 'text-white/30'}`}>Node ID</label>
               <input
+                id={`node-id-${node.node_id}`}
                 value={pendingNodeId}
                 onChange={(e) => {
                   const newId = e.target.value;
@@ -115,11 +120,19 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                     setNodeIdError(t.nodeIdDuplicate);
                   } else {
                     setNodeIdError(null);
-                    onUpdate({ node_id: newId });
+                    // If title is currently derived from the old id, slide it to the new id.
+                    // If user has already customized the title, leave it untouched.
+                    const updates: Partial<WorkflowNode> = { node_id: newId };
+                    const currentTitle = (node.title ?? '').trim();
+                    if (currentTitle === titleCase(node.node_id)) {
+                      updates.title = titleCase(newId);
+                    }
+                    onUpdate(updates);
                   }
                 }}
                 placeholder={t.nodeIdPlaceholder}
-                className={`w-full rounded-lg px-3 py-2 text-sm font-bold border focus:outline-none transition-all ${
+                aria-invalid={nodeIdError ? 'true' : 'false'}
+                className={`w-full rounded-lg px-3 py-2 text-sm font-bold font-mono border focus:outline-none transition-all ${
                   isLight
                     ? `bg-white/60 text-stone-700 ${nodeIdError ? 'border-rose-300 focus:border-rose-500' : 'border-stone-200 focus:border-teal-500'}`
                     : `bg-white/5 text-white ${nodeIdError ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 focus:border-blue-500/50'} focus:bg-white/10`
@@ -132,32 +145,77 @@ const NodeProperties: React.FC<Props> = ({ node, allNodeIds, onClose, onDelete, 
                 </div>
               )}
             </div>
+
+            <div className="space-y-1.5 mt-3">
+              <label
+                htmlFor={`node-title-${node.node_id}`}
+                className={`text-[9px] font-bold uppercase tracking-wider ${isLight ? 'text-stone-400' : 'text-white/30'} flex items-center gap-1.5`}
+              >
+                <Type size={11} />
+                {t.titleLabel}
+              </label>
+              <input
+                id={`node-title-${node.node_id}`}
+                value={node.title || ''}
+                onChange={(e) => {
+                  if (e.target.value.length <= TITLE_MAX_LENGTH) {
+                    onUpdate({ title: e.target.value });
+                  }
+                }}
+                maxLength={TITLE_MAX_LENGTH}
+                placeholder={t.titlePlaceholder}
+                aria-describedby={(node.title?.length ?? 0) >= TITLE_WARN_LENGTH ? `node-title-count-${node.node_id}` : undefined}
+                className={`w-full rounded-lg px-3 py-2 text-sm font-medium border focus:outline-none transition-all ${
+                  isLight
+                    ? 'bg-white/60 text-stone-700 border-stone-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20'
+                    : 'bg-white/5 text-white border-white/10 focus:border-blue-500/50 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/20'
+                }`}
+              />
+              {(node.title?.length ?? 0) >= TITLE_WARN_LENGTH && (
+                <div
+                  id={`node-title-count-${node.node_id}`}
+                  className={`text-[10px] text-right tabular-nums ${
+                    (node.title?.length ?? 0) >= TITLE_MAX_LENGTH ? 'text-rose-400' : 'text-amber-400'
+                  }`}
+                >
+                  {node.title?.length ?? 0}/{TITLE_MAX_LENGTH}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider flex items-center gap-2`}>
+            <label
+              htmlFor={`node-desc-${node.node_id}`}
+              className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider flex items-center gap-2`}
+            >
               <Info size={12} className="text-blue-400 opacity-60" />
               {t.functionDescription}
             </label>
-            <div className="relative">
-              <textarea
-                value={node.description}
-                onChange={(e) => {
-                  if (e.target.value.length <= MAX_DESCRIPTION_LENGTH) {
-                    onUpdate({ description: e.target.value });
-                  }
-                }}
-                maxLength={MAX_DESCRIPTION_LENGTH}
-                className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 ${isLight ? 'focus:ring-teal-400/20' : 'focus:ring-blue-500/20'} resize-none h-32 leading-relaxed`}
-                placeholder={t.descriptionHint}
-              />
-              <div className={`absolute bottom-2 right-2 text-xs ${
+            <textarea
+              id={`node-desc-${node.node_id}`}
+              value={node.description}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_DESCRIPTION_LENGTH) {
+                  onUpdate({ description: e.target.value });
+                }
+              }}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+              aria-describedby={`node-desc-count-${node.node_id}`}
+              className={`w-full ${theme.bgCard} p-3 ${theme.borderRadius} border ${theme.borderColor} text-sm ${theme.textSecondary} focus:outline-none focus:ring-2 ${isLight ? 'focus:ring-teal-400/20' : 'focus:ring-blue-500/20'} resize-y min-h-40 max-h-80 leading-relaxed`}
+              placeholder={t.descriptionHint}
+            />
+            <div
+              id={`node-desc-count-${node.node_id}`}
+              className={`text-[10px] text-right tabular-nums ${
                 node.description.length >= MAX_DESCRIPTION_LENGTH
-                  ? 'text-red-400'
+                  ? 'text-rose-400'
+                  : node.description.length >= DESCRIPTION_WARN_LENGTH
+                  ? 'text-amber-400'
                   : theme.textMuted
-              }`}>
-                {node.description.length}/{MAX_DESCRIPTION_LENGTH}
-              </div>
+              }`}
+            >
+              {node.description.length.toLocaleString()} {t.charCountSuffix}
             </div>
           </div>
         </div>

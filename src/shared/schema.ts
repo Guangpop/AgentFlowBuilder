@@ -21,7 +21,8 @@ export const WORKFLOW_SCHEMA = {
                 enum: ["UserInput", "AgentReasoning", "Condition", "AgentQuestion", "UserResponse", "AgentAction", "ScriptExecution", "MCPTool", "AgentSkill"],
                 description: "Type of the node"
               },
-              description: { type: "string" },
+              title: { type: "string", description: "Short human label (<=80 chars) shown in canvas and diagrams." },
+              description: { type: "string", description: "Long-form prose content (the agent-facing instruction or detail). No length limit." },
               inputs: { type: "array", items: { type: "string" } },
               outputs: { type: "array", items: { type: "string" } },
               next: { type: "array", items: { type: "string" }, description: "List of next node IDs this node points to." },

@@ -70,8 +70,13 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     });
 
     watcher.on('all', (event, filePath) => {
-      if (filePath.endsWith('.json')) {
-        const name = path.basename(filePath, '.json');
+      let name: string | null = null;
+      if (filePath.endsWith('.md')) {
+        name = path.basename(filePath, '.md');
+      } else if (filePath.endsWith('.json')) {
+        name = path.basename(filePath, '.json');
+      }
+      if (name !== null) {
         res.write(`data: ${JSON.stringify({ event, name, path: filePath })}\n\n`);
       }
     });
@@ -86,6 +91,7 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       root: path.resolve(__dirname, '../../src/web-app'),
+      configFile: path.resolve(__dirname, '../../vite.config.ts'),
       server: { middlewareMode: true },
       appType: 'spa',
     });
