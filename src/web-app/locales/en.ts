@@ -150,6 +150,17 @@ export const en: LocaleStrings = {
   chatHint: 'Paste this prompt into any LLM chat (ChatGPT / Gemini / Grok…)',
   copyChatPrompt: 'Copy Chat Prompt',
 
+  // Import flow (sidebar)
+  importFromFile: 'From file',
+  importFromFileHint: '.md / .json / .pdf / .docx / .pptx / image …',
+  importFromUrl: 'From URL',
+  importFromUrlHint: 'Article URL or YouTube link',
+  urlInputLabel: 'URL',
+  urlPlaceholder: 'https://… or YouTube link',
+  importButton: 'Import',
+  importedToast: 'Imported',
+  importedAsDraftToast: 'Imported as draft — edit on canvas',
+
   // Prefix Templates
   prefixClaudeSkills: `Based on the following workflow, generate a Claude Code Skill.
 

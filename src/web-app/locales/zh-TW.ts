@@ -148,6 +148,17 @@ export const zhTW = {
   chatHint: '把這段 Prompt 貼進任何 LLM 聊天框（ChatGPT / Gemini / Grok…）',
   copyChatPrompt: '複製 Chat Prompt',
 
+  // Import flow (sidebar)
+  importFromFile: '從檔案匯入',
+  importFromFileHint: '.md / .json / .pdf / .docx / .pptx / 圖片 …',
+  importFromUrl: '從 URL 匯入',
+  importFromUrlHint: '文章網址或 YouTube 連結',
+  urlInputLabel: 'URL',
+  urlPlaceholder: 'https://… 或 YouTube 連結',
+  importButton: '匯入',
+  importedToast: '已匯入',
+  importedAsDraftToast: '已轉成草稿載入，請到畫布調整',
+
   // Prefix Templates
   prefixClaudeSkills: `請根據以下工作流程，產生一個 Claude Code Skill。
 

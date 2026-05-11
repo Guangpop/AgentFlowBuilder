@@ -2,8 +2,11 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
+import * as os from 'os';
+import { spawn } from 'child_process';
 import chokidar from 'chokidar';
 import { FileManager } from '../mcp/fileManager.js';
+import { shapeMdToWorkflow } from '../shared/mdToWorkflow.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -57,6 +60,85 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     }
   });
 
+
+  /**
+   * Run markitdown on a local file or URL. Returns stdout (markdown) or throws
+   * a user-readable error if Python or markitdown isn't installed.
+   *
+   * The user provides either an arbitrary URL or a tmpfile path we control —
+   * neither is shell-interpolated (we use spawn(file, [args], no-shell)).
+   */
+  async function runMarkitdown(target: string): Promise<{ md: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn('python3', ['-m', 'markitdown', target], { shell: false });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout.on('data', (c) => { stdout += c.toString(); });
+      proc.stderr.on('data', (c) => { stderr += c.toString(); });
+      proc.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'ENOENT') {
+          reject(new Error('python3 not found on PATH. Install Python 3.10+ to import binary files / URLs.'));
+        } else {
+          reject(err);
+        }
+      });
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          if (/No module named markitdown/i.test(stderr)) {
+            reject(new Error(`markitdown is not installed. Run:  pip install 'markitdown[all]'`));
+            return;
+          }
+          reject(new Error(stderr.trim() || `markitdown exited with code ${code}`));
+          return;
+        }
+        resolve({ md: stdout, stderr });
+      });
+    });
+  }
+
+  // API: Import URL (JSON body parsed by the global express.json middleware)
+  app.post('/api/import', async (req, res, next) => {
+    const contentType = (req.headers['content-type'] || '').toLowerCase();
+    if (!contentType.includes('application/json')) {
+      return next(); // fall through to the raw handler below
+    }
+    try {
+      const url: string = req.body?.url;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'url field is required' });
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        return res.status(400).json({ error: 'URL must start with http:// or https://' });
+      }
+      const { md } = await runMarkitdown(url);
+      const fallbackName = url.replace(/^https?:\/\//, '').replace(/[^\w\-]+/g, '_').slice(0, 60) || 'imported_url';
+      const { workflow, warnings } = shapeMdToWorkflow(md, fallbackName);
+      return res.json({ workflow, warnings, sourceMd: md });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'URL import failed' });
+    }
+  });
+
+  // API: Import file (raw binary body, filename in x-filename header)
+  app.post('/api/import', express.raw({ type: '*/*', limit: '50mb' }), async (req, res) => {
+    const filename = decodeURIComponent((req.headers['x-filename'] as string) || 'upload.bin');
+    const safeName = filename.replace(/[^\w.\-]/g, '_');
+    const tmpPath = path.join(os.tmpdir(), `agentflow-import-${Date.now()}-${safeName}`);
+    try {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ error: 'Empty body' });
+      }
+      fs.writeFileSync(tmpPath, req.body);
+      const { md } = await runMarkitdown(tmpPath);
+      const fallbackName = path.basename(filename, path.extname(filename)) || 'imported_file';
+      const { workflow, warnings } = shapeMdToWorkflow(md, fallbackName);
+      return res.json({ workflow, warnings, sourceMd: md });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'File import failed' });
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch { /* best-effort */ }
+    }
+  });
 
   // SSE: Watch for file changes
   app.get('/api/watch', (req, res) => {
