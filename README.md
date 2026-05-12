@@ -1,12 +1,22 @@
 # AgentFlowBuilder
 
-> Design AI agent workflows visually. Generate executable skills and commands for Claude Code, Cursor, and Antigravity — no coding required.
+> **English** · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md)
 
-![AgentFlowBuilder Screenshot](images/hero-banner.png)
+> Design AI agent workflows visually. Generate executable skills and commands for Claude Code, Cursor, and Antigravity — or copy a self-contained prompt to paste into ChatGPT / Gemini / Grok. No coding required.
+
+![AgentFlowBuilder Screenshot](docs/images/showcase-en.png)
 
 AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams into production-ready AI agent instructions. You design the flow, your AI assistant writes the code.
 
 **Zero API cost.** The server makes no LLM calls — Claude does all the reasoning using your existing subscription.
+
+## What's new
+
+- **Multilingual UI** — English, 繁體中文, 日本語 (switch in Settings)
+- **Chat mode** — for users without an IDE: copy a step-by-step or plan-then-execute prompt and paste it into ChatGPT / Gemini / Grok / Claude.ai
+- **Read & Walk viewer** — render any workflow.md as a clean reading view, or step through stage-by-stage with branch peek and Mermaid path coloring
+- **Import from anywhere** — `.md` / `.json` natively, `.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / URL / YouTube via [markitdown](https://github.com/microsoft/markitdown)
+- **Canonical Markdown storage** — workflows live as `workflows/*.md` (YAML frontmatter + prose body); `.json` is legacy cache
 
 ## Why AgentFlowBuilder?
 

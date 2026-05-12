@@ -95,9 +95,14 @@ describe('FileManager (.md primary, .json legacy)', () => {
     expect(list.filter((e) => e.name === 'dup').length).toBe(1);
   });
 
-  it('loads each of the migrated repository workflows', () => {
+  it('loads each of the showcase repository workflows', () => {
     const realFm = new FileManager(path.join(REPO_ROOT, 'workflows'));
-    for (const name of ['customer_service_agent', 'deep_research_agent', 'run-miraruka', 'run-miraruka-auto']) {
+    for (const name of [
+      'customer_service_agent',
+      'deep_research_agent',
+      'issue_triage_test',
+      'oiwai_message_assistant',
+    ]) {
       const { workflow, path: loadedPath } = realFm.load(name);
       expect(loadedPath.endsWith('.md')).toBe(true);
       expect(workflow.nodes.length).toBeGreaterThan(0);

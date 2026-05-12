@@ -305,19 +305,35 @@ body
   });
 });
 
-describe('parses real legacy workflow shape via JSON -> MD -> Workflow', () => {
-  const FIXTURES = [
-    'customer_service_agent.json',
-    'deep_research_agent.json',
-    'run-miraruka.json',
-    'run-miraruka-auto.json',
-  ];
+describe('legacy JSON shape → MD → Workflow round-trip', () => {
+  // Synthetic legacy JSON fixtures (the on-disk .json files have been
+  // dropped in favor of .md canonical storage). These cover the shapes
+  // we still need to be able to import.
+  const SYNTHETIC_FIXTURES: Record<string, any> = {
+    'linear_no_config': {
+      name: 'linear_flow',
+      description: 'simple linear pipeline',
+      nodes: [
+        { node_id: 'a', node_type: 'UserInput', description: 'start', inputs: [], outputs: ['x'], next: ['b'], position: { x: 0, y: 0 } },
+        { node_id: 'b', node_type: 'AgentReasoning', description: 'think', inputs: ['x'], outputs: ['y'], next: [] , position: { x: 100, y: 0 } },
+      ],
+      edges: [],
+    },
+    'with_condition_and_config': {
+      name: 'conditional_flow',
+      description: 'has a branch and a script node',
+      nodes: [
+        { node_id: 'in', node_type: 'UserInput', description: 'in', inputs: [], outputs: [], next: ['gate'], position: { x: 0, y: 0 } },
+        { node_id: 'gate', node_type: 'Condition', description: 'branch', inputs: [], outputs: [], next: ['yes', 'no'], position: { x: 100, y: 0 } },
+        { node_id: 'yes', node_type: 'AgentAction', description: 'happy path', inputs: [], outputs: [], next: [], position: { x: 200, y: 0 } },
+        { node_id: 'no',  node_type: 'ScriptExecution', description: 'fallback', inputs: [], outputs: [], next: [], position: { x: 200, y: 100 }, config: { scriptType: 'shell', scriptContent: 'echo nope' } },
+      ],
+      edges: [],
+    },
+  };
 
-  for (const file of FIXTURES) {
-    it(`round-trips ${file} (modulo edges and added title)`, () => {
-      const json = JSON.parse(readFileSync(join(REPO_ROOT, 'workflows', file), 'utf8'));
-
-      // Adapt to new shape (add titles derived from node_id)
+  for (const [label, json] of Object.entries(SYNTHETIC_FIXTURES)) {
+    it(`round-trips ${label} (modulo edges and added title)`, () => {
       const wf: Workflow = {
         name: json.name,
         description: json.description ?? '',

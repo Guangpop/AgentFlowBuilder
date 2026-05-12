@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AgentFlow Builder (`agentflow-mcp`) is an npm MCP Server package for AI Agent workflow generation. It includes a visual node-based workflow editor web UI and an MCP server that exposes 12 tools to AI assistants like Claude — including a skill quality gate that auto-grades, iterates, and publishes production-ready skills. Built with TypeScript, Express, React 19, and Vite.
 
+Workflows are stored as **Markdown** (`workflows/*.md`, YAML frontmatter + prose body) as the canonical format; `.json` is a legacy/cache fallback.
+
 ## Commands
 
 ```bash
@@ -15,56 +17,69 @@ npm run build:web      # Build React web app (Vite)
 npm run dev:mcp        # Run MCP server in dev mode
 npm run dev:web        # Run web UI in dev mode (with HMR)
 npm start              # Run production web server (port 3000)
+npx vitest run         # Run unit tests
 ```
 
 ## Architecture
 
 ```
 src/
-├── shared/                  # Types, validation, export, prompts, schema, skill pipeline
+├── shared/                  # Pure logic shared across server / web
 │   ├── types.ts             # WorkflowNode, Edge, Workflow, NodeType enum
 │   ├── constants.ts         # Node metadata, categories, defaults
 │   ├── schema.ts            # JSON schema for workflow generation
+│   ├── workflowSchema.ts    # Zod runtime schema (used in MD parser)
+│   ├── workflowMd.ts        # Parser/serializer: workflow ↔ Markdown (canonical)
+│   ├── mdToWorkflow.ts      # Best-effort shaper: generic md → workflow draft
 │   ├── validation.ts        # Structural validation rules
 │   ├── postProcess.ts       # ID cleanup, auto-layout, edge rebuilding
-│   ├── export.ts            # JSON / Markdown / Mermaid export
-│   ├── prompts/             # i18n prompt templates (en, zh-TW)
-│   ├── skillConverter.ts    # Workflow → SKILL.md conversion
+│   ├── export.ts            # Mermaid + Markdown export + sanitizeMermaidLabel
+│   ├── prompts/             # i18n prompt templates (en / zh-TW / ja)
+│   │   ├── chatPrompt.ts    # Self-contained "paste into ChatGPT/Gemini" prompt
+│   │   ├── en.ts            # English AI prompts
+│   │   ├── zh-TW.ts         # Traditional Chinese AI prompts
+│   │   └── ja.ts            # Japanese AI prompts
+│   ├── skillConverter.ts    # Workflow → SKILL.md conversion (topologicalSort)
 │   ├── skillGrading.ts      # Quality gate prompts (grade / improve / optimize)
 │   └── skillPublisher.ts    # Publish to ~/.claude/skills/
 ├── mcp/
 │   ├── server.ts            # MCP Server (stdio, 12 tools registered here)
-│   └── fileManager.ts       # Workflow file I/O (./workflows/*.json)
+│   └── fileManager.ts       # Workflow file I/O (.md primary, .json legacy)
 ├── web/
-│   └── server.ts            # Express server + REST APIs + SSE + Vite dev integration
+│   └── server.ts            # Express server + REST + SSE + /api/import (markitdown spawn)
 ├── web-app/
-│   ├── App.tsx              # Main React app
+│   ├── App.tsx              # Main React app (canvas / instructions / mermaid / md / json tabs)
 │   ├── index.tsx            # React DOM entry
 │   ├── components/
-│   │   ├── WorkflowCanvas.tsx    # Main canvas editor (pan, zoom, drag-to-connect)
-│   │   ├── NodeProperties.tsx    # Node configuration panel
-│   │   ├── InstructionsTab.tsx   # Agent instructions + IDE export + Copy SOP Prompt
-│   │   ├── ChatSidebar.tsx       # Chat/assistant sidebar
-│   │   ├── SettingsPanel.tsx     # Global settings
-│   │   ├── WelcomeModal.tsx      # Initial onboarding modal
-│   │   ├── MermaidPreview.tsx    # Mermaid diagram preview
-│   │   └── ThemePreviewCard.tsx  # Theme viewer
+│   │   ├── WorkflowCanvas.tsx    # Canvas editor (pan, zoom, drag-to-connect)
+│   │   ├── NodeProperties.tsx    # Node configuration panel (title + description)
+│   │   ├── InstructionsTab.tsx   # IDE / Chat tab — generates SOP / chat prompts
+│   │   ├── ChatSidebar.tsx       # Sidebar: workflow list + Import dropdown (File / URL)
+│   │   ├── SettingsPanel.tsx     # Theme + language picker
+│   │   ├── WelcomeModal.tsx      # First-run onboarding
+│   │   ├── MermaidPreview.tsx    # Mermaid render with theme-aware variables
+│   │   ├── ThemePreviewCard.tsx  # Theme picker card
+│   │   ├── ViewerPage.tsx        # Thin re-export → viewer/
+│   │   └── viewer/
+│   │       ├── ViewerPage.tsx        # Orchestrator: mode + walk state + Mermaid coloring
+│   │       ├── ReadModeContent.tsx   # Read mode — article + Condition BranchTabs + back pill
+│   │       ├── WalkModeContent.tsx   # Walk mode — single-card step + action buttons
+│   │       ├── WalkBreadcrumb.tsx    # Trail breadcrumb (rewind-on-click)
+│   │       ├── ViewerTOC.tsx         # TOC with three-state (current/visited/faded)
+│   │       ├── BranchTabs.tsx        # Condition TRUE/FALSE 5-step BFS preview
+│   │       ├── BranchCard.tsx        # Single TRUE/FALSE branch card
+│   │       ├── NodeTypeChip.tsx      # Node-type chip palette (light + dark)
+│   │       └── viewerUtils.ts        # renderMarkdown, splitNodeForViewer, BFS, entry node
 │   ├── contexts/
-│   │   ├── ThemeContext.tsx      # Theme management
+│   │   ├── ThemeContext.tsx      # Theme + language management
 │   │   └── ToastContext.tsx      # Toast notifications
-│   ├── locales/             # i18n (en, zh-TW)
-│   └── styles/themes.ts    # Tailwind theme configuration
+│   ├── locales/             # UI i18n (en, zh-TW, ja)
+│   └── styles/themes.ts    # 4 themes: warm, techDark, glassmorphism, minimal
 └── cli.ts                   # CLI entry (default: MCP server, `serve`: web UI)
 
 .claude/skills/
 ├── skill-grader/            # 6-pillar 100-point scoring rubric
-│   ├── SKILL.md
-│   └── references/          # scoring-rubric.md, report-template.md, pda-architecture.md, grading-example.md
 └── skill-creator/           # Skill creation patterns + description optimizer
-    ├── SKILL.md
-    ├── agents/              # grader.md, comparator.md, analyzer.md
-    ├── references/          # schemas.md
-    └── scripts/             # Description optimization scripts
 ```
 
 ### MCP Server (`src/mcp/server.ts`)
@@ -74,15 +89,18 @@ src/
 
 ### Web UI (`src/web-app/`)
 - React 19 + TypeScript + Vite single-page application
-- 8 components + 2 contexts
-- Visual node-based workflow editor with canvas, sidebars, instructions tab
-- Served by the Express server in production
+- 4 themes (warm / techDark / glassmorphism / minimal) — use `theme.*` tokens, never hardcoded colors
+- 3 UI languages (en / zh-TW / ja) via `useTheme().t`
+- Viewer (`?mode=view&workflow=name` or click "Viewer" in header) renders workflow.md
 - Build config: `vite.config.ts` (root: `src/web-app`, output: `dist/web-app`)
 
 ### Web Server (`src/web/server.ts`)
 - Express server serving the built web app and REST APIs
-- APIs: `/api/list`, `/api/load/:name`, `/api/save`, `/api/delete/:name`, `/api/watch` (SSE)
-- Manages workflows as JSON files in a local `workflows/` directory
+- APIs:
+  - `/api/list`, `/api/load/:name`, `/api/save`, `/api/delete/:name`
+  - `/api/watch` (SSE for file change events)
+  - `/api/import` — file (`application/octet-stream` body + `x-filename` header) or URL (`application/json` body) → markitdown → workflow draft
+- markitdown is spawned via `markitdown` CLI first (pipx / uv tool / brew pip), falls back to `python3 -m markitdown`
 - Integrates Vite dev server when `--dev` flag is passed
 
 ### CLI (`src/cli.ts`)
@@ -100,19 +118,34 @@ src/
 | **System** | `Condition`, `ScriptExecution`, `MCPTool`, `AgentSkill` |
 
 ### Key Patterns
-- Edges are rebuilt from each node's `next` array (source of truth)
-- Condition nodes require exactly 2 outputs (True/False branches)
-- Node IDs are auto-slugified (lowercase, underscores)
-- Workflows are stored as JSON files on disk (`./workflows/`)
-- SSE (`/api/watch`) keeps web UI and MCP tools in real-time sync
+- **Canonical storage = Markdown.** YAML frontmatter holds the skeleton (nodes + `next`); prose bodies hold long-form descriptions per node section (`## Title {#node_id}`).
+- **Edges are derived from `next[]`** at load time — never stored in the MD.
+- **Condition nodes** require exactly 2 outputs (True/False branches).
+- **Node IDs** are auto-slugified (lowercase, underscores or CJK).
+- **`title` is short**, `description` is long-form prose.
+- **SSE (`/api/watch`)** keeps web UI and MCP tools in real-time sync.
+- **Showcase workflows whitelist**: `.gitignore` ignores all `workflows/*.md` by default; only the four demos (`customer_service_agent`, `deep_research_agent`, `issue_triage_test`, `oiwai_message_assistant`) are explicitly allowed. To publish a new demo, add an explicit `!workflows/<name>.md` line.
+
+### Instructions Tab — IDE vs Chat
+- **IDE tab** (Claude / Antigravity / Cursor): generates prefix + Hierarchical Disclosure prompt + Skill Quality Gate instructions. User pastes into the AgentFlowBuilder project's AI tool, which runs the quality loop.
+- **Chat tab** (ChatGPT / Gemini / Grok / Claude.ai / DeepSeek): generates a self-contained prompt with workflow SOP, branching table, and operating rules. User pastes into any LLM chat. Two execution modes: **Step-by-step** (agent pauses each stage) or **Plan-then-Execute** (agent shows full plan, waits for GO).
+
+### Import Dropdown (sidebar)
+- **From file** (`.md` / `.json` native; everything else → `/api/import` → markitdown subprocess → `shapeMdToWorkflow`)
+- **From URL** (regular URL → markitdown with YAML frontmatter; YouTube URL → transcript)
+- markitdown installation: `uv tool install 'markitdown[all]'` or `pipx install 'markitdown[all]'`
+
+### Viewer (Read + Walk)
+- **Read mode**: article-style render with section nav, Condition node TRUE/FALSE BranchTabs (5-step BFS preview), back-pill on jump
+- **Walk mode**: single-card step navigation, action buttons (Next / TRUE-FALSE / Loop back / End reached), trail breadcrumb, Mermaid `.walked-current/visited/faded` coloring, TOC three-state
 
 ### Export Formats
 - **Skills** (.md) — reusable agent capabilities with YAML frontmatter
 - **Commands** (.md) — slash commands triggered by user input
 - **Workflows** (.md) — step-by-step execution plans
-- **JSON** — raw workflow data for backup or sharing
+- **JSON** — raw workflow data (legacy / backup)
 - **Markdown** — system design documentation
-- **Mermaid** — visual flow diagrams
+- **Mermaid** — visual flow diagrams (output sanitized via `sanitizeMermaidLabel`)
 
 ### Skill Quality Gate
 Workflow → SKILL.md conversion pipeline with automatic quality enforcement:
@@ -130,10 +163,12 @@ Pillar weights: Progressive Disclosure (30), Ease of Use (25), Utility (20), Spe
 - `vite.config.ts` — builds `src/web-app/` to `dist/web-app/`
 - `tailwind.config.js` — scans `src/web-app/**/*.{tsx,ts,jsx,js}`
 - `postcss.config.js` — Tailwind + Autoprefixer
+- `vitest.config.ts` — test runner config (uses `*.test.ts` co-located with sources)
 
 ## Notes
-- UI text is in Traditional Chinese (i18n supported: en, zh-TW)
-- All styling assumes dark theme (slate-950 base)
-- Package type is ESM (`"type": "module"`)
-- No external auth, payment, or cloud dependencies
-- No LLM calls — MCP tools return prompt templates; the AI assistant does all reasoning
+- **i18n**: UI supports en / zh-TW / ja. Default = browser language. Switch in Settings.
+- **Themes**: 4 themes (warm / techDark / glassmorphism / minimal). All components must use `theme.*` tokens from `useTheme()`; never hardcode colors.
+- **No LLM calls in this codebase.** MCP tools return prompt templates; the AI assistant or user's chat client does all reasoning. The single exception: the optional `/api/import` endpoint spawns markitdown (deterministic, not LLM-based) for file/URL extraction.
+- **Package type** is ESM (`"type": "module"`).
+- **No external auth, payment, or cloud dependencies.**
+- **Tests** (`*.test.ts`) live next to the source file (`workflowMd.test.ts`, `mdToWorkflow.test.ts`, `export.test.ts`, `fileManager.test.ts`). Run with `npx vitest run`.
