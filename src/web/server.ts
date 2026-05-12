@@ -62,38 +62,57 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
 
 
   /**
-   * Run markitdown on a local file or URL. Returns stdout (markdown) or throws
-   * a user-readable error if Python or markitdown isn't installed.
+   * Run markitdown on a local file or URL. Tries the `markitdown` CLI first
+   * (covers pipx / uv tool install / brew pip), falls back to
+   * `python3 -m markitdown` (covers system / brew pip installs).
    *
-   * The user provides either an arbitrary URL or a tmpfile path we control —
-   * neither is shell-interpolated (we use spawn(file, [args], no-shell)).
+   * Inputs come from req.body / req.headers; we use spawn(file, [args])
+   * without shell so neither URL nor tmpfile path is shell-interpolated.
    */
-  async function runMarkitdown(target: string): Promise<{ md: string; stderr: string }> {
-    return new Promise((resolve, reject) => {
-      const proc = spawn('python3', ['-m', 'markitdown', target], { shell: false });
+  function spawnOnce(cmd: string, args: string[]): Promise<{ md: string; stderr: string; spawnError?: NodeJS.ErrnoException }> {
+    return new Promise((resolve) => {
+      const proc = spawn(cmd, args, { shell: false });
       let stdout = '';
       let stderr = '';
       proc.stdout.on('data', (c) => { stdout += c.toString(); });
       proc.stderr.on('data', (c) => { stderr += c.toString(); });
       proc.on('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'ENOENT') {
-          reject(new Error('python3 not found on PATH. Install Python 3.10+ to import binary files / URLs.'));
-        } else {
-          reject(err);
-        }
+        resolve({ md: '', stderr: stderr || err.message, spawnError: err });
       });
       proc.on('close', (code) => {
-        if (code !== 0) {
-          if (/No module named markitdown/i.test(stderr)) {
-            reject(new Error(`markitdown is not installed. Run:  pip install 'markitdown[all]'`));
-            return;
-          }
-          reject(new Error(stderr.trim() || `markitdown exited with code ${code}`));
+        if (code !== 0 && !stdout) {
+          resolve({ md: '', stderr: stderr || `exited with code ${code}` });
           return;
         }
         resolve({ md: stdout, stderr });
       });
     });
+  }
+
+  async function runMarkitdown(target: string): Promise<{ md: string; stderr: string }> {
+    // Try the markitdown CLI (pipx/uv tool/brew pip all put it on PATH).
+    const cli = await spawnOnce('markitdown', [target]);
+    if (!cli.spawnError && cli.md) {
+      return { md: cli.md, stderr: cli.stderr };
+    }
+    const cliMissing = cli.spawnError?.code === 'ENOENT';
+
+    // Fallback: python3 -m markitdown
+    const py = await spawnOnce('python3', ['-m', 'markitdown', target]);
+    if (!py.spawnError && py.md) {
+      return { md: py.md, stderr: py.stderr };
+    }
+    const pyMissing = py.spawnError?.code === 'ENOENT';
+
+    // Both routes failed — craft a clear error.
+    if (cliMissing && pyMissing) {
+      throw new Error("Neither `markitdown` CLI nor `python3` was found on PATH. Install markitdown with:  uv tool install 'markitdown[all]'  (or pipx install).");
+    }
+    if (/No module named markitdown/i.test(py.stderr)) {
+      throw new Error("markitdown is not installed. Install it with:  uv tool install 'markitdown[all]'  (or: pipx install 'markitdown[all]')");
+    }
+    const detail = (py.stderr || cli.stderr).trim();
+    throw new Error(detail || 'markitdown failed');
   }
 
   // API: Import URL (JSON body parsed by the global express.json middleware)
