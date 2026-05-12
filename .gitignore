@@ -41,5 +41,12 @@ docs/
 .claude/commands/
 .playwright-mcp/
 
-# Workflows: canonical is .md; .json is a build/legacy cache, not committed.
+# Workflows directory: only the listed showcase workflows are tracked.
+# Any other .md/.json the user creates locally stays private by default.
+# To publish a new demo, add an explicit whitelist line below.
 workflows/*.json
+workflows/*.md
+!workflows/customer_service_agent.md
+!workflows/deep_research_agent.md
+!workflows/issue_triage_test.md
+!workflows/oiwai_message_assistant.md
