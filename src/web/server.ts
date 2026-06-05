@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { spawn } from 'child_process';
 import chokidar from 'chokidar';
-import { FileManager } from '../mcp/fileManager.js';
+import { FileManager, WorkflowNotFoundError, WorkflowParseError } from '../mcp/fileManager.js';
 import { shapeMdToWorkflow } from '../shared/mdToWorkflow.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,19 +32,25 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
       const result = fm.load(req.params.name);
       res.json(result);
     } catch (err) {
-      res.status(404).json({ error: `Workflow "${req.params.name}" not found` });
+      if (err instanceof WorkflowNotFoundError) {
+        return res.status(404).json({ error: err.message });
+      }
+      if (err instanceof WorkflowParseError) {
+        return res.status(422).json({ error: err.message });
+      }
+      res.status(500).json({ error: 'Failed to load workflow' });
     }
   });
 
   // API: Save workflow
   app.post('/api/save', (req, res) => {
-    const { name, workflow } = req.body;
+    const { name, workflow, format } = req.body;
     if (!name || !workflow) {
       return res.status(400).json({ error: 'name and workflow are required' });
     }
     try {
-      const filePath = fm.save(name, workflow);
-      res.json({ path: filePath, success: true });
+      const result = fm.save(name, workflow, format ? { format } : undefined);
+      res.json({ path: result.path, format: result.format, success: true });
     } catch (err) {
       res.status(500).json({ error: 'Failed to save workflow' });
     }
@@ -52,9 +58,10 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
 
   // API: Delete workflow
   app.delete('/api/delete/:name', (req, res) => {
-    const deleted = fm.delete(req.params.name);
-    if (deleted) {
-      res.json({ success: true });
+    const format = typeof req.query.format === 'string' ? (req.query.format as any) : undefined;
+    const { deleted } = fm.delete(req.params.name, format);
+    if (deleted.length > 0) {
+      res.json({ success: true, deleted });
     } else {
       res.status(404).json({ error: 'Workflow not found' });
     }
@@ -171,13 +178,9 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     });
 
     watcher.on('all', (event, filePath) => {
-      let name: string | null = null;
-      if (filePath.endsWith('.md')) {
-        name = path.basename(filePath, '.md');
-      } else if (filePath.endsWith('.json')) {
-        name = path.basename(filePath, '.json');
-      }
-      if (name !== null) {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.md' || ext === '.json') {
+        const name = path.basename(filePath, ext);
         res.write(`data: ${JSON.stringify({ event, name, path: filePath })}\n\n`);
       }
     });
