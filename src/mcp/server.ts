@@ -159,21 +159,22 @@ export function createServer(): McpServer {
   // Tool 5: save_workflow
   server.tool(
     'save_workflow',
-    'Saves a workflow to a Markdown file (workflows/{name}.md) with YAML frontmatter for structure and prose for per-node long-form content. The .md file is the canonical source; any companion .json is a legacy/cache artifact.',
+    'Saves a workflow to workflows/{name}.{format}. JSON (default) and Markdown are co-equal formats; MD uses YAML frontmatter + prose. If the workflow already exists in exactly one format, that format is preserved unless you pass `format`.',
     {
       name: z.string().describe('Name for the workflow file (will be sanitized for filesystem safety).'),
       workflow: z.record(z.any()).describe('The workflow object to save.'),
+      format: z.enum(['json', 'md']).optional().describe('Save format. Defaults to json, or the existing file format if one exists.'),
       directory: z.string().optional().describe('Directory to save workflows in. Defaults to ./workflows/'),
     },
-    async ({ name, workflow, directory }) => {
+    async ({ name, workflow, format, directory }) => {
       try {
         const fm = new FileManager(directory);
-        const filePath = fm.save(name, workflow as any);
+        const result = fm.save(name, workflow as any, format ? { format } : undefined);
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({ success: true, path: filePath, name }),
+              text: JSON.stringify({ success: true, path: result.path, format: result.format, name }),
             },
           ],
         };
@@ -194,7 +195,7 @@ export function createServer(): McpServer {
   // Tool 6: load_workflow
   server.tool(
     'load_workflow',
-    'Loads a workflow by name. Prefers workflows/{name}.md (canonical); falls back to workflows/{name}.json for unmigrated legacy files. Returns the workflow object and file path.',
+    'Loads a workflow by name. Resolves the file by format precedence (json default, then md); an explicit extension in the name loads that exact format. Returns the workflow, path, selected format, and available formats.',
     {
       name: z.string().describe('Name of the workflow file to load (without extension).'),
       directory: z.string().optional().describe('Directory to load from. Defaults to ./workflows/'),
@@ -202,12 +203,12 @@ export function createServer(): McpServer {
     async ({ name, directory }) => {
       try {
         const fm = new FileManager(directory);
-        const { workflow, path } = fm.load(name);
+        const { workflow, path, format, candidates } = fm.load(name);
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({ workflow, path }),
+              text: JSON.stringify({ workflow, path, format, formats: candidates.map((c: any) => c.format) }),
             },
           ],
         };
@@ -228,7 +229,7 @@ export function createServer(): McpServer {
   // Tool 7: list_workflows
   server.tool(
     'list_workflows',
-    'Lists all workflows in the workflow directory (.md primary, .json legacy fallback). Returns metadata (name, path, modified date, node count, description). If both .md and .json exist for the same basename, the .md is preferred.',
+    'Lists all workflows in the workflow directory. Returns metadata (name, selected path, selectedFormat, available formats, modified date, node count, description). When multiple formats share a basename, selection follows the json-default precedence.',
     {
       directory: z.string().optional().describe('Directory to list workflows from. Defaults to ./workflows/'),
     },
