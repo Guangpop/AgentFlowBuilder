@@ -94,7 +94,9 @@ const AppInner: React.FC = () => {
   const [showMermaidCode, setShowMermaidCode] = useState(false);
 
   const sseRef = useRef<EventSource | null>(null);
-  const handleLoadRef = useRef(handleLoad);
+  // Ref is initialized to null (NOT `handleLoad`, which is declared later — referencing it
+  // here would be a temporal-dead-zone error). The effect below keeps it current.
+  const handleLoadRef = useRef<((name: string) => void) | null>(null);
   useEffect(() => { handleLoadRef.current = handleLoad; });
 
   // Fetch server capabilities on mount
@@ -130,7 +132,7 @@ const AppInner: React.FC = () => {
         setRefreshKey(prev => prev + 1);
         // Auto-reload if the changed file matches current workflow
         if (currentWorkflowName && data.name === currentWorkflowName && data.event !== 'unlink') {
-          handleLoadRef.current(currentWorkflowName);
+          handleLoadRef.current?.(currentWorkflowName);
         }
       } catch {
         // ignore parse errors
