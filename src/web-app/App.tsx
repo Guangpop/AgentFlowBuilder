@@ -3,6 +3,8 @@ import { Workflow, WorkflowNode, NodeType, Edge } from './types';
 import { NODE_COLORS } from './constants';
 import { generateMermaid, generateMarkdown, cleanWorkflowForExport } from '@shared/export';
 import { serializeWorkflowMd } from '@shared/workflowMd';
+import { serializeWorkflowJson } from '@shared/workflowJson';
+import { serializeWorkflowMjs } from '@shared/workflowMjsSerialize';
 import { useTheme } from './contexts/ThemeContext';
 import WorkflowCanvas from './components/WorkflowCanvas';
 import NodeProperties from './components/NodeProperties';
@@ -50,6 +52,16 @@ const AppInner: React.FC = () => {
   const { showToast } = useToast();
   const { show: showWelcome, dismiss: dismissWelcome } = useWelcomeModal();
 
+  const [capabilities, setCapabilities] = useState<{ mjs: boolean }>({ mjs: false });
+  const [exportFormat, setExportFormat] = useState<'json' | 'md' | 'mjs'>('json');
+  const [saveFormat, setSaveFormat] = useState<'json' | 'md' | 'mjs'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('agentflow-save-format');
+      if (stored === 'json' || stored === 'md' || stored === 'mjs') return stored;
+    }
+    return 'json';
+  });
+
   const [workflow, setWorkflow] = useState<Workflow>(defaultWorkflow);
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
@@ -82,6 +94,21 @@ const AppInner: React.FC = () => {
   const [showMermaidCode, setShowMermaidCode] = useState(false);
 
   const sseRef = useRef<EventSource | null>(null);
+
+  // Fetch server capabilities on mount
+  useEffect(() => {
+    fetch('/api/capabilities')
+      .then(r => r.json())
+      .then(setCapabilities)
+      .catch(() => {});
+  }, []);
+
+  // Persist saveFormat to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agentflow-save-format', saveFormat);
+    }
+  }, [saveFormat]);
 
   // SSE: watch for file changes
   useEffect(() => {
@@ -234,7 +261,7 @@ const AppInner: React.FC = () => {
       const res = await fetch('/api/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, workflow }),
+        body: JSON.stringify({ name, workflow, format: saveFormat }),
       });
       if (res.ok) {
         setCurrentWorkflowName(name);
@@ -246,28 +273,37 @@ const AppInner: React.FC = () => {
       console.error('Failed to save workflow:', err);
       showToast('Save failed', 'error');
     }
-  }, [currentWorkflowName, workflow, showToast, t]);
+  }, [currentWorkflowName, workflow, saveFormat, showToast, t]);
 
   const handleLoad = useCallback(async (name: string) => {
     try {
       const res = await fetch(`/api/load/${encodeURIComponent(name)}`);
-      if (res.ok) {
-        const data = await res.json();
-        // Server returns edges: [] (derived from node.next at runtime). Rebuild here.
-        const loaded: Workflow = {
-          ...data.workflow,
-          edges: rebuildEdges(data.workflow.nodes, t),
-        };
-        setWorkflow(loaded);
-        setCurrentWorkflowName(name);
-        setHasUnsavedChanges(false);
-        setSelectedNode(null);
-        setActiveTab('editor');
+      if (!res.ok) {
+        if (res.status === 404) {
+          showToast('Workflow not found', 'error');
+        } else if (res.status === 422) {
+          showToast('This workflow file is corrupt or invalid', 'error');
+        } else {
+          showToast('Failed to load workflow', 'error');
+        }
+        return;
       }
+      const data = await res.json();
+      // Server returns edges: [] (derived from node.next at runtime). Rebuild here.
+      const loaded: Workflow = {
+        ...data.workflow,
+        edges: rebuildEdges(data.workflow.nodes, t),
+      };
+      setWorkflow(loaded);
+      setCurrentWorkflowName(name);
+      setHasUnsavedChanges(false);
+      setSelectedNode(null);
+      setActiveTab('editor');
     } catch (err) {
       console.error('Failed to load workflow:', err);
+      showToast('Failed to load workflow', 'error');
     }
-  }, [t]);
+  }, [t, showToast]);
 
   const handleNew = useCallback(() => {
     setWorkflow({ ...defaultWorkflow });
@@ -294,24 +330,29 @@ const AppInner: React.FC = () => {
 
   // ─── Export helpers ───
 
-  const handleDownloadJson = useCallback(() => {
-    const data = JSON.stringify(cleanWorkflowForExport(workflow), null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
+  const handleDownload = useCallback((fmt: 'json' | 'md' | 'mjs') => {
+    const baseName = workflow.name || 'workflow';
+    let data: string;
+    let mime: string;
+    let ext: string;
+    if (fmt === 'md') {
+      data = serializeWorkflowMd(workflow);
+      mime = 'text/markdown';
+      ext = 'md';
+    } else if (fmt === 'mjs') {
+      data = serializeWorkflowMjs(workflow).code;
+      mime = 'text/javascript';
+      ext = 'mjs';
+    } else {
+      data = serializeWorkflowJson(workflow, { shape: 'clean' });
+      mime = 'application/json';
+      ext = 'json';
+    }
+    const blob = new Blob([data], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflow.name || 'workflow'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [workflow]);
-
-  const handleDownloadMd = useCallback(() => {
-    const data = serializeWorkflowMd(workflow);
-    const blob = new Blob([data], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${workflow.name || 'workflow'}.md`;
+    a.download = `${baseName}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   }, [workflow]);
@@ -383,49 +424,90 @@ const AppInner: React.FC = () => {
     let title = '';
     let copyLabel = '';
 
-    switch (activeTab) {
-      case 'markdown':
-        content = generateMarkdown(workflow, markdownLabels);
-        title = t.systemDesignDoc;
-        copyLabel = t.copyMarkdown;
-        break;
-      case 'json':
-        content = JSON.stringify(cleanWorkflowForExport(workflow), null, 2);
-        title = 'JSON';
-        copyLabel = 'Copy JSON';
-        break;
+    if (activeTab === 'json') {
+      // Derive content from exportFormat
+      if (exportFormat === 'md') {
+        content = serializeWorkflowMd(workflow);
+      } else if (exportFormat === 'mjs') {
+        content = serializeWorkflowMjs(workflow).code;
+      } else {
+        content = serializeWorkflowJson(workflow, { shape: 'clean' });
+      }
+      title = exportFormat.toUpperCase();
+      copyLabel = `Copy ${exportFormat.toUpperCase()}`;
+    } else {
+      // markdown tab
+      content = generateMarkdown(workflow, markdownLabels);
+      title = t.systemDesignDoc;
+      copyLabel = t.copyMarkdown;
     }
+
+    // Export format segments for the JSON/Data tab
+    const formatSegments: { key: 'json' | 'md' | 'mjs'; label: string }[] = [
+      { key: 'json', label: 'JSON' },
+      { key: 'md', label: 'MD' },
+      ...(capabilities.mjs ? [{ key: 'mjs' as const, label: 'MJS' }] : []),
+    ];
+
+    // MJS approximate-export warning note
+    const mjsWarningCount = exportFormat === 'mjs'
+      ? serializeWorkflowMjs(workflow).warnings.length
+      : 0;
 
     return (
       <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
         <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.borderColorLight}`}>
-          <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{title}</span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{title}</span>
+            {exportFormat === 'mjs' && mjsWarningCount > 0 && (
+              <span className={`text-[10px] ${theme.textMuted} font-normal`}>
+                approximate export — {mjsWarningCount} {mjsWarningCount === 1 ? 'note' : 'notes'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {activeTab === 'json' && (
+              <div
+                role="tablist"
+                aria-label="Export format"
+                className={`inline-flex items-center gap-0.5 p-0.5 ${theme.bgTertiary} border ${theme.borderColor} ${theme.borderRadius}`}
+              >
+                {formatSegments.map(seg => {
+                  const sel = exportFormat === seg.key;
+                  return (
+                    <button
+                      key={seg.key}
+                      role="tab"
+                      aria-selected={sel}
+                      onClick={() => setExportFormat(seg.key)}
+                      className={`px-2.5 py-1 text-xs font-medium rounded transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+                        sel
+                          ? `${theme.bgCardHover} ${theme.textPrimary}`
+                          : `${theme.textMuted} hover:${theme.textSecondary}`
+                      }`}
+                    >
+                      {seg.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <button
               onClick={() => handleCopy(content)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? t.copied : copyLabel}
             </button>
             {activeTab === 'json' && (
-              <>
-                <button
-                  onClick={handleDownloadJson}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
-                >
-                  <Download size={12} />
-                  JSON
-                </button>
-                <button
-                  onClick={handleDownloadMd}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all`}
-                  title="Download canonical Markdown (frontmatter + prose)"
-                >
-                  <Download size={12} />
-                  MD
-                </button>
-              </>
+              <button
+                onClick={() => handleDownload(exportFormat)}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
+                title={`Download as .${exportFormat}`}
+              >
+                <Download size={12} />
+                Download
+              </button>
             )}
           </div>
         </div>
@@ -564,6 +646,9 @@ const AppInner: React.FC = () => {
           onImportWorkflow={handleImportWorkflow}
           hasUnsavedChanges={hasUnsavedChanges}
           refreshKey={refreshKey}
+          mjsEnabled={capabilities.mjs}
+          saveFormat={saveFormat}
+          onSaveFormatChange={setSaveFormat}
         />
 
         {/* Center: Canvas or tab content */}
