@@ -265,48 +265,19 @@ const ChatSidebar: React.FC<Props> = ({
           New
         </button>
         <div className="flex gap-2">
-          <div className="flex-1 flex items-stretch gap-1">
-            <button
-              onClick={onSave}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
-                hasUnsavedChanges
-                  ? 'bg-amber-500 hover:bg-amber-400 text-white ring-2 ring-amber-400/50'
-                  : isLight
-                    ? 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
-                    : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
-              } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-amber-400' : theme.borderColor} transition-all duration-200 cursor-pointer`}
-            >
-              <Save size={13} />
-              Save{hasUnsavedChanges ? ' *' : ''}
-            </button>
-            {onSaveFormatChange && (
-              <div
-                role="tablist"
-                aria-label="Save format"
-                className={`inline-flex items-center gap-0 p-0.5 ${theme.bgTertiary} border ${theme.borderColor} ${theme.borderRadius}`}
-              >
-                {(['json', 'md', ...(mjsEnabled ? ['mjs'] : [])] as ('json' | 'md' | 'mjs')[]).map(fmt => {
-                  const sel = saveFormat === fmt;
-                  return (
-                    <button
-                      key={fmt}
-                      role="tab"
-                      aria-selected={sel}
-                      onClick={() => onSaveFormatChange(fmt)}
-                      title={`Save as .${fmt}`}
-                      className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
-                        sel
-                          ? `${theme.bgCardHover} ${theme.textPrimary}`
-                          : `${theme.textMuted} hover:${theme.textSecondary}`
-                      }`}
-                    >
-                      {fmt.toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={onSave}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
+              hasUnsavedChanges
+                ? 'bg-amber-500 hover:bg-amber-400 text-white ring-2 ring-amber-400/50'
+                : isLight
+                  ? 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
+                  : `${theme.bgTertiary} ${theme.bgCardHover} ${theme.textPrimary}`
+            } ${theme.borderRadius} border ${hasUnsavedChanges ? 'border-amber-400' : theme.borderColor} transition-all duration-200 cursor-pointer`}
+          >
+            <Save size={13} />
+            Save{hasUnsavedChanges ? ' *' : ''}
+          </button>
 
           {/* Import — dropdown trigger with File / URL submenu */}
           <div className="relative flex-1" ref={menuWrapperRef}>
@@ -415,6 +386,39 @@ const ChatSidebar: React.FC<Props> = ({
             )}
           </div>
         </div>
+
+        {onSaveFormatChange && (
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted} shrink-0`}>
+              {(t as any).saveAsLabel || 'Save as'}
+            </span>
+            <div
+              role="tablist"
+              aria-label="Save format"
+              className={`flex-1 flex items-center p-0.5 ${theme.bgTertiary} border ${theme.borderColor} ${theme.borderRadius}`}
+            >
+              {(['json', 'md', ...(mjsEnabled ? ['mjs'] : [])] as ('json' | 'md' | 'mjs')[]).map(fmt => {
+                const sel = saveFormat === fmt;
+                return (
+                  <button
+                    key={fmt}
+                    role="tab"
+                    aria-selected={sel}
+                    onClick={() => onSaveFormatChange(fmt)}
+                    title={`Save as .${fmt}`}
+                    className={`flex-1 px-2 py-0.5 text-[10px] font-medium rounded transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+                      sel
+                        ? `${theme.bgCardHover} ${theme.textPrimary}`
+                        : `${theme.textMuted} hover:${theme.textSecondary}`
+                    }`}
+                  >
+                    {fmt.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Workflow list header */}
