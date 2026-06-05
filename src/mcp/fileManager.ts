@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Workflow, WorkflowNode } from '../shared/types.js';
 import { parseWorkflowMd, serializeWorkflowMd, titleCase } from '../shared/workflowMd.js';
+import { parseWorkflowJson } from '../shared/workflowJson.js';
 
 /**
  * Workflow file I/O.
@@ -53,8 +54,7 @@ export class FileManager {
     }
     const jsonPath = this.getLegacyJsonPath(name);
     if (fs.existsSync(jsonPath)) {
-      const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      const workflow = legacyJsonToWorkflow(raw);
+      const { workflow } = parseWorkflowJson(fs.readFileSync(jsonPath, 'utf-8'));
       return { workflow, path: jsonPath };
     }
     throw new Error(`Workflow "${name}" not found (looked at ${mdPath} and ${jsonPath})`);
