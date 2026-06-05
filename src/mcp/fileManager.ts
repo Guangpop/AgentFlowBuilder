@@ -1,130 +1,163 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Workflow, WorkflowNode } from '../shared/types.js';
-import { parseWorkflowMd, serializeWorkflowMd, titleCase } from '../shared/workflowMd.js';
-import { parseWorkflowJson } from '../shared/workflowJson.js';
+import { titleCase } from '../shared/workflowMd.js';
+import {
+  FormatId, parseByExtension, serializeByFormat, listFormats, effectivePriority, formatForExt,
+} from '../shared/codecRegistry.js';
+
+export class WorkflowNotFoundError extends Error {
+  constructor(message: string) { super(message); this.name = 'WorkflowNotFoundError'; }
+}
+export class WorkflowParseError extends Error {
+  constructor(message: string) { super(message); this.name = 'WorkflowParseError'; }
+}
+
+export interface LoadResult {
+  workflow: Workflow;
+  path: string;
+  format: FormatId;
+  candidates: Array<{ format: FormatId; path: string }>;
+}
+export interface SaveResult { path: string; format: FormatId; }
+export interface ListEntry {
+  name: string;
+  path: string;            // selected file path (back-compat)
+  selectedFormat: FormatId;
+  formats: FormatId[];
+  modified: string;
+  nodeCount: number;
+  description: string;
+}
 
 /**
- * Workflow file I/O.
- * Canonical format is Markdown (`.md`) with YAML frontmatter + prose sections.
- * `.json` is read as a legacy fallback for workflows that haven't been migrated yet;
- * new saves always go to `.md`.
+ * Format-neutral workflow file I/O. JSON and MD are co-equal; JSON is the
+ * default save format. The in-memory Workflow model is the single source of
+ * truth; edges are never persisted (derived from next[] at load).
  */
 export class FileManager {
   private workflowDir: string;
+  private defaultFormat: FormatId;
 
-  constructor(workflowDir?: string) {
+  constructor(workflowDir?: string, opts?: { defaultFormat?: FormatId }) {
     this.workflowDir = workflowDir || path.join(process.cwd(), 'workflows');
+    this.defaultFormat = opts?.defaultFormat ?? 'json';
   }
 
   ensureDir(): void {
-    if (!fs.existsSync(this.workflowDir)) {
-      fs.mkdirSync(this.workflowDir, { recursive: true });
-    }
+    if (!fs.existsSync(this.workflowDir)) fs.mkdirSync(this.workflowDir, { recursive: true });
+  }
+  getDir(): string { return this.workflowDir; }
+
+  private pathFor(name: string, format: FormatId): string {
+    return path.join(this.workflowDir, `${sanitize(name)}.${format}`);
   }
 
-  /** Path used for new writes (always .md). */
-  getWorkflowPath(name: string): string {
-    return path.join(this.workflowDir, `${sanitize(name)}.md`);
+  /** Existing on-disk variants for a basename, in registry format order. */
+  private candidatesFor(name: string): Array<{ format: FormatId; path: string }> {
+    return listFormats()
+      .map((format) => ({ format, path: this.pathFor(name, format) }))
+      .filter((c) => fs.existsSync(c.path));
   }
 
-  /** Legacy JSON path (only for reading old workflows). */
-  getLegacyJsonPath(name: string): string {
-    return path.join(this.workflowDir, `${sanitize(name)}.json`);
-  }
-
-  save(name: string, workflow: Workflow): string {
+  save(name: string, workflow: Workflow, opts?: { format?: FormatId }): SaveResult {
     this.ensureDir();
-    // Ensure every node has a title (frontmatter requires it for display)
-    const normalized: Workflow = {
-      ...workflow,
-      nodes: workflow.nodes.map(ensureNodeTitle),
-    };
-    const filePath = this.getWorkflowPath(name);
-    fs.writeFileSync(filePath, serializeWorkflowMd(normalized), 'utf-8');
-    return filePath;
+    const normalized: Workflow = { ...workflow, nodes: workflow.nodes.map(ensureNodeTitle) };
+    let format = opts?.format;
+    if (!format) {
+      const existing = this.candidatesFor(name);
+      format = existing.length === 1 ? existing[0].format : this.defaultFormat;
+    }
+    const filePath = this.pathFor(name, format);
+    fs.writeFileSync(filePath, serializeByFormat(normalized, format), 'utf-8');
+    return { path: filePath, format };
   }
 
-  load(name: string): { workflow: Workflow; path: string } {
-    const mdPath = this.getWorkflowPath(name);
-    if (fs.existsSync(mdPath)) {
-      const content = fs.readFileSync(mdPath, 'utf-8');
-      const { workflow } = parseWorkflowMd(content);
-      return { workflow, path: mdPath };
+  load(ref: string): LoadResult {
+    const parsed = path.parse(ref);
+    // Explicit extension wins.
+    if (parsed.ext) {
+      const format = formatForExt(parsed.ext);
+      if (!format) throw new WorkflowParseError(`Unsupported workflow extension: ${parsed.ext}`);
+      const filePath = this.pathFor(parsed.name, format);
+      if (!fs.existsSync(filePath)) throw new WorkflowNotFoundError(`Workflow "${ref}" not found at ${filePath}`);
+      return this.readChosen(filePath, format, [{ format, path: filePath }]);
     }
-    const jsonPath = this.getLegacyJsonPath(name);
-    if (fs.existsSync(jsonPath)) {
-      const { workflow, warnings } = parseWorkflowJson(fs.readFileSync(jsonPath, 'utf-8'));
-      const fatal = warnings.find((w) => w.severity === 'error');
-      if (fatal) {
-        throw new Error(`Failed to parse ${jsonPath}: ${fatal.message}`);
-      }
-      return { workflow, path: jsonPath };
+    // Bare name → precedence derived from default.
+    const candidates = this.candidatesFor(ref);
+    if (candidates.length === 0) {
+      throw new WorkflowNotFoundError(`Workflow "${ref}" not found in ${this.workflowDir}`);
     }
-    throw new Error(`Workflow "${name}" not found (looked at ${mdPath} and ${jsonPath})`);
+    const order = effectivePriority(this.defaultFormat);
+    const chosen = order
+      .map((f) => candidates.find((c) => c.format === f))
+      .find((c): c is { format: FormatId; path: string } => Boolean(c))!;
+    if (candidates.length > 1) {
+      console.warn(
+        `[agentflow] "${ref}" exists as ${candidates.map((c) => c.format).join(', ')}; ` +
+        `loaded ${chosen.format} by precedence (default: ${this.defaultFormat}).`,
+      );
+    }
+    return this.readChosen(chosen.path, chosen.format, candidates);
   }
 
-  list(): Array<{ name: string; path: string; modified: string; nodeCount: number; description: string }> {
+  private readChosen(filePath: string, format: FormatId, candidates: Array<{ format: FormatId; path: string }>): LoadResult {
+    const { workflow, warnings } = parseByExtension(filePath, fs.readFileSync(filePath, 'utf-8'));
+    const fatal = warnings.find((w) => w.severity === 'error');
+    if (fatal) throw new WorkflowParseError(`Failed to parse ${filePath}: ${fatal.message}`);
+    return { workflow, path: filePath, format, candidates };
+  }
+
+  list(): ListEntry[] {
     this.ensureDir();
-    const files = fs.readdirSync(this.workflowDir);
-    type Entry = { name: string; path: string; modified: string; nodeCount: number; description: string };
-    const byName = new Map<string, { entry: Entry; isMd: boolean }>();
-
-    for (const file of files) {
-      const isMd = file.endsWith('.md');
-      const isJson = file.endsWith('.json');
-      if (!isMd && !isJson) continue;
-      const basename = file.replace(/\.(md|json)$/, '');
-      const filePath = path.join(this.workflowDir, file);
-      const stats = fs.statSync(filePath);
+    const known = new Set(listFormats().map((f) => `.${f}`));
+    const basenames = new Set<string>();
+    for (const file of fs.readdirSync(this.workflowDir)) {
+      const ext = path.extname(file).toLowerCase();
+      if (known.has(ext)) basenames.add(path.basename(file, ext));
+    }
+    const order = effectivePriority(this.defaultFormat);
+    const entries: ListEntry[] = [];
+    for (const name of basenames) {
+      const candidates = this.candidatesFor(name);
+      if (candidates.length === 0) continue;
+      const chosen = order
+        .map((f) => candidates.find((c) => c.format === f))
+        .find((c): c is { format: FormatId; path: string } => Boolean(c))!;
+      const stats = fs.statSync(chosen.path);
       let nodeCount = 0;
       let description = '';
       try {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        if (isMd) {
-          const { workflow } = parseWorkflowMd(content);
-          nodeCount = workflow.nodes.length;
-          description = workflow.description || '';
-        } else {
-          const data = JSON.parse(content);
-          nodeCount = Array.isArray(data.nodes) ? data.nodes.length : 0;
-          description = data.description || '';
-        }
+        const { workflow } = parseByExtension(chosen.path, fs.readFileSync(chosen.path, 'utf-8'));
+        nodeCount = workflow.nodes.length;
+        description = workflow.description || '';
       } catch {
-        description = isMd ? '(invalid MD)' : '(invalid JSON)';
+        description = '(unreadable)';
       }
-      const entry: Entry = {
-        name: basename,
-        path: filePath,
+      entries.push({
+        name,
+        path: chosen.path,
+        selectedFormat: chosen.format,
+        formats: candidates.map((c) => c.format),
         modified: stats.mtime.toISOString(),
         nodeCount,
         description,
-      };
-      const existing = byName.get(basename);
-      if (!existing || (isMd && !existing.isMd)) {
-        byName.set(basename, { entry, isMd });
-      }
+      });
     }
-    return Array.from(byName.values()).map((v) => v.entry);
+    return entries;
   }
 
-  delete(name: string): boolean {
-    let deleted = false;
-    const mdPath = this.getWorkflowPath(name);
-    if (fs.existsSync(mdPath)) {
-      fs.unlinkSync(mdPath);
-      deleted = true;
+  /** Delete one variant (if format given) or all variants. Returns deleted formats. */
+  delete(name: string, format?: FormatId): { deleted: FormatId[] } {
+    const targets = format
+      ? this.candidatesFor(name).filter((c) => c.format === format)
+      : this.candidatesFor(name);
+    const deleted: FormatId[] = [];
+    for (const c of targets) {
+      fs.unlinkSync(c.path);
+      deleted.push(c.format);
     }
-    const jsonPath = this.getLegacyJsonPath(name);
-    if (fs.existsSync(jsonPath)) {
-      fs.unlinkSync(jsonPath);
-      deleted = true;
-    }
-    return deleted;
-  }
-
-  getDir(): string {
-    return this.workflowDir;
+    return { deleted };
   }
 }
 
@@ -135,28 +168,4 @@ function sanitize(name: string): string {
 function ensureNodeTitle(n: WorkflowNode): WorkflowNode {
   if (n.title && n.title.trim()) return n;
   return { ...n, title: titleCase(n.node_id) };
-}
-
-/**
- * Adapt a legacy `.json` workflow to the new shape:
- *  - Derive `title` from `node_id` (titleCase).
- *  - Strip stored `edges` (always derived at runtime).
- */
-export function legacyJsonToWorkflow(raw: any): Workflow {
-  return {
-    name: raw.name,
-    description: raw.description ?? '',
-    nodes: (raw.nodes ?? []).map((n: any): WorkflowNode => ({
-      node_id: n.node_id,
-      node_type: n.node_type,
-      title: n.title || titleCase(n.node_id),
-      description: n.description ?? '',
-      inputs: n.inputs ?? [],
-      outputs: n.outputs ?? [],
-      next: n.next ?? [],
-      position: n.position ?? { x: 0, y: 0 },
-      ...(n.config ? { config: n.config } : {}),
-    })),
-    edges: [],
-  };
 }

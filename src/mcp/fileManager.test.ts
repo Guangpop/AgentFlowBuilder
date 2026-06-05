@@ -4,6 +4,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { FileManager } from './fileManager.js';
 import { NodeType, Workflow } from '../shared/types.js';
+import { serializeWorkflowMd } from '../shared/workflowMd.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -43,17 +44,33 @@ describe('FileManager (.md primary, .json legacy)', () => {
     edges: [],
   };
 
-  it('saves as .md and loads back', () => {
-    const savedPath = fm.save('sample_flow', sample);
-    expect(savedPath.endsWith('.md')).toBe(true);
+  // valid canonical MD for list() tests, built from the codec
+  function serializeMdFixture(): string {
+    return serializeWorkflowMd({ ...sample, name: 'only-md' });
+  }
+
+  it('saves as json (default) and loads back', () => {
+    const { path: savedPath, format } = fm.save('sample_flow', sample);
+    expect(format).toBe('json');
+    expect(savedPath.endsWith('.json')).toBe(true);
     expect(fs.existsSync(savedPath)).toBe(true);
 
-    const { workflow, path: loadedPath } = fm.load('sample_flow');
+    const { workflow, path: loadedPath, format: loadedFormat } = fm.load('sample_flow');
     expect(loadedPath).toBe(savedPath);
+    expect(loadedFormat).toBe('json');
     expect(workflow.name).toBe(sample.name);
     expect(workflow.nodes[0].node_id).toBe('a');
     expect(workflow.nodes[0].title).toBe('A');
-    expect(workflow.nodes[0].description).toBe('start');
+  });
+
+  it('saves with an explicit format and writes back that format on re-save', () => {
+    const first = fm.save('md_flow', sample, { format: 'md' });
+    expect(first.format).toBe('md');
+    expect(first.path.endsWith('.md')).toBe(true);
+    // Re-save without a format: the single existing variant (.md) is preserved.
+    const second = fm.save('md_flow', sample);
+    expect(second.format).toBe('md');
+    expect(fs.existsSync(path.join(dir, 'md_flow.json'))).toBe(false);
   });
 
   it('falls back to legacy .json when no .md exists', () => {
@@ -87,17 +104,17 @@ describe('FileManager (.md primary, .json legacy)', () => {
     expect(() => fm.load('broken')).toThrow(/Failed to parse/);
   });
 
-  it('list() dedupes by basename, prefers .md when both exist', () => {
-    fm.save('dup', sample);
-    fs.writeFileSync(path.join(dir, 'dup.json'), '{"name":"dup","description":"old","nodes":[]}', 'utf-8');
-    fs.writeFileSync(path.join(dir, 'only-json.json'), '{"name":"only-json","description":"x","nodes":[]}', 'utf-8');
+  it('list() dedupes by basename and selects the default (json) when both exist', () => {
+    fm.save('dup', sample, { format: 'md' });
+    fm.save('dup', sample, { format: 'json' });
+    fs.writeFileSync(path.join(dir, 'only-md.md'), serializeMdFixture(), 'utf-8');
 
     const list = fm.list();
     const dupEntry = list.find((e) => e.name === 'dup');
-    expect(dupEntry?.path.endsWith('.md')).toBe(true);
-    expect(list.some((e) => e.name === 'only-json')).toBe(true);
-    // No duplicates
+    expect(dupEntry?.selectedFormat).toBe('json');
+    expect(dupEntry?.formats.sort()).toEqual(['json', 'md']);
     expect(list.filter((e) => e.name === 'dup').length).toBe(1);
+    expect(list.some((e) => e.name === 'only-md')).toBe(true);
   });
 
   it('loads each of the showcase repository workflows', () => {
@@ -119,10 +136,20 @@ describe('FileManager (.md primary, .json legacy)', () => {
   });
 
   it('delete() removes both .md and .json if both present', () => {
-    fm.save('both', sample);
-    fs.writeFileSync(path.join(dir, 'both.json'), '{"name":"both","nodes":[]}', 'utf-8');
-    expect(fm.delete('both')).toBe(true);
+    fm.save('both', sample, { format: 'md' });
+    fm.save('both', sample, { format: 'json' });
+    const { deleted } = fm.delete('both');
+    expect(deleted.sort()).toEqual(['json', 'md']);
     expect(fs.existsSync(path.join(dir, 'both.md'))).toBe(false);
     expect(fs.existsSync(path.join(dir, 'both.json'))).toBe(false);
+  });
+
+  it('delete(name, format) removes only that variant', () => {
+    fm.save('partial', sample, { format: 'md' });
+    fm.save('partial', sample, { format: 'json' });
+    const { deleted } = fm.delete('partial', 'json');
+    expect(deleted).toEqual(['json']);
+    expect(fs.existsSync(path.join(dir, 'partial.json'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'partial.md'))).toBe(true);
   });
 });
