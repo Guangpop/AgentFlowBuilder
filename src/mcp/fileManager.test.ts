@@ -13,7 +13,7 @@ function tmpDir(): string {
   return fs.mkdtempSync(path.join(fs.realpathSync(require('os').tmpdir()), 'afb-fm-'));
 }
 
-describe('FileManager (.md primary, .json legacy)', () => {
+describe('FileManager (format-neutral: json default, md co-equal)', () => {
   let dir: string;
   let fm: FileManager;
 
@@ -151,5 +151,18 @@ describe('FileManager (.md primary, .json legacy)', () => {
     expect(deleted).toEqual(['json']);
     expect(fs.existsSync(path.join(dir, 'partial.json'))).toBe(false);
     expect(fs.existsSync(path.join(dir, 'partial.md'))).toBe(true);
+  });
+
+  it('loads a workflow whose name contains a dot (dot is not an extension)', () => {
+    fm.save('v1.2', sample); // sanitized to v1_2.json (default)
+    const { workflow, format } = fm.load('v1.2');
+    expect(format).toBe('json');
+    expect(workflow.name).toBe(sample.name);
+  });
+
+  it('explicit known extension loads that exact format', () => {
+    fm.save('exp', sample, { format: 'md' });
+    expect(fm.load('exp.md').format).toBe('md');
+    expect(() => fm.load('exp.json')).toThrow(/not found/);
   });
 });

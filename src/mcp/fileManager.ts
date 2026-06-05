@@ -75,13 +75,13 @@ export class FileManager {
 
   load(ref: string): LoadResult {
     const parsed = path.parse(ref);
-    // Explicit extension wins.
-    if (parsed.ext) {
-      const format = formatForExt(parsed.ext);
-      if (!format) throw new WorkflowParseError(`Unsupported workflow extension: ${parsed.ext}`);
-      const filePath = this.pathFor(parsed.name, format);
+    // Explicit, KNOWN extension wins (e.g. "foo.md"). An unknown "extension"
+    // (e.g. a workflow literally named "v1.2") is treated as part of a bare name.
+    const explicitFormat = parsed.ext ? formatForExt(parsed.ext) : undefined;
+    if (explicitFormat) {
+      const filePath = this.pathFor(parsed.name, explicitFormat);
       if (!fs.existsSync(filePath)) throw new WorkflowNotFoundError(`Workflow "${ref}" not found at ${filePath}`);
-      return this.readChosen(filePath, format, [{ format, path: filePath }]);
+      return this.readChosen(filePath, explicitFormat, [{ format: explicitFormat, path: filePath }]);
     }
     // Bare name → precedence derived from default.
     const candidates = this.candidatesFor(ref);
