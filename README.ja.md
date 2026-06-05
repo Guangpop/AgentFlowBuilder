@@ -132,6 +132,8 @@ Claude にこう尋ねます：
 npm start
 ```
 
+> **オプション — Claude Code `.mjs` 連携を有効化：** `AGENTFLOW_MJS=1 npm start` で起動します。フォーマットピッカーに `.mjs`（Claude Code dynamic-workflow スクリプト）が対等なインポート／エクスポート形式として追加されます。デフォルトは無効。`.mjs` はエクスポートが近似、インポートがベストエフォートです。
+
 最初の agent skill までの 3 ステップ：
 
 1. **ノードを追加** — カテゴリ別ツールバー（User / Agent / System）からドラッグ

@@ -132,6 +132,8 @@ Then ask Claude:
 npm start
 ```
 
+> **Optional — enable Claude Code `.mjs` interop:** run `AGENTFLOW_MJS=1 npm start`. This adds `.mjs` (Claude Code dynamic-workflow scripts) as a co-equal import/export format in the pickers. Off by default; `.mjs` export is approximate and import is best-effort.
+
 Three steps to your first agent skill:
 
 1. **Add nodes** — drag from the categorized toolbar (User / Agent / System)

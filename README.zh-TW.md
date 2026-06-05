@@ -132,6 +132,8 @@ claude mcp add agentflow -- node /path/to/AgentFlowBuilder/dist/cli.js
 npm start
 ```
 
+> **選用 — 啟用 Claude Code `.mjs` 互通：** 改用 `AGENTFLOW_MJS=1 npm start`。會在格式選擇器中加入 `.mjs`（Claude Code dynamic-workflow 腳本）作為對等的匯入／匯出格式。預設關閉；`.mjs` 匯出為近似、匯入為最佳努力。
+
 三步建立你的第一個 agent skill：
 
 1. **加入節點** — 從分類好的工具列拖（User / Agent / System）
