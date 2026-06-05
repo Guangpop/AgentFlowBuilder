@@ -18,7 +18,7 @@ AgentFlowBuilder は MCP Server + ビジュアル編集器で、フロー図を�
 - **Chat モード** — IDE を持たない方のため：「ステップ実行」または「計画してから実行」のプロンプトをコピーして ChatGPT / Gemini / Grok / Claude.ai に貼り付け
 - **Read / Walk ビューア** — 任意の workflow.md をきれいな読み物として、またはステージごとに歩く形で表示（分岐プレビュー + Mermaid パスのハイライト付き）
 - **どこからでもインポート** — `.md` / `.json` はネイティブ、`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / URL / YouTube は [markitdown](https://github.com/microsoft/markitdown) 経由
-- **Markdown を正規ストレージとして採用** — workflow は `workflows/*.md`（YAML frontmatter + 散文 body）で保存、`.json` は legacy cache 扱い
+- **形式中立ストレージ** — workflow は **JSON（デフォルト）、Markdown、`.mjs`** の 3 つが対等な形式で保存される。`.mjs` と Claude Code dynamic workflow の相互運用は近似エクスポート / ベストエフォートインポートで `AGENTFLOW_MJS` 環境変数で有効化
 
 ## なぜ AgentFlowBuilder か
 
@@ -144,7 +144,7 @@ npm start
 
 サイドバーの **Import** ドロップダウン：
 
-- **ファイルから** — `.md` / `.json` はネイティブ読み込み、`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / 画像は markitdown でテキスト抽出後、workflow ドラフトに整形
+- **ファイルから** — `.md` / `.json` / `.mjs` はネイティブ読み込み、`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / 画像は markitdown でテキスト抽出後、workflow ドラフトに整形
 - **URL から** — 任意の URL または YouTube リンク（YouTube は字幕抽出）
 
 バイナリ形式を扱うには先に markitdown をインストール：
@@ -190,7 +190,8 @@ pipx install 'markitdown[all]'
 | **Skills** (.md) | YAML frontmatter 付き再利用可能 agent 能力 |
 | **Commands** (.md) | ユーザー入力で起動する slash command |
 | **Workflows** (.md) | 段階的な実行計画 |
-| **JSON** | バックアップ / 共有用の生 workflow データ |
+| **JSON** | デフォルトの正規 workflow 形式 |
+| **MJS** | Claude Code dynamic-workflow スクリプト（近似エクスポート / ベストエフォートインポート、`AGENTFLOW_MJS` 必須） |
 | **Markdown** | システム設計ドキュメント |
 | **Mermaid** | ビジュアルフロー図 |
 
@@ -205,7 +206,7 @@ pipx install 'markitdown[all]'
 | `save_workflow` | `./workflows/` へ保存 |
 | `load_workflow` | `./workflows/` から読み込み |
 | `list_workflows` | 全 workflow を一覧 |
-| `export_workflow` | JSON / Markdown / Mermaid 出力 |
+| `export_workflow` | JSON / Markdown / Mermaid / .mjs 出力 |
 | `get_instruction_template` | Agent 指示書生成用プロンプト |
 | `convert_to_skill` | Workflow を SKILL.md ドラフトと品質ゲート指示に変換 |
 | `get_skill_quality_gate` | 採点 / 改善 / description 最適化プロンプトを取得 |

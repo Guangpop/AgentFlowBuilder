@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AgentFlow Builder (`agentflow-mcp`) is an npm MCP Server package for AI Agent workflow generation. It includes a visual node-based workflow editor web UI and an MCP server that exposes 12 tools to AI assistants like Claude — including a skill quality gate that auto-grades, iterates, and publishes production-ready skills. Built with TypeScript, Express, React 19, and Vite.
 
-Workflows are stored as **Markdown** (`workflows/*.md`, YAML frontmatter + prose body) as the canonical format; `.json` is a legacy/cache fallback.
+Workflows are stored as a single typed `Workflow` model with three co-equal codecs: **JSON** (default on-disk), **Markdown** (human-readable), and **`.mjs`** (Claude Code dynamic-workflow interop, gated by the `AGENTFLOW_MJS` env flag). Edges are always derived from `next[]` at load time and never persisted.
 
 ## Commands
 
@@ -29,7 +29,12 @@ src/
 │   ├── constants.ts         # Node metadata, categories, defaults
 │   ├── schema.ts            # JSON schema for workflow generation
 │   ├── workflowSchema.ts    # Zod runtime schema (used in MD parser)
-│   ├── workflowMd.ts        # Parser/serializer: workflow ↔ Markdown (canonical)
+│   ├── workflowMd.ts        # Parser/serializer: workflow ↔ Markdown (human-readable format)
+│   ├── workflowJson.ts      # Codec: workflow ↔ JSON (default on-disk format)
+│   ├── codecRegistry.ts     # WorkflowCodecRegistry — single source of truth for formats
+│   ├── formatWarning.ts     # FormatWarning contract for partial-parse warnings
+│   ├── workflowMjsSerialize.ts  # Approximate .mjs export (linearized, acorn-free)
+│   ├── workflowMjsParse.ts  # Best-effort .mjs import (acorn, Node-only)
 │   ├── mdToWorkflow.ts      # Best-effort shaper: generic md → workflow draft
 │   ├── validation.ts        # Structural validation rules
 │   ├── postProcess.ts       # ID cleanup, auto-layout, edge rebuilding
@@ -44,7 +49,7 @@ src/
 │   └── skillPublisher.ts    # Publish to ~/.claude/skills/
 ├── mcp/
 │   ├── server.ts            # MCP Server (stdio, 12 tools registered here)
-│   └── fileManager.ts       # Workflow file I/O (.md primary, .json legacy)
+│   └── fileManager.ts       # Workflow file I/O (format-neutral: json default, md & mjs co-equal)
 ├── web/
 │   └── server.ts            # Express server + REST + SSE + /api/import (markitdown spawn)
 ├── web-app/
@@ -97,9 +102,10 @@ src/
 ### Web Server (`src/web/server.ts`)
 - Express server serving the built web app and REST APIs
 - APIs:
+  - `/api/capabilities` — feature flags (`mjs`, `formats`, `defaultFormat`)
   - `/api/list`, `/api/load/:name`, `/api/save`, `/api/delete/:name`
   - `/api/watch` (SSE for file change events)
-  - `/api/import` — file (`application/octet-stream` body + `x-filename` header) or URL (`application/json` body) → markitdown → workflow draft
+  - `/api/import` — file (`application/octet-stream` body + `x-filename` header, `.mjs` routed natively) or URL (`application/json` body) → markitdown → workflow draft
 - markitdown is spawned via `markitdown` CLI first (pipx / uv tool / brew pip), falls back to `python3 -m markitdown`
 - Integrates Vite dev server when `--dev` flag is passed
 
@@ -118,7 +124,7 @@ src/
 | **System** | `Condition`, `ScriptExecution`, `MCPTool`, `AgentSkill` |
 
 ### Key Patterns
-- **Canonical storage = Markdown.** YAML frontmatter holds the skeleton (nodes + `next`); prose bodies hold long-form descriptions per node section (`## Title {#node_id}`).
+- **Format-neutral storage.** JSON is the default on-disk format; Markdown (YAML frontmatter + prose body) and `.mjs` are co-equal codecs. The Markdown format stores the skeleton (nodes + `next`) in frontmatter; prose bodies hold long-form descriptions per node section (`## Title {#node_id}`).
 - **Edges are derived from `next[]`** at load time — never stored in the MD.
 - **Condition nodes** require exactly 2 outputs (True/False branches).
 - **Node IDs** are auto-slugified (lowercase, underscores or CJK).
@@ -131,7 +137,7 @@ src/
 - **Chat tab** (ChatGPT / Gemini / Grok / Claude.ai / DeepSeek): generates a self-contained prompt with workflow SOP, branching table, and operating rules. User pastes into any LLM chat. Two execution modes: **Step-by-step** (agent pauses each stage) or **Plan-then-Execute** (agent shows full plan, waits for GO).
 
 ### Import Dropdown (sidebar)
-- **From file** (`.md` / `.json` native; everything else → `/api/import` → markitdown subprocess → `shapeMdToWorkflow`)
+- **From file** (`.md` / `.json` / `.mjs` native; everything else → `/api/import` → markitdown subprocess → `shapeMdToWorkflow`)
 - **From URL** (regular URL → markitdown with YAML frontmatter; YouTube URL → transcript)
 - markitdown installation: `uv tool install 'markitdown[all]'` or `pipx install 'markitdown[all]'`
 
@@ -143,7 +149,8 @@ src/
 - **Skills** (.md) — reusable agent capabilities with YAML frontmatter
 - **Commands** (.md) — slash commands triggered by user input
 - **Workflows** (.md) — step-by-step execution plans
-- **JSON** — raw workflow data (legacy / backup)
+- **JSON** — default canonical workflow format
+- **MJS** — Claude Code dynamic-workflow script (approximate export / best-effort import, behind `AGENTFLOW_MJS`)
 - **Markdown** — system design documentation
 - **Mermaid** — visual flow diagrams (output sanitized via `sanitizeMermaidLabel`)
 

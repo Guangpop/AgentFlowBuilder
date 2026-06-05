@@ -18,7 +18,7 @@ AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams i
 - **Chat mode** — for users without an IDE: copy a step-by-step or plan-then-execute prompt and paste it into ChatGPT / Gemini / Grok / Claude.ai
 - **Read & Walk viewer** — render any workflow.md as a clean reading view, or step through stage-by-stage with branch peek and Mermaid path coloring
 - **Import from anywhere** — `.md` / `.json` natively, `.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / URL / YouTube via [markitdown](https://github.com/microsoft/markitdown)
-- **Canonical Markdown storage** — workflows live as `workflows/*.md` (YAML frontmatter + prose body); `.json` is legacy cache
+- **Format-neutral storage** — workflows are stored as **JSON (default), Markdown, and `.mjs`** co-equal formats; `.mjs` interop with Claude Code dynamic workflows is approximate (export) / best-effort (import) and gated by `AGENTFLOW_MJS`
 
 ## Why AgentFlowBuilder?
 
@@ -347,7 +347,8 @@ The key insight: **you don't write prompts — you design flows.** The visual ed
 | **Skills** (.md) | Reusable agent capabilities with YAML frontmatter |
 | **Commands** (.md) | Slash commands triggered by user input |
 | **Workflows** (.md) | Step-by-step execution plans |
-| **JSON** | Raw workflow data for backup or sharing |
+| **JSON** | Default canonical workflow format |
+| **MJS** | Claude Code dynamic-workflow script (approximate export / best-effort import, `AGENTFLOW_MJS`) |
 | **Markdown** | System design documentation |
 | **Mermaid** | Visual flow diagrams |
 
@@ -381,7 +382,7 @@ Generated skills are automatically graded and improved before publishing. The qu
 | `save_workflow` | Save workflow to `./workflows/` |
 | `load_workflow` | Load workflow from `./workflows/` |
 | `list_workflows` | List all saved workflows |
-| `export_workflow` | Export as JSON, Markdown, or Mermaid |
+| `export_workflow` | Export as JSON, Markdown, Mermaid, or .mjs |
 | `get_instruction_template` | Prompt template for generating agent instructions |
 | `convert_to_skill` | Convert a workflow to SKILL.md draft with quality gate instructions |
 | `get_skill_quality_gate` | Get grading, improvement, or description optimization prompts |

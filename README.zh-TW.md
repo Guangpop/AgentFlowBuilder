@@ -18,7 +18,7 @@ AgentFlowBuilder 是一個 MCP Server + 視覺化編輯器，把流程圖轉成�
 - **Chat 模式** — 沒有 IDE 的人也能用：複製一段「逐步互動」或「先計畫再執行」的 prompt，貼到 ChatGPT / Gemini / Grok / Claude.ai
 - **Read & Walk 檢視器** — 把任何 workflow.md 渲染成乾淨閱讀版，或一步一步走訪、含分支預覽與 Mermaid 路徑高亮
 - **匯入任何來源** — `.md` / `.json` 直接讀，`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / URL / YouTube 透過 [markitdown](https://github.com/microsoft/markitdown)
-- **Markdown 為標準儲存格式** — workflow 存成 `workflows/*.md`（YAML frontmatter + 散文 body）；`.json` 只是 legacy cache
+- **格式中立儲存** — workflow 以 **JSON（預設）、Markdown、`.mjs`** 三種對等格式儲存；`.mjs` 與 Claude Code dynamic workflow 的互通為近似匯出 / 最佳努力匯入，由 `AGENTFLOW_MJS` 環境變數控管
 
 ## 為什麼用 AgentFlowBuilder？
 
@@ -144,7 +144,7 @@ npm start
 
 側邊欄 **Import** 下拉：
 
-- **從檔案** — `.md` / `.json` 原生讀；`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / 圖片透過 markitdown 抽出文字後轉成 workflow 草稿
+- **從檔案** — `.md` / `.json` / `.mjs` 原生讀；`.pdf` / `.docx` / `.pptx` / `.xlsx` / `.html` / 圖片透過 markitdown 抽出文字後轉成 workflow 草稿
 - **從 URL** — 任意網址或 YouTube 連結（YouTube 抓字幕）
 
 要支援 binary 格式，請先裝 markitdown：
@@ -190,7 +190,8 @@ pipx install 'markitdown[all]'
 | **Skills** (.md) | 帶 YAML frontmatter 的可重用 agent 能力 |
 | **Commands** (.md) | 使用者輸入觸發的 slash command |
 | **Workflows** (.md) | 一步一步的執行計畫 |
-| **JSON** | 原始 workflow 資料（備份/分享） |
+| **JSON** | 預設正式 workflow 格式 |
+| **MJS** | Claude Code dynamic-workflow 腳本（近似匯出／最佳努力匯入，需 `AGENTFLOW_MJS`） |
 | **Markdown** | 系統設計文件 |
 | **Mermaid** | 視覺流程圖 |
 
@@ -205,7 +206,7 @@ pipx install 'markitdown[all]'
 | `save_workflow` | 存到 `./workflows/` |
 | `load_workflow` | 從 `./workflows/` 載入 |
 | `list_workflows` | 列出所有 workflow |
-| `export_workflow` | 匯出 JSON / Markdown / Mermaid |
+| `export_workflow` | 匯出 JSON / Markdown / Mermaid / .mjs |
 | `get_instruction_template` | 產 agent instruction 的 prompt 模板 |
 | `convert_to_skill` | 把 workflow 轉成 SKILL.md 草稿 + 品質閘指令 |
 | `get_skill_quality_gate` | 取得評分 / 改善 / description 優化 prompt |
