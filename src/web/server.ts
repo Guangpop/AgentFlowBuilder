@@ -8,6 +8,7 @@ import chokidar from 'chokidar';
 import { FileManager, WorkflowNotFoundError, WorkflowParseError } from '../mcp/fileManager.js';
 import { shapeMdToWorkflow } from '../shared/mdToWorkflow.js';
 import { listFormats } from '../shared/codecRegistry.js';
+import { parseWorkflowMjs } from '../shared/workflowMjsParse.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -165,6 +166,12 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: 'Empty body' });
+      }
+      if (filename.toLowerCase().endsWith('.mjs')) {
+        const text = req.body.toString('utf-8');
+        const fallbackName = path.basename(filename, path.extname(filename)) || 'imported_mjs';
+        const { workflow, warnings } = parseWorkflowMjs(text, { fallbackName });
+        return res.json({ workflow, warnings: warnings.map((w) => w.message), sourceMd: text });
       }
       fs.writeFileSync(tmpPath, req.body);
       const { md } = await runMarkitdown(tmpPath);
