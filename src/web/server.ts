@@ -20,6 +20,15 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
   fm.ensureDir();
   const ALLOWED_FORMATS = new Set<string>(listFormats());
 
+  // API: Capabilities (feature flags + available formats)
+  app.get('/api/capabilities', (_req, res) => {
+    res.json({
+      mjs: process.env.AGENTFLOW_MJS === '1',
+      formats: ['json', 'md', ...(process.env.AGENTFLOW_MJS === '1' ? ['mjs'] : [])],
+      defaultFormat: 'json',
+    });
+  });
+
   // API: List workflows
   app.get('/api/list', (_req, res) => {
     try {
