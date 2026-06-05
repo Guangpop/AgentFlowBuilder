@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Workflow, WorkflowNode, NodeType, Edge } from './types';
 import { NODE_COLORS } from './constants';
-import { generateMermaid, generateMarkdown, cleanWorkflowForExport } from '@shared/export';
+import { generateMermaid, generateMarkdown } from '@shared/export';
 import { serializeWorkflowMd } from '@shared/workflowMd';
 import { serializeWorkflowJson } from '@shared/workflowJson';
 import { serializeWorkflowMjs } from '@shared/workflowMjsSerialize';
