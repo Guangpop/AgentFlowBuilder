@@ -1,7 +1,7 @@
 // src/shared/codecRegistry.ts
 import * as path from 'path';
 import { Workflow } from './types.js';
-import { FormatWarning, makeWarning } from './formatWarning.js';
+import { makeWarning } from './formatWarning.js';
 import { ParseOutcome, parseWorkflowJson, serializeWorkflowJson, JsonShape } from './workflowJson.js';
 import { parseWorkflowMd, serializeWorkflowMd, WorkflowMdParseError } from './workflowMd.js';
 
@@ -37,7 +37,7 @@ const jsonCodec: Codec = {
 const mdCodec: Codec = {
   id: 'md',
   ext: '.md',
-  detect: (content) => /^﻿?\s*---\r?\n/.test(content),
+  detect: (content) => /^﻿?---\r?\n/.test(content),
   parse: (content) => {
     // Canonical MD files parse strictly. A parse failure here is fatal —
     // the generic shapeMdToWorkflow fallback lives in the import path, not
