@@ -13,8 +13,19 @@ const wf: Workflow = {
 };
 
 describe('codecRegistry', () => {
-  it('lists json and md', () => {
+  it('listFormats excludes mjs by default (flag off)', () => {
     expect(listFormats()).toEqual(['json', 'md']);
+  });
+
+  it('serializeByFormat and parseByExtension support mjs regardless of the flag (explicit ops)', () => {
+    const code = serializeByFormat(wf, 'mjs');
+    expect(code).toContain('export const meta');
+    const back = parseByExtension('/x/wf.mjs', code);
+    expect(back.workflow.name).toBe('reg_flow');
+  });
+
+  it('formatForExt knows .mjs', () => {
+    expect(formatForExt('.mjs')).toBe('mjs');
   });
 
   it('formatForExt is case-insensitive and returns undefined for unknown', () => {

@@ -9,6 +9,7 @@ import { postProcessWorkflow } from '../shared/postProcess.js';
 import { generateMermaid, generateMarkdown, cleanWorkflowForExport } from '../shared/export.js';
 import { serializeWorkflowMd } from '../shared/workflowMd.js';
 import { serializeWorkflowJson } from '../shared/workflowJson.js';
+import { serializeByFormat } from '../shared/codecRegistry.js';
 import { getPrompts, Language } from '../shared/prompts/index.js';
 import { FileManager } from './fileManager.js';
 import { workflowToSkillMd } from '../shared/skillConverter.js';
@@ -265,7 +266,7 @@ export function createServer(): McpServer {
     'Exports a saved workflow in the specified format: "md" (frontmatter+prose — round-trips to canvas), "json" (clean dump, no positions), "markdown" (documentation-style table), or "mermaid" (diagram). JSON and MD are co-equal formats.',
     {
       name: z.string().describe('Name of the workflow to export.'),
-      format: z.enum(['md', 'json', 'markdown', 'mermaid']).describe('Export format.'),
+      format: z.enum(['md', 'json', 'mjs', 'markdown', 'mermaid']).describe('Export format. "mjs" emits an approximate Claude Code dynamic-workflow script.'),
       directory: z.string().optional().describe('Directory to load from. Defaults to ./workflows/'),
     },
     async ({ name, format, directory }) => {
@@ -281,6 +282,9 @@ export function createServer(): McpServer {
             break;
           case 'json':
             output = serializeWorkflowJson(workflow, { shape: 'clean' });
+            break;
+          case 'mjs':
+            output = serializeByFormat(workflow, 'mjs');
             break;
           case 'mermaid':
             output = generateMermaid(workflow);

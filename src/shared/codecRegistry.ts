@@ -4,8 +4,10 @@ import { Workflow } from './types.js';
 import { makeWarning } from './formatWarning.js';
 import { ParseOutcome, parseWorkflowJson, serializeWorkflowJson, JsonShape } from './workflowJson.js';
 import { parseWorkflowMd, serializeWorkflowMd, WorkflowMdParseError } from './workflowMd.js';
+import { serializeWorkflowMjs } from './workflowMjsSerialize.js';
+import { parseWorkflowMjs } from './workflowMjsParse.js';
 
-export type FormatId = 'json' | 'md'; // 'mjs' added in P3
+export type FormatId = 'json' | 'md' | 'mjs';
 
 interface Codec {
   id: FormatId;
@@ -58,12 +60,26 @@ const mdCodec: Codec = {
   serialize: (workflow) => serializeWorkflowMd(workflow),
 };
 
-const CODECS: Codec[] = [jsonCodec, mdCodec];
+const mjsCodec: Codec = {
+  id: 'mjs',
+  ext: '.mjs',
+  detect: (content) => /export\s+const\s+meta\s*=/.test(content),
+  parse: (content) => parseWorkflowMjs(content),
+  serialize: (workflow) => serializeWorkflowMjs(workflow).code,
+};
+
+const CODECS: Codec[] = [jsonCodec, mdCodec, mjsCodec];
 const byExt = new Map(CODECS.map((c) => [c.ext, c]));
 const byId = new Map(CODECS.map((c) => [c.id, c]));
 
+const MJS_ENABLED = process.env.AGENTFLOW_MJS === '1';
+
+/** Formats eligible for bare-name load precedence + candidate discovery.
+ *  mjs participates only when AGENTFLOW_MJS=1, so a stray name.mjs never
+ *  silently shadows json/md when the feature is off. Explicit ops
+ *  (serializeByFormat/parseByExtension/formatForExt) always support all formats. */
 export function listFormats(): FormatId[] {
-  return CODECS.map((c) => c.id);
+  return CODECS.map((c) => c.id).filter((id) => id !== 'mjs' || MJS_ENABLED);
 }
 
 export function formatForExt(ext: string): FormatId | undefined {
@@ -94,6 +110,9 @@ export function parseByDetection(content: string): ParseOutcome & { format?: For
   }
   if (mdCodec.detect(content)) {
     return { ...mdCodec.parse(content), format: 'md' };
+  }
+  if (mjsCodec.detect(content)) {
+    return { ...mjsCodec.parse(content), format: 'mjs' };
   }
   return {
     workflow: emptyWorkflow(),
