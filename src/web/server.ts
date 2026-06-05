@@ -181,7 +181,7 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'File import failed' });
     } finally {
-      try { fs.unlinkSync(tmpPath); } catch { /* best-effort */ }
+      try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch { /* best-effort */ }
     }
   });
 
@@ -198,7 +198,7 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
 
     watcher.on('all', (event, filePath) => {
       const ext = path.extname(filePath).toLowerCase();
-      if (ext === '.md' || ext === '.json') {
+      if (ext === '.md' || ext === '.json' || ext === '.mjs') {
         const name = path.basename(filePath, ext);
         res.write(`data: ${JSON.stringify({ event, name, path: filePath })}\n\n`);
       }

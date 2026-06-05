@@ -62,6 +62,7 @@ describe('codecRegistry', () => {
     expect(parseByDetection('﻿  ' + json).format).toBe('json');
     const md = serializeByFormat(wf, 'md');
     expect(parseByDetection(md).format).toBe('md');
+    expect(parseByDetection('export const meta = { name: "x", description: "y", phases: [] };').format).toBe('mjs');
   });
 
   it('parseByDetection returns fatal for unrecognized content', () => {
