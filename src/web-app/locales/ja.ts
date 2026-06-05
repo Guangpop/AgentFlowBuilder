@@ -13,7 +13,7 @@ export const ja: LocaleStrings = {
   tabInstructions: '指示書',
   tabMermaid: 'Mermaid',
   tabMarkdown: 'MD',
-  tabJson: 'JSON',
+  tabJson: 'Format',
   tabHistory: '履歴',
 
   // Buttons

@@ -11,7 +11,7 @@ export const zhTW = {
   tabInstructions: '指令集',
   tabMermaid: 'Mermaid',
   tabMarkdown: 'MD',
-  tabJson: 'JSON',
+  tabJson: 'Format',
   tabHistory: '歷程',
 
   // Buttons

@@ -13,7 +13,7 @@ export const en: LocaleStrings = {
   tabInstructions: 'Instructions',
   tabMermaid: 'Mermaid',
   tabMarkdown: 'MD',
-  tabJson: 'JSON',
+  tabJson: 'Format',
   tabHistory: 'History',
 
   // Buttons
