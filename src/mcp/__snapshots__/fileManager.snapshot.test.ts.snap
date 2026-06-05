@@ -1,0 +1,859 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`showcase workflows load identically (storage refactor gate) > customer_service_agent normalized structure is stable 1`] = `
+{
+  "description": "智能客服 Agent，能自動接收客戶問題、分類意圖、查詢知識庫回答，無法解決時轉接人工客服，並在結束後收集滿意度回饋。",
+  "name": "客服智能助手",
+  "nodes": [
+    {
+      "config": null,
+      "description": "信心度不足時，向客戶提出釐清問題以獲取更多資訊",
+      "inputs": [
+        "customer_message",
+        "search_results",
+      ],
+      "next": [
+        "receive_clarification",
+      ],
+      "node_id": "ask_clarification",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "clarification_question",
+      ],
+      "title": "Ask Clarification",
+    },
+    {
+      "config": null,
+      "description": "判斷知識庫搜尋結果的信心度是否足夠（confidence_score >= 0.7）",
+      "inputs": [
+        "confidence_score",
+      ],
+      "next": [
+        "generate_response",
+        "ask_clarification",
+      ],
+      "node_id": "check_confidence",
+      "node_type": "Condition",
+      "outputs": [
+        "is_confident",
+      ],
+      "title": "Check Confidence",
+    },
+    {
+      "config": null,
+      "description": "詢問客戶問題是否已解決",
+      "inputs": [
+        "agent_response",
+      ],
+      "next": [
+        "customer_feedback",
+      ],
+      "node_id": "check_resolved",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "resolution_question",
+      ],
+      "title": "Check Resolved",
+    },
+    {
+      "config": null,
+      "description": "判斷是否為緊急或高情緒問題（urgency_level >= high 或 sentiment_score < 0.3）",
+      "inputs": [
+        "urgency_level",
+        "sentiment_score",
+      ],
+      "next": [
+        "escalate_to_human",
+        "search_knowledge_base",
+      ],
+      "node_id": "check_urgency",
+      "node_type": "Condition",
+      "outputs": [
+        "is_urgent",
+      ],
+      "title": "Check Urgency",
+    },
+    {
+      "config": null,
+      "description": "分析客戶訊息，分類問題意圖（產品諮詢、技術支援、帳號問題、投訴建議、退換貨）",
+      "inputs": [
+        "customer_message",
+      ],
+      "next": [
+        "check_urgency",
+      ],
+      "node_id": "classify_intent",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "intent_category",
+        "sentiment_score",
+        "urgency_level",
+      ],
+      "title": "Classify Intent",
+    },
+    {
+      "config": null,
+      "description": "請客戶對本次服務進行滿意度評分（1-5 分）",
+      "inputs": [
+        "escalation_ticket",
+        "agent_response",
+      ],
+      "next": [
+        "record_feedback",
+      ],
+      "node_id": "collect_satisfaction",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "satisfaction_question",
+      ],
+      "title": "Collect Satisfaction",
+    },
+    {
+      "config": null,
+      "description": "客戶回覆問題是否已解決",
+      "inputs": [
+        "resolution_question",
+      ],
+      "next": [
+        "evaluate_resolution",
+      ],
+      "node_id": "customer_feedback",
+      "node_type": "UserResponse",
+      "outputs": [
+        "is_resolved_answer",
+      ],
+      "title": "Customer Feedback",
+    },
+    {
+      "config": null,
+      "description": "將對話轉接給人工客服，附上完整對話摘要與問題分類",
+      "inputs": [
+        "customer_message",
+        "intent_category",
+        "search_results",
+      ],
+      "next": [
+        "collect_satisfaction",
+      ],
+      "node_id": "escalate_to_human",
+      "node_type": "AgentAction",
+      "outputs": [
+        "escalation_ticket",
+      ],
+      "title": "Escalate To Human",
+    },
+    {
+      "config": null,
+      "description": "判斷客戶是否確認問題已解決",
+      "inputs": [
+        "is_resolved_answer",
+      ],
+      "next": [
+        "collect_satisfaction",
+        "escalate_to_human",
+      ],
+      "node_id": "evaluate_resolution",
+      "node_type": "Condition",
+      "outputs": [
+        "resolved",
+      ],
+      "title": "Evaluate Resolution",
+    },
+    {
+      "config": null,
+      "description": "根據知識庫結果生成專業、友善的回覆訊息",
+      "inputs": [
+        "search_results",
+        "customer_message",
+        "intent_category",
+      ],
+      "next": [
+        "check_resolved",
+      ],
+      "node_id": "generate_response",
+      "node_type": "AgentAction",
+      "outputs": [
+        "agent_response",
+      ],
+      "title": "Generate Response",
+    },
+    {
+      "config": null,
+      "description": "接收客戶的補充回答",
+      "inputs": [
+        "clarification_question",
+      ],
+      "next": [
+        "search_knowledge_base",
+      ],
+      "node_id": "receive_clarification",
+      "node_type": "UserResponse",
+      "outputs": [
+        "clarification_answer",
+      ],
+      "title": "Receive Clarification",
+    },
+    {
+      "config": null,
+      "description": "接收客戶的問題或請求",
+      "inputs": [],
+      "next": [
+        "classify_intent",
+      ],
+      "node_id": "receive_customer_input",
+      "node_type": "UserInput",
+      "outputs": [
+        "customer_message",
+      ],
+      "title": "Receive Customer Input",
+    },
+    {
+      "config": {
+        "scriptContent": "# Record customer feedback to database
+import json
+feedback = {
+  'intent': intent_category,
+  'satisfaction': satisfaction_score,
+  'summary': conversation_summary
+}
+print(json.dumps(feedback))",
+        "scriptType": "python",
+      },
+      "description": "記錄客戶滿意度評分與對話摘要到資料庫",
+      "inputs": [
+        "satisfaction_question",
+        "intent_category",
+        "customer_message",
+      ],
+      "next": [],
+      "node_id": "record_feedback",
+      "node_type": "ScriptExecution",
+      "outputs": [
+        "feedback_record",
+      ],
+      "title": "Record Feedback",
+    },
+    {
+      "config": {
+        "toolName": "knowledge_base_search",
+      },
+      "description": "根據意圖分類查詢知識庫，搜尋相關解答",
+      "inputs": [
+        "customer_message",
+        "intent_category",
+      ],
+      "next": [
+        "check_confidence",
+      ],
+      "node_id": "search_knowledge_base",
+      "node_type": "MCPTool",
+      "outputs": [
+        "search_results",
+        "confidence_score",
+      ],
+      "title": "Search Knowledge Base",
+    },
+  ],
+}
+`;
+
+exports[`showcase workflows load identically (storage refactor gate) > deep_research_agent normalized structure is stable 1`] = `
+{
+  "description": "An autonomous deep research agent that plans research strategy, searches multiple sources, evaluates quality, iteratively gathers information, synthesizes findings into a structured report, and refines based on user feedback. Showcases all 9 node types.",
+  "name": "Deep Research Agent",
+  "nodes": [
+    {
+      "config": null,
+      "description": "Check if all sub-questions from the research plan have been investigated. If remaining sub-questions exist, loop back to search the next one.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "synthesize_report",
+        "search_web",
+      ],
+      "node_id": "all_questions_covered",
+      "node_type": "Condition",
+      "outputs": [
+        "true_output",
+        "false_output",
+      ],
+      "title": "All Questions Covered",
+    },
+    {
+      "config": null,
+      "description": "Present the report summary to the user. Ask: Are you satisfied with this report? Would you like to (1) approve and finalize, (2) request deeper research on specific sections, or (3) adjust the focus/scope?",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "user_feedback",
+      ],
+      "node_id": "ask_review",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "output",
+      ],
+      "title": "Ask Review",
+    },
+    {
+      "config": null,
+      "description": "Evaluate each search result for relevance, credibility, and recency. Score sources on a 1-5 scale. Filter out low-quality, outdated, or irrelevant results. Keep top 3-5 sources per sub-question.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "has_enough_quality",
+      ],
+      "node_id": "evaluate_sources",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "output",
+      ],
+      "title": "Evaluate Sources",
+    },
+    {
+      "config": null,
+      "description": "Deep-read each qualified source. Extract key facts, statistics, quotes, and arguments. Tag each finding with its source URL for citation. Identify contradictions or gaps between sources.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "all_questions_covered",
+      ],
+      "node_id": "extract_findings",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "output",
+      ],
+      "title": "Extract Findings",
+    },
+    {
+      "config": null,
+      "description": "Finalize the approved report. Save the definitive version, generate export formats (Markdown + PDF-ready), and confirm completion to the user with the file path.",
+      "inputs": [
+        "input",
+      ],
+      "next": [],
+      "node_id": "finalize_report",
+      "node_type": "AgentAction",
+      "outputs": [],
+      "title": "Finalize Report",
+    },
+    {
+      "config": {
+        "language": "Python",
+        "script": "# Format findings into structured Markdown report
+# with TOC, citations, and references section
+report = format_research_report(findings)
+write_file('research_report.md', report)",
+      },
+      "description": "Format the synthesized report into a polished Markdown document with proper headings, bullet points, citation links, and a references section. Generate a table of contents.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "save_draft",
+      ],
+      "node_id": "generate_markdown",
+      "node_type": "ScriptExecution",
+      "outputs": [
+        "output",
+      ],
+      "title": "Generate Markdown",
+    },
+    {
+      "config": null,
+      "description": "Check if we have at least 2 high-quality sources (score >= 4) for the current sub-question. If not, we need to refine the search query.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "extract_findings",
+        "refine_query",
+      ],
+      "node_id": "has_enough_quality",
+      "node_type": "Condition",
+      "outputs": [
+        "true_output",
+        "false_output",
+      ],
+      "title": "Has Enough Quality",
+    },
+    {
+      "config": null,
+      "description": "Parse the user's feedback to understand what needs to change. If they want deeper research, add new sub-questions to the plan. If they want revisions, note the specific adjustments needed. Update the research plan accordingly.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "search_web",
+      ],
+      "node_id": "incorporate_feedback",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "output",
+      ],
+      "title": "Incorporate Feedback",
+    },
+    {
+      "config": null,
+      "description": "Check if the user approved the report. If not, they want revisions or deeper research on specific topics.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "finalize_report",
+        "incorporate_feedback",
+      ],
+      "node_id": "is_approved",
+      "node_type": "Condition",
+      "outputs": [
+        "true_output",
+        "false_output",
+      ],
+      "title": "Is Approved",
+    },
+    {
+      "config": null,
+      "description": "Analyze the research topic and decompose it into 3-5 sub-questions. Identify key search queries, relevant domains, and potential source types (academic, news, technical docs). Create a prioritized research plan.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "search_web",
+      ],
+      "node_id": "plan_strategy",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "output",
+      ],
+      "title": "Plan Strategy",
+    },
+    {
+      "config": null,
+      "description": "Receive the research topic and any specific requirements (depth, focus areas, output format) from the user.",
+      "inputs": [],
+      "next": [
+        "plan_strategy",
+      ],
+      "node_id": "receive_topic",
+      "node_type": "UserInput",
+      "outputs": [
+        "output",
+      ],
+      "title": "Receive Topic",
+    },
+    {
+      "config": {
+        "provider": "superpower",
+        "skill": "brain_storm",
+      },
+      "description": "Use brainstorming skill to generate alternative search queries — rephrase with synonyms, add domain-specific terms, or narrow/broaden scope to find better sources.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "search_web",
+      ],
+      "node_id": "refine_query",
+      "node_type": "AgentSkill",
+      "outputs": [
+        "output",
+      ],
+      "title": "Refine Query",
+    },
+    {
+      "config": null,
+      "description": "Save the generated report draft to the local filesystem and prepare a summary preview for the user to review.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "ask_review",
+      ],
+      "node_id": "save_draft",
+      "node_type": "AgentAction",
+      "outputs": [
+        "output",
+      ],
+      "title": "Save Draft",
+    },
+    {
+      "config": {
+        "parameters": "query, count=10",
+        "tool_name": "brave_web_search",
+      },
+      "description": "Execute web search using the current sub-question as query. Retrieve top results with titles, URLs, and snippets.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "evaluate_sources",
+      ],
+      "node_id": "search_web",
+      "node_type": "MCPTool",
+      "outputs": [
+        "output",
+      ],
+      "title": "Search Web",
+    },
+    {
+      "config": null,
+      "description": "Synthesize all findings into a coherent narrative. Organize by themes (not by source). Highlight key insights, identify consensus vs. debate, note limitations and knowledge gaps. Structure as: Executive Summary → Key Findings → Detailed Analysis → Conclusions.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "generate_markdown",
+      ],
+      "node_id": "synthesize_report",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "output",
+      ],
+      "title": "Synthesize Report",
+    },
+    {
+      "config": null,
+      "description": "User reviews the report draft and provides feedback — approve, request revisions, or ask for deeper research on specific areas.",
+      "inputs": [
+        "input",
+      ],
+      "next": [
+        "is_approved",
+      ],
+      "node_id": "user_feedback",
+      "node_type": "UserResponse",
+      "outputs": [
+        "output",
+      ],
+      "title": "User Feedback",
+    },
+  ],
+}
+`;
+
+exports[`showcase workflows load identically (storage refactor gate) > issue_triage_test normalized structure is stable 1`] = `
+{
+  "description": "協助使用者把模糊的 issue 描述整理成結構化的 bug report 或 feature spec。重點是**不要跳到解決方案**，先把事實拆乾淨、缺資訊就問、明確分流後才寫成品。",
+  "name": "Issue 三角分流助手",
+  "nodes": [
+    {
+      "config": null,
+      "description": "掃描 \`facts\` 中標記為 \`missing\` 的欄位。**只挑一個最關鍵的**問使用者，**不要一次連問好幾題**。如果四個面向都有資訊，輸出「（無補問）」並讓下一階段直接拿到空 clarification 即可。",
+      "inputs": [
+        "facts",
+      ],
+      "next": [
+        "receive_clarification",
+      ],
+      "node_id": "ask_missing",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "followup_question",
+      ],
+      "title": "Ask Missing Info",
+    },
+    {
+      "config": null,
+      "description": "判斷此 issue 是 **bug** 還是 **feature request**。判斷規則：
+
+- 有明確的 expected != actual 或 reproducibility 描述 → **bug** (TRUE)
+- 描述的是「想要…」、「希望增加…」、「能不能…」 → **feature** (FALSE)
+- 混合型：偏向 expected vs actual 才算 bug，其餘算 feature
+
+明確宣告判斷結果與依據。",
+      "inputs": [
+        "facts",
+        "clarification",
+      ],
+      "next": [
+        "draft_bug_report",
+        "draft_feature_spec",
+      ],
+      "node_id": "classify_type",
+      "node_type": "Condition",
+      "outputs": [
+        "is_bug",
+      ],
+      "title": "Classify Type",
+    },
+    {
+      "config": null,
+      "description": "把上一階段的成品交給使用者，以 markdown 格式呈現。**不要主動接著動手實作或修改**，只交付寫好的結構文件，等使用者下一步指示。",
+      "inputs": [
+        "bug_report",
+        "feature_spec",
+      ],
+      "next": [],
+      "node_id": "deliver",
+      "node_type": "UserResponse",
+      "outputs": [
+        "final_output",
+      ],
+      "title": "Deliver Result",
+    },
+    {
+      "config": null,
+      "description": "走 TRUE 分支才執行。輸出包含：
+
+1. **Title** — 一句話描述 bug
+2. **Reproduction Steps** — 編號條列
+3. **Expected** / **Actual**
+4. **Severity** — Critical / High / Medium / Low（依照影響面）
+5. **Suspected Area** —（可選）懷疑的程式碼/系統區塊",
+      "inputs": [
+        "facts",
+        "clarification",
+      ],
+      "next": [
+        "deliver",
+      ],
+      "node_id": "draft_bug_report",
+      "node_type": "AgentAction",
+      "outputs": [
+        "bug_report",
+      ],
+      "title": "Draft Bug Report",
+    },
+    {
+      "config": null,
+      "description": "走 FALSE 分支才執行。輸出包含：
+
+1. **Title** — 一句話描述功能
+2. **User Story** — As a / I want / So that 格式
+3. **Acceptance Criteria** — 編號條列、可驗證
+4. **Out of Scope** —（可選）明確排除什麼
+5. **Open Questions** —（可選）尚未決定的事項",
+      "inputs": [
+        "facts",
+        "clarification",
+      ],
+      "next": [
+        "deliver",
+      ],
+      "node_id": "draft_feature_spec",
+      "node_type": "AgentAction",
+      "outputs": [
+        "feature_spec",
+      ],
+      "title": "Draft Feature Spec",
+    },
+    {
+      "config": null,
+      "description": "從原始 issue 拆出四個面向。每個面向用一句話陳述，找不到資訊的標記為 \`missing\`：
+
+- **What**：到底發生了什麼事或想做什麼事？
+- **When / Where**：發生的時機或位置（哪個檔案、哪個按鈕、哪個流程）？
+- **Reproducibility**：每次都會發生、偶爾、還是只發生過一次？
+- **Expected vs Actual**：使用者預期看到什麼？實際看到什麼？
+
+輸出結構化的 \`facts\` 物件，例如 \`{ what: "…", when: "…", reproducibility: "missing", expected: "…", actual: "…" }\`。",
+      "inputs": [
+        "raw_issue",
+      ],
+      "next": [
+        "ask_missing",
+      ],
+      "node_id": "extract_facts",
+      "node_type": "AgentReasoning",
+      "outputs": [
+        "facts",
+      ],
+      "title": "Extract Facts",
+    },
+    {
+      "config": null,
+      "description": "接收使用者對補問的回答，把它合進 \`facts\`。",
+      "inputs": [
+        "followup_question",
+      ],
+      "next": [
+        "classify_type",
+      ],
+      "node_id": "receive_clarification",
+      "node_type": "UserResponse",
+      "outputs": [
+        "clarification",
+      ],
+      "title": "Receive Clarification",
+    },
+    {
+      "config": null,
+      "description": "接收使用者描述的問題。不要立刻判斷類型、不要建議解法、不要假設背景。**只記錄原始輸入**。",
+      "inputs": [],
+      "next": [
+        "extract_facts",
+      ],
+      "node_id": "receive_issue",
+      "node_type": "UserInput",
+      "outputs": [
+        "raw_issue",
+      ],
+      "title": "Receive Issue",
+    },
+  ],
+}
+`;
+
+exports[`showcase workflows load identically (storage refactor gate) > oiwai_message_assistant normalized structure is stable 1`] = `
+{
+  "description": "お孫さんへの「お誕生日おめでとう」や「ご入学おめでとう」のメッセージを書くのを、AI がお手伝いします。
+
+AI は **ものを考えてくれるお手伝いさん** のようなものだと思ってください。お話しかけると、ちゃんと聞いて、考えて、お返事してくれます。
+
+下の流れは「**話しかけ → 質問 → お返事 → 文章を書く**」という、お手伝いさんと一緒にお手紙を作る順番です。",
+  "name": "お孫さんへのお祝いメッセージ",
+  "nodes": [
+    {
+      "config": null,
+      "description": "AI が「もう少し詳しく教えてください」と聞いてきます。優しい言い方でお聞きしますので、ご安心ください。
+
+- **お誕生日の場合**：お孫さんは何歳になられますか？
+- **入学・卒業の場合**：何年生になりますか？
+
+なぜ聞くかというと、6 歳のお孫さんと 18 歳のお孫さんでは、使う言葉を変えた方が喜ばれるからです。",
+      "inputs": [
+        "occasion",
+      ],
+      "next": [
+        "receive_details",
+      ],
+      "node_id": "ask_details",
+      "node_type": "AgentQuestion",
+      "outputs": [
+        "question_to_user",
+      ],
+      "title": "詳しい情報を聞く",
+    },
+    {
+      "config": null,
+      "description": "最初に、何のお祝いかを教えていただきます。
+
+- 「お誕生日」
+- 「入学」
+- 「卒業」
+
+このどれかを、そのまま話しかけるか、文字でお伝えください。AI が受け取って、次の質問を考えます。",
+      "inputs": [],
+      "next": [
+        "ask_details",
+      ],
+      "node_id": "ask_occasion",
+      "node_type": "UserInput",
+      "outputs": [
+        "occasion",
+      ],
+      "title": "お祝いのきっかけを聞く",
+    },
+    {
+      "config": null,
+      "description": "ここで AI が **道を分けます**。
+
+- 「お誕生日」とお答えだったら → **左の道** へ進み、お誕生日用の文を書きます
+- 「入学」「卒業」だったら → **右の道** へ進み、お祝い文を書きます
+
+人で言えば、お手伝いさんが「今日は子供向けの言葉にしよう」「今日は大人びた言葉にしよう」と判断しているのと同じです。",
+      "inputs": [
+        "occasion",
+        "details",
+      ],
+      "next": [
+        "write_birthday_message",
+        "write_school_message",
+      ],
+      "node_id": "check_occasion",
+      "node_type": "Condition",
+      "outputs": [
+        "is_birthday",
+      ],
+      "title": "お誕生日かどうか",
+    },
+    {
+      "config": null,
+      "description": "最後に、AI が書いた文章を画面に出してくれます。
+
+そのままお気に召せば、**LINE** や **お葉書** にコピーしてお送りいただけます。気に入らないところがあれば、「ここをこう書き直して」と話しかければ、もう一度書き直してもらえます。
+
+これで完成です。",
+      "inputs": [
+        "message",
+      ],
+      "next": [],
+      "node_id": "deliver_message",
+      "node_type": "UserResponse",
+      "outputs": [
+        "final_message",
+      ],
+      "title": "メッセージをお見せする",
+    },
+    {
+      "config": null,
+      "description": "あなたのお返事（例：「6 歳になります」）を、AI が聞き取ります。
+
+聞き間違えても大丈夫です。あとで書き直してもらえます。",
+      "inputs": [
+        "question_to_user",
+      ],
+      "next": [
+        "check_occasion",
+      ],
+      "node_id": "receive_details",
+      "node_type": "UserResponse",
+      "outputs": [
+        "details",
+      ],
+      "title": "お返事を受け取る",
+    },
+    {
+      "config": null,
+      "description": "お誕生日用の温かいメッセージを AI が書いてくれます。
+
+例（6 歳のお孫さんの場合）：
+
+> 〇〇ちゃん、お誕生日おめでとう。
+> 元気いっぱい、楽しい一年になりますように。
+> おじいちゃん・おばあちゃんはいつも〇〇ちゃんを応援しています。
+
+このような文章を、お孫さんの年齢に合わせて作ってくれます。",
+      "inputs": [
+        "details",
+      ],
+      "next": [
+        "deliver_message",
+      ],
+      "node_id": "write_birthday_message",
+      "node_type": "AgentAction",
+      "outputs": [
+        "message",
+      ],
+      "title": "お誕生日メッセージを書く",
+    },
+    {
+      "config": null,
+      "description": "入学・卒業のお祝い文を AI が書いてくれます。
+
+例（小学校入学の場合）：
+
+> 〇〇さん、ご入学おめでとうございます。
+> 新しいお友達と楽しい毎日を過ごせますように。
+> 心からお祝い申し上げます。
+
+学年に合わせて、子供らしい言葉と大人らしい言葉を使い分けてくれます。",
+      "inputs": [
+        "details",
+      ],
+      "next": [
+        "deliver_message",
+      ],
+      "node_id": "write_school_message",
+      "node_type": "AgentAction",
+      "outputs": [
+        "message",
+      ],
+      "title": "入学・卒業のお祝いメッセージを書く",
+    },
+  ],
+}
+`;
