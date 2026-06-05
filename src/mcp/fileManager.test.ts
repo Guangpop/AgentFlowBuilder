@@ -82,6 +82,11 @@ describe('FileManager (.md primary, .json legacy)', () => {
     expect(workflow.nodes[0].title).toBe('Step One'); // derived
   });
 
+  it('throws when a legacy .json is corrupt', () => {
+    fs.writeFileSync(path.join(dir, 'broken.json'), '{ not valid json', 'utf-8');
+    expect(() => fm.load('broken')).toThrow(/Failed to parse/);
+  });
+
   it('list() dedupes by basename, prefers .md when both exist', () => {
     fm.save('dup', sample);
     fs.writeFileSync(path.join(dir, 'dup.json'), '{"name":"dup","description":"old","nodes":[]}', 'utf-8');

@@ -54,7 +54,11 @@ export class FileManager {
     }
     const jsonPath = this.getLegacyJsonPath(name);
     if (fs.existsSync(jsonPath)) {
-      const { workflow } = parseWorkflowJson(fs.readFileSync(jsonPath, 'utf-8'));
+      const { workflow, warnings } = parseWorkflowJson(fs.readFileSync(jsonPath, 'utf-8'));
+      const fatal = warnings.find((w) => w.severity === 'error');
+      if (fatal) {
+        throw new Error(`Failed to parse ${jsonPath}: ${fatal.message}`);
+      }
       return { workflow, path: jsonPath };
     }
     throw new Error(`Workflow "${name}" not found (looked at ${mdPath} and ${jsonPath})`);
