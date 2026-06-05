@@ -55,7 +55,19 @@ function promptFor(n: WorkflowNode): string {
 export function serializeWorkflowMjs(workflow: Workflow): MjsSerializeResult {
   const warnings: FormatWarning[] = [];
   const ordered = topoOrder(workflow.nodes);
-  const v = (id: string) => safeVar(id);
+  const usedVars = new Set<string>();
+  const varMap = new Map<string, string>();
+  const v = (id: string): string => {
+    const cached = varMap.get(id);
+    if (cached) return cached;
+    const base = safeVar(id);
+    let name = base;
+    let i = 1;
+    while (usedVars.has(name)) name = `${base}_${i++}`;
+    usedVars.add(name);
+    varMap.set(id, name);
+    return name;
+  };
 
   const head =
     `export const meta = {\n` +

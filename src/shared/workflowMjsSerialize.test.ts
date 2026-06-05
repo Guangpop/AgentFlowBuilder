@@ -48,4 +48,17 @@ describe('serializeWorkflowMjs', () => {
     // 'in' is a UserInput comment; ensure exactly one classifier and no `while`/`for`
     expect(code).not.toMatch(/\bwhile\b|\bfor\b/);
   });
+
+  it('produces unique variable names for ids that collide after normalization', () => {
+    const collidingWf = {
+      name: 'c', description: 'd',
+      nodes: [
+        { node_id: 'my-node', node_type: NodeType.AgentAction, title: 'A', description: 'first', inputs: [], outputs: [], next: ['my_node'], position: { x: 0, y: 0 } },
+        { node_id: 'my_node', node_type: NodeType.AgentAction, title: 'B', description: 'second', inputs: [], outputs: [], next: [], position: { x: 0, y: 0 } },
+      ],
+      edges: [],
+    };
+    const { code } = serializeWorkflowMjs(collidingWf as any);
+    expect(() => parseEsm(code)).not.toThrow(); // must be valid ESM (no duplicate const)
+  });
 });

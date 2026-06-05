@@ -68,4 +68,14 @@ describe('parseWorkflowMjs (best-effort)', () => {
     const { workflow } = parseWorkflowMjs(nonLiteralMeta, { fallbackName: 'from_file' });
     expect(workflow.name).toBe('from_file');
   });
+
+  it('collapses a while/budget loop to BUDGET_LOOP_COLLAPSED', () => {
+    const withWhile = `
+export const meta = { name: "w", description: "budget", phases: [] };
+let n = 0;
+while (n < 3) { await agent("step"); n++; }
+`;
+    const { warnings } = parseWorkflowMjs(withWhile);
+    expect(warnings.some((w) => w.code === 'BUDGET_LOOP_COLLAPSED')).toBe(true);
+  });
 });

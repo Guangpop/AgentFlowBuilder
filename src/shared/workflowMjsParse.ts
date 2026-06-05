@@ -24,6 +24,8 @@ export function isPureLiteralMetaNode(node: any): boolean {
         p.type === 'Property' && !p.computed && p.kind === 'init' &&
         (p.key.type === 'Identifier' || p.key.type === 'Literal') &&
         isPureLiteralMetaNode(p.value));
+    case 'UnaryExpression':
+      return node.operator === '-' && node.argument?.type === 'Literal' && typeof node.argument.value === 'number';
     default:
       return false;
   }
