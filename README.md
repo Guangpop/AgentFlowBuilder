@@ -2,6 +2,8 @@
 
 > **English** · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md)
 
+![AgentFlowBuilder — turn your AI experience into reusable, shareable assets](docs/images/intro-en.png)
+
 > Design AI agent workflows visually. Generate executable skills and commands for Claude Code, Cursor, and Antigravity — or copy a self-contained prompt to paste into ChatGPT / Gemini / Grok. No coding required.
 
 ![AgentFlowBuilder Screenshot](docs/images/showcase-en.png)
@@ -19,6 +21,8 @@ AgentFlowBuilder is an MCP Server + visual editor that turns workflow diagrams i
 - **Canonical Markdown storage** — workflows live as `workflows/*.md` (YAML frontmatter + prose body); `.json` is legacy cache
 
 ## Why AgentFlowBuilder?
+
+![From a perfect prompt you can't find again, to a reusable asset everyone shares](docs/images/comic-en.png)
 
 | Pain Point | How AgentFlowBuilder Solves It |
 |---|---|

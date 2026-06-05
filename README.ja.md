@@ -2,6 +2,8 @@
 
 > [English](README.md) · [繁體中文](README.zh-TW.md) · **日本語**
 
+![AgentFlowBuilder — あなたの AI 活用体験を、再利用できる資産に変える](docs/images/intro-ja.png)
+
 > AI agent ワークフローをビジュアルで設計。Claude Code、Cursor、Antigravity で動く skill / command を生成 — または ChatGPT / Gemini / Grok にそのまま貼れる完結型プロンプトをコピー。コーディング不要。
 
 ![AgentFlowBuilder スクリーンショット](docs/images/showcase-ja.png)
@@ -19,6 +21,8 @@ AgentFlowBuilder は MCP Server + ビジュアル編集器で、フロー図を�
 - **Markdown を正規ストレージとして採用** — workflow は `workflows/*.md`（YAML frontmatter + 散文 body）で保存、`.json` は legacy cache 扱い
 
 ## なぜ AgentFlowBuilder か
+
+![二度と見つからない完璧なプロンプトから、みんなで共有できる資産へ](docs/images/comic-ja.png)
 
 | 課題 | AgentFlowBuilder の解決方法 |
 |---|---|

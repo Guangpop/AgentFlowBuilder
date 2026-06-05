@@ -2,6 +2,8 @@
 
 > [English](README.md) · **繁體中文** · [日本語](README.ja.md)
 
+![AgentFlowBuilder — 把你的 AI 使用經驗，變成可重複使用的資產](docs/images/intro-zh.png)
+
 > 用視覺化方式設計 AI agent workflow。產出可直接執行的 skill 與 command，給 Claude Code、Cursor、Antigravity 用 — 或複製一段自我完整的 prompt，貼到 ChatGPT / Gemini / Grok。完全不需要寫程式。
 
 ![AgentFlowBuilder 展示](docs/images/showcase-zh.png)
@@ -19,6 +21,8 @@ AgentFlowBuilder 是一個 MCP Server + 視覺化編輯器，把流程圖轉成�
 - **Markdown 為標準儲存格式** — workflow 存成 `workflows/*.md`（YAML frontmatter + 散文 body）；`.json` 只是 legacy cache
 
 ## 為什麼用 AgentFlowBuilder？
+
+![從找不回來的完美提示詞，到人人都能複用的資產](docs/images/comic-zh.png)
 
 | 痛點 | AgentFlowBuilder 怎麼解 |
 |---|---|
