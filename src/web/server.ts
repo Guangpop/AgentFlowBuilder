@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import chokidar from 'chokidar';
 import { FileManager, WorkflowNotFoundError, WorkflowParseError } from '../mcp/fileManager.js';
 import { shapeMdToWorkflow } from '../shared/mdToWorkflow.js';
+import { listFormats } from '../shared/codecRegistry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +17,7 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
 
   const fm = new FileManager();
   fm.ensureDir();
+  const ALLOWED_FORMATS = new Set<string>(listFormats());
 
   // API: List workflows
   app.get('/api/list', (_req, res) => {
@@ -29,8 +31,8 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
   // API: Load workflow
   app.get('/api/load/:name', (req, res) => {
     try {
-      const result = fm.load(req.params.name);
-      res.json(result);
+      const { workflow, format, candidates } = fm.load(req.params.name);
+      res.json({ workflow, format, formats: candidates.map((c) => c.format) });
     } catch (err) {
       if (err instanceof WorkflowNotFoundError) {
         return res.status(404).json({ error: err.message });
@@ -48,6 +50,9 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
     if (!name || !workflow) {
       return res.status(400).json({ error: 'name and workflow are required' });
     }
+    if (format !== undefined && !ALLOWED_FORMATS.has(format)) {
+      return res.status(400).json({ error: `Unsupported format: ${format}. Use one of: ${[...ALLOWED_FORMATS].join(', ')}` });
+    }
     try {
       const result = fm.save(name, workflow, format ? { format } : undefined);
       res.json({ path: result.path, format: result.format, success: true });
@@ -58,12 +63,19 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
 
   // API: Delete workflow
   app.delete('/api/delete/:name', (req, res) => {
-    const format = typeof req.query.format === 'string' ? (req.query.format as any) : undefined;
-    const { deleted } = fm.delete(req.params.name, format);
-    if (deleted.length > 0) {
-      res.json({ success: true, deleted });
-    } else {
-      res.status(404).json({ error: 'Workflow not found' });
+    const format = typeof req.query.format === 'string' ? req.query.format : undefined;
+    if (format !== undefined && !ALLOWED_FORMATS.has(format)) {
+      return res.status(400).json({ error: `Unsupported format: ${format}` });
+    }
+    try {
+      const { deleted } = fm.delete(req.params.name, format as any);
+      if (deleted.length > 0) {
+        res.json({ success: true, deleted });
+      } else {
+        res.status(404).json({ error: 'Workflow not found' });
+      }
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to delete workflow' });
     }
   });
 
