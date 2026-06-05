@@ -28,10 +28,12 @@ function orderNode(node: WorkflowNode, shape: JsonShape): Record<string, unknown
 
 /**
  * Canonical JSON serialization of the Workflow model.
- *  - `full` (default): lossless — includes node positions. Used for storage/roundtrip.
+ *  - `full` (default): includes node positions. Used for storage/roundtrip.
  *  - `clean`: strips positions. Used for sharing/export.
- * Keys are emitted in a fixed order with a trailing newline, so
- * serialize->parse->serialize is byte-stable.
+ * Edges are NEVER persisted — they are derived from each node's next[] at
+ * load time (see CLAUDE.md), so they are always emitted as []. This makes
+ * serialize->parse->serialize byte-stable regardless of in-memory edge state.
+ * Keys are emitted in a fixed order with a trailing newline.
  */
 export function serializeWorkflowJson(workflow: Workflow, opts: { shape?: JsonShape } = {}): string {
   const shape = opts.shape ?? 'full';
@@ -39,7 +41,7 @@ export function serializeWorkflowJson(workflow: Workflow, opts: { shape?: JsonSh
     name: workflow.name,
     description: workflow.description,
     nodes: workflow.nodes.map((n) => orderNode(n, shape)),
-    edges: workflow.edges,
+    edges: [] as never[],
   };
   return JSON.stringify(ordered, null, 2) + '\n';
 }
@@ -68,7 +70,7 @@ function normalizeWorkflow(raw: any): Workflow {
       position: n.position ?? { x: 0, y: 0 },
       ...(n.config ? { config: n.config } : {}),
     })),
-    edges: Array.isArray(raw?.edges) ? raw.edges : [],
+    edges: [], // edges are derived from next[] at runtime, never persisted (see CLAUDE.md)
   };
 }
 
@@ -84,11 +86,14 @@ export function parseWorkflowJson(content: string): ParseOutcome {
     raw = JSON.parse(content);
   } catch (err: any) {
     return {
-      workflow: emptyWorkflow('Invalid JSON'),
+      workflow: emptyWorkflow(''),
       warnings: [makeWarning('PARSE_FAILED', 'error', `Invalid JSON: ${err.message}`)],
     };
   }
-  const obj = raw && typeof raw === 'object' && raw.workflow ? raw.workflow : raw;
+  const obj =
+    raw && typeof raw === 'object' && raw.workflow && typeof raw.workflow === 'object'
+      ? raw.workflow
+      : raw;
   const workflow = normalizeWorkflow(obj);
   const warnings: FormatWarning[] = [];
   const result = WorkflowZodSchema.safeParse(workflow);

@@ -6,6 +6,9 @@
  * responses. The full code set is the cross-phase contract; P1 emits only
  * a subset (PARSE_FAILED), later phases emit the rest.
  */
+// Active in Phase 1: PARSE_FAILED. The remaining codes are reserved for
+// later phases (storage layer + .mjs interop) and are part of the stable
+// cross-phase contract.
 export type WarningCode =
   | 'PARSE_FAILED'
   | 'SCHEMA_REPAIRED'
