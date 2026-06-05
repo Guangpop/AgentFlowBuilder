@@ -94,12 +94,20 @@ const AppInner: React.FC = () => {
   const [showMermaidCode, setShowMermaidCode] = useState(false);
 
   const sseRef = useRef<EventSource | null>(null);
+  const handleLoadRef = useRef(handleLoad);
+  useEffect(() => { handleLoadRef.current = handleLoad; });
 
   // Fetch server capabilities on mount
   useEffect(() => {
     fetch('/api/capabilities')
       .then(r => r.json())
-      .then(setCapabilities)
+      .then((c) => {
+        setCapabilities(c);
+        if (!c.mjs) {
+          setExportFormat((f) => (f === 'mjs' ? 'json' : f));
+          setSaveFormat((f) => (f === 'mjs' ? 'json' : f));
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -122,7 +130,7 @@ const AppInner: React.FC = () => {
         setRefreshKey(prev => prev + 1);
         // Auto-reload if the changed file matches current workflow
         if (currentWorkflowName && data.name === currentWorkflowName && data.event !== 'unlink') {
-          handleLoad(currentWorkflowName);
+          handleLoadRef.current(currentWorkflowName);
         }
       } catch {
         // ignore parse errors
@@ -268,6 +276,9 @@ const AppInner: React.FC = () => {
         setHasUnsavedChanges(false);
         setRefreshKey(prev => prev + 1);
         showToast((t as any).savedToast || 'Workflow saved', 'success');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast((err as any).error || 'Failed to save workflow', 'error');
       }
     } catch (err) {
       console.error('Failed to save workflow:', err);
@@ -425,48 +436,39 @@ const AppInner: React.FC = () => {
     let copyLabel = '';
 
     if (activeTab === 'json') {
-      // Derive content from exportFormat
-      if (exportFormat === 'md') {
-        content = serializeWorkflowMd(workflow);
-      } else if (exportFormat === 'mjs') {
-        content = serializeWorkflowMjs(workflow).code;
-      } else {
+      // Derive content from exportFormat — call serializeWorkflowMjs only once
+      let mjsWarningCount = 0;
+      if (exportFormat === 'json') {
         content = serializeWorkflowJson(workflow, { shape: 'clean' });
+      } else if (exportFormat === 'md') {
+        content = serializeWorkflowMd(workflow);
+      } else {
+        const r = serializeWorkflowMjs(workflow);
+        content = r.code;
+        mjsWarningCount = r.warnings.length;
       }
       title = exportFormat.toUpperCase();
       copyLabel = `Copy ${exportFormat.toUpperCase()}`;
-    } else {
-      // markdown tab
-      content = generateMarkdown(workflow, markdownLabels);
-      title = t.systemDesignDoc;
-      copyLabel = t.copyMarkdown;
-    }
 
-    // Export format segments for the JSON/Data tab
-    const formatSegments: { key: 'json' | 'md' | 'mjs'; label: string }[] = [
-      { key: 'json', label: 'JSON' },
-      { key: 'md', label: 'MD' },
-      ...(capabilities.mjs ? [{ key: 'mjs' as const, label: 'MJS' }] : []),
-    ];
+      // Export format segments for the JSON/Data tab
+      const formatSegments: { key: 'json' | 'md' | 'mjs'; label: string }[] = [
+        { key: 'json', label: 'JSON' },
+        { key: 'md', label: 'MD' },
+        ...(capabilities.mjs ? [{ key: 'mjs' as const, label: 'MJS' }] : []),
+      ];
 
-    // MJS approximate-export warning note
-    const mjsWarningCount = exportFormat === 'mjs'
-      ? serializeWorkflowMjs(workflow).warnings.length
-      : 0;
-
-    return (
-      <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
-        <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.borderColorLight}`}>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{title}</span>
-            {exportFormat === 'mjs' && mjsWarningCount > 0 && (
-              <span className={`text-[10px] ${theme.textMuted} font-normal`}>
-                approximate export — {mjsWarningCount} {mjsWarningCount === 1 ? 'note' : 'notes'}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {activeTab === 'json' && (
+      return (
+        <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
+          <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.borderColorLight}`}>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{title}</span>
+              {exportFormat === 'mjs' && mjsWarningCount > 0 && (
+                <span className={`text-[10px] ${theme.textMuted} font-normal`}>
+                  approximate export — {mjsWarningCount} {mjsWarningCount === 1 ? 'note' : 'notes'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
               <div
                 role="tablist"
                 aria-label="Export format"
@@ -491,15 +493,13 @@ const AppInner: React.FC = () => {
                   );
                 })}
               </div>
-            )}
-            <button
-              onClick={() => handleCopy(content)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? t.copied : copyLabel}
-            </button>
-            {activeTab === 'json' && (
+              <button
+                onClick={() => handleCopy(content)}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? t.copied : copyLabel}
+              </button>
               <button
                 onClick={() => handleDownload(exportFormat)}
                 className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
@@ -508,8 +508,32 @@ const AppInner: React.FC = () => {
                 <Download size={12} />
                 Download
               </button>
-            )}
+            </div>
           </div>
+          <pre className={`flex-1 overflow-auto p-4 text-xs ${theme.textSecondary} font-mono leading-relaxed whitespace-pre-wrap`}>
+            {content}
+          </pre>
+        </div>
+      );
+    } else {
+      // markdown tab
+      content = generateMarkdown(workflow, markdownLabels);
+      title = t.systemDesignDoc;
+      copyLabel = t.copyMarkdown;
+    }
+
+    // Only markdown tab reaches here (json tab early-returned above)
+    return (
+      <div className={`flex-1 flex flex-col ${theme.bgPrimary} overflow-hidden`}>
+        <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.borderColorLight}`}>
+          <span className={`text-xs font-semibold ${theme.textMuted} uppercase tracking-wider`}>{title}</span>
+          <button
+            onClick={() => handleCopy(content)}
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs ${theme.bgTertiary} ${theme.bgCardHover} ${theme.textSecondary} ${theme.borderRadius} border ${theme.borderColor} transition-all cursor-pointer`}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? t.copied : copyLabel}
+          </button>
         </div>
         <pre className={`flex-1 overflow-auto p-4 text-xs ${theme.textSecondary} font-mono leading-relaxed whitespace-pre-wrap`}>
           {content}

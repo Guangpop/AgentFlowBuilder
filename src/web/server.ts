@@ -176,7 +176,7 @@ export async function startWebServer(port: number = 3000, dev: boolean = false) 
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: 'Empty body' });
       }
-      if (filename.toLowerCase().endsWith('.mjs')) {
+      if (filename.toLowerCase().endsWith('.mjs') && process.env.AGENTFLOW_MJS === '1') {
         const text = req.body.toString('utf-8');
         const fallbackName = path.basename(filename, path.extname(filename)) || 'imported_mjs';
         const { workflow, warnings } = parseWorkflowMjs(text, { fallbackName });
